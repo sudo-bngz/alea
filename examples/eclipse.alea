@@ -1,0 +1,13 @@
+work Eclipse {
+  let body = circle(x: 0.5, y: 0.5, size: ~between(0.4, 0.7))
+  let hole = warp(circle(), amount: 0.06)
+
+  constraint maximum(overlap(body, hole)) > 0.3
+
+  field piece = cut(body, hole) + ~~uniform(0, 1) * 0.04
+
+  render image(piece, palette: "ember")
+  render video(piece, duration: 10, palette: "ember")
+  render sound(piece, scatter(30, 0.01))
+  render sculpture(piece)
+}

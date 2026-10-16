@@ -1,0 +1,80 @@
+// Insta — 15s seamless audiovisual loop for Instagram
+// Run: ./target/release/alea examples/insta.alea
+
+work Insta {
+  let cos(a)  = sin(a + tau * 0.25)
+  let breath  = 0.5 + 0.5 * sin(t * tau * 2)
+  let pulse   = 0.5 + 0.5 * sin(t * tau * 4)
+  let angle_t = t * tau
+
+  // 1. Background: deep flowing topo lines
+  field flow  = noise(x * 3.5, y * 3.5, sin(angle_t))
+  field waves = 0.5 + 0.5 * sin((y + 0.15 * flow) * 28 - angle_t * 2)
+  let bg = paint(waves, palette: ["#0d1117", "#162032", "#264653"])
+
+  // 2. Midground: breathing organic solar membrane (posterized into 5 bands)
+  let core_outer = warp(circle(x: 0.5, y: 0.46, size: 0.46 + 0.04 * breath), amount: 0.06)
+  let core_inner = warp(
+    circle(x: 0.5 + 0.04 * cos(angle_t), y: 0.46 + 0.04 * sin(angle_t), size: 0.22 - 0.03 * breath),
+    amount: 0.07
+  )
+  field membrane = cut(core_outer, core_inner)
+  let mid = paint(
+    membrane * (0.6 + 0.4 * waves),
+    palette: ["#1d3557", "#e63946", "#f4a261", "#e9c46a", "#fff8eb"],
+    bands: 5,
+    alpha: core_outer
+  )
+
+  // 3. Foreground: kinetic geometric orbit & travellingrunners
+  let pts = [
+    [0.5 + 0.28 * cos((k / 6) * tau + angle_t), 0.46 + 0.28 * sin((k / 6) * tau + angle_t)]
+    for k in range(6)
+  ]
+  let loop_path = join(pts, [pts[0]])
+  let runner_a  = along(loop_path, t * length(loop_path))
+  let runner_b  = along(reverse(loop_path), t * length(loop_path))
+
+  let web = merge(
+    path(loop_path, 0.003, 0.0015),
+    ring(x: 0.5, y: 0.46, size: 0.56, width: 0.0025),
+    circle(x: runner_a.x, y: runner_a.y, size: 0.028 + 0.01 * pulse, softness: 0.5),
+    circle(x: runner_b.x, y: runner_b.y, size: 0.028 + 0.01 * pulse, softness: 0.5),
+    path([runner_a, runner_b], 0.002, 0.001)
+  )
+
+  // Gallery frame + caption inside the 9:16 vertical safe-zone
+  let border = cut(
+    rect(x: 0.5, y: 0.5, width: 0.52, height: 0.88, angle: 0, softness: 0.002),
+    rect(x: 0.5, y: 0.5, width: 0.50, height: 0.86, angle: 0, softness: 0.002)
+  )
+  let label = text("ALEA // EDITION", x: 0.5, y: 0.88, size: 0.018, font: "mono")
+  field ink_layer = merge(web, border * 0.7, label * 0.8)
+  let fg = paint(ink_layer, palette: ["#0d1117", "#fff8eb"], alpha: ink_layer)
+
+  // 4. Stack paintings with blend modes
+  let stage = overlay(bg, mid, blend: "screen", opacity: 0.92)
+  let final_art = overlay(stage, fg, blend: "normal", opacity: 0.95)
+
+  // 5. Audio events (fixed coordinates)
+  pattern melody = repeat 30 event(
+    x: 0.5 + 0.22 * cos(i * 2.399),
+    y: 0.25 + 0.55 * ((i * 0.618) % 1),
+    t: i / n,
+    intensity: ~between(0.45, 0.95),
+    size: ~between(0.01, 0.025)
+  )
+
+  render image(final_art, at: 0.25)
+  render video(
+    final_art,
+    duration: 15,
+    sound: [
+      drone(membrane, instrument: "strings", scale: "dorian", key: 110, gain: 0.65),
+      notes(melody, instrument: "kalimba", scale: "dorian", key: 220, tempo: 120),
+      texture(waves, kind: "wind", gain: 0.25)
+    ],
+    room: 0.6,
+    echo: 0.25
+  )
+}

@@ -177,7 +177,7 @@
         },
         {
           "name": "support.function.neighbourhood.alea",
-          "match": "\\b(neighbours|neighbors|spread|nearby|range|join|slice|reverse|sum|path|along|length|drone|notes|texture|paint|mosaic|place|overlay)(?=\\s*\\()"
+          "match": "\\b(neighbours|neighbors|spread|nearby|range|join|slice|reverse|sum|path|along|length|drone|notes|texture|paint|mosaic|place|overlay|at|ease|keys|progress|sequence|blur|pixelate|edges|relief|posterize|film|vignette|bloom|chroma)(?=\\s*\\()"
         },
         {
           "name": "keyword.control.grow.alea",

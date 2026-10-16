@@ -147,6 +147,10 @@ impl Culler {
                 }
             }
             Field::Cache { .. } | Field::State(_) | Field::Grid { .. } | Field::Grow { .. } => ANY,
+            Field::Retime { inner, time } => match self.bound(time, tile, seed).single() {
+                Some(c) => self.bound(inner, Tile { t: c, ..tile }, seed),
+                None => ANY,
+            },
         }
     }
 
@@ -186,6 +190,10 @@ impl Culler {
             Field::Reseed { inner, seed: s } => {
                 Field::Reseed { inner: Arc::new(self.fold(inner, tile, *s)), seed: *s }
             }
+            Field::Retime { inner, time } => match self.bound(time, tile, seed).single() {
+                Some(c) => self.fold(inner, Tile { t: c, ..tile }, seed),
+                None => Field::Retime { inner: inner.clone(), time: Box::new(self.fold(time, tile, seed)) },
+            },
             other => other.clone(),
         }
     }

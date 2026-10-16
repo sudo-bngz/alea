@@ -676,6 +676,82 @@ colours of its own.
 
 ---
 
+## 21. Animation: when things happen
+
+> Tour: `21-animation.alea`
+
+`t` runs from 0 to 1 over a video, and anything can follow it. But writing
+"from 0.2 to 0.35, grow, overshooting a little" by hand is arithmetic. These
+functions say it directly:
+
+- **`progress(start, end)`**: 0 before `start`, 1 after `end`, a straight
+  line between. The building block: `progress(0.2, 0.35)` is a little clock
+  that runs only during that stretch.
+- **`ease(v, kind)`**: the same journey from 0 to 1, with a feel: `"linear"`,
+  `"in"` (starts slowly), `"out"` (arrives slowly), `"in-out"` (the default),
+  `"sine"`, `"back"` (overshoots, then settles), `"elastic"` (wobbles) or
+  `"bounce"` (lands, bounces, lands).
+- **`keys([[time, value], …], ease)`**: a value that passes through key
+  frames. The values can be numbers, fields or points:
+  `keys([[0, [0.2, 0.7]], [0.5, [0.5, 0.2]], [1, [0.2, 0.7]]], ease: "in-out")`
+  is a point that travels and comes back.
+- **`sequence([a, b, c], fade)`**: one thing after another, each holding an
+  equal share of the time, crossfading over `fade`. Fields or paintings.
+- **`at(work, time)`**: a field or a painting at another moment.
+  `at(Culture(), 0.3)` is frozen, `at(Culture(), 1 - t)` runs backwards, and
+  `at(Culture(), ease(t, "out"))` slows down to its end. Inside the work,
+  time is whatever you give it, all the way down.
+
+```alea
+let pop  = ease(progress(0.2, 0.35), "back")
+let halo = ring(0.5, 0.5, 0.5 * pop, 0.015, 0.01)
+let ball = circle(0.12, 0.1 + 0.8 * ease(fract(t * 4), "bounce"), 0.05)
+render video(sequence([paint(calm), paint(storm), paint(still)], fade: 0.15), duration: 12)
+```
+
+All of these take `time:` to follow another clock than `t`: `fract(t * 4)`
+repeats four times, `progress(…, time: other)` follows anything.
+
+---
+
+## 22. Filters
+
+> Tour: `22-filters.alea`
+
+A filter changes how a picture is seen, not what it is. There are two
+moments to apply one.
+
+**On a field**, before colour, so the result is still a field you can
+compute with:
+
+- `blur(f, 0.01)`: softened over that distance (a fraction of the canvas).
+- `pixelate(f, 0.02)`: in square cells of that size.
+- `edges(f)`: only where the field changes, the outlines of shapes.
+- `relief(f, angle: 135, depth: 10)`: lit from one side (the angle the light
+  comes from, 90 above, 135 the upper left), like an engraving.
+- `posterize(f, 6)`: in six flat levels.
+- `film(f, 0.08)`: grain, new at every frame.
+- `vignette(f, 0.5)`: darker towards the corners.
+
+**On a painting**, after colour, as the very last step: `blur`, `pixelate`,
+`film` and `vignette` work on its pixels too, and two more only make sense
+in colour:
+
+- `bloom(p, 0.8)`: light bleeding out of the bright parts.
+- `chroma(p, 0.5)`: red and blue drifting apart towards the edges, like a
+  cheap lens.
+
+```alea
+let night = paint(max(lights, land * 0.3), palette: "ember")
+render image(vignette(film(chroma(bloom(night, 2.5), 0.8), 0.06), 0.6))
+```
+
+A field blur samples the field 40 times around each point, so it costs 40
+times the field; a painting blur works on pixels and costs the same whatever
+is underneath. For a large blur on a heavy work, paint it first.
+
+---
+
 ## How values become media
 
 Every medium receives the same thing, a field, and translates it:

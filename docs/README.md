@@ -1,16 +1,16 @@
 # alea documentation
 
-- **[Guide](guide.md)**: learn alea in twenty chapters, each paired with a
+- **[Guide](guide.md)**: learn alea in twenty-two chapters, each paired with a
   file of the tour in [`examples/tour/`](../examples/tour/).
   1. A work, and its editions · 2. Shapes, and what alea decides ·
   3. Chance · 4. Choices · 5. Combining · 6. Transforms · 7. Textures ·
   8. Words and pictures · 9. Fields · 10. Patterns · 11. Constraints ·
   12. Time · 13. Sound: layers · 14. Sculpture · 15. Works made of works ·
-  16. Everything together · 17. Growing · 18. Lists and functions · 19. Paintings · 20. Colours of your own; then how values become media, and tips.
+  16. Everything together · 17. Growing · 18. Lists and functions · 19. Paintings · 20. Colours of your own · 21. Animation · 22. Filters; then how values become media, and tips.
 - **[Reference](reference.md)**: files, lexical rules, grammar, statements,
   expressions and precedence, values, distributions and when draws happen,
   every primitive with its parameters and defaults, functions and measures,
-  lists, your own functions, patterns, growing, paintings, the four renders and their options, palettes, components and
+  lists, your own functions, patterns, growing, paintings, time and filters, the four renders and their options, palettes, components and
   `use`, the command line, limits, reproducibility.
 
 The same two documents, illustrated with the tour's renders, are built into

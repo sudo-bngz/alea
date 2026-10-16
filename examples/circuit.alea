@@ -1,0 +1,123 @@
+// Circuit — Animated PCB traces, microprocessor & data pulses (9:16 Reel layout)
+// Run: ./target/release/alea examples/circuit.alea
+
+work Circuit {
+  // 1. Clocks: 128 BPM pulse + multi-speed data streams
+  let clock = 0.5 + 0.5 * sin(t * tau * 8)
+  let fast  = (t * 4) % 1
+  let rev   = 1 - ((t * 3) % 1)
+
+  // 2. Helper: 4-point routed PCB trace (Pin -> Out -> 45° bend -> Vertical bus -> Via)
+  let bus_up(k) = [
+    [0.41 + k * 0.036, 0.41],
+    [0.41 + k * 0.036, 0.34 - (k % 2) * 0.03],
+    [0.31 + k * 0.076, 0.26 - (k % 2) * 0.03],
+    [0.31 + k * 0.076, 0.10 + (k % 3) * 0.05]
+  ]
+
+  let bus_down(k) = [
+    [0.41 + k * 0.036, 0.59],
+    [0.41 + k * 0.036, 0.66 + (k % 2) * 0.03],
+    [0.31 + k * 0.076, 0.74 + (k % 2) * 0.03],
+    [0.31 + k * 0.076, 0.90 - (k % 3) * 0.05]
+  ]
+
+  let bus_side(k, s) = [
+    [0.5 + s * 0.09, 0.43 + k * 0.035],
+    [0.5 + s * 0.15, 0.43 + k * 0.035],
+    [0.5 + s * 0.20, 0.36 + k * 0.070],
+    [0.5 + s * 0.20, 0.20 + k * 0.150]
+  ]
+
+  let all_buses = join(
+    join([bus_up(k) for k in range(6)], [bus_down(k) for k in range(6)]),
+    join([bus_side(k, -1) for k in range(5)], [bus_side(k, 1) for k in range(5)])
+  )
+
+  // 3. Copper traces, IC pin pads, and solder vias at trace endpoints
+  let traces = [path(tr, 0.0035, 0.001) for tr in all_buses]
+  let pads   = [square(x: tr[0].x, y: tr[0].y, size: 0.012, angle: 0) for tr in all_buses]
+  let vias   = [
+    merge(
+      ring(x: tr[-1].x, y: tr[-1].y, size: 0.022, width: 0.004),
+      circle(x: tr[-1].x, y: tr[-1].y, size: 0.007)
+    )
+    for tr in all_buses
+  ]
+
+  // 4. Central Microprocessor (Package + Silicon Die + Pin 1 Marker)
+  let ic_body = cut(
+    square(x: 0.5, y: 0.5, size: 0.16, angle: 0),
+    square(x: 0.5, y: 0.5, size: 0.145, angle: 0)
+  )
+  field die_grid = overlap(
+    square(x: 0.5, y: 0.5, size: 0.11, angle: 0),
+    threshold(checker(), level: 0.5) * (0.4 + 0.6 * clock)
+  )
+  let ic_core = merge(ic_body, die_grid, circle(x: 0.44, y: 0.44, size: 0.012))
+
+  // 5. High-speed data packets shooting along the traces
+  let packets = [
+    circle(
+      x: p.x, y: p.y,
+      size: 0.024 + 0.008 * clock,
+      softness: 0.75
+    )
+    for k in range(count(all_buses))
+    for tr in [all_buses[k]]
+    for p in [along(tr, ((t * (2 + (k % 3)) + k * 0.17) % 1) * length(tr))]
+  ]
+
+  // Secondary bus frame & telemetry text inside the 9:16 vertical window
+  let pcb_rail = cut(
+    rect(x: 0.5, y: 0.5, width: 0.50, height: 0.88, angle: 0, softness: 0.001),
+    rect(x: 0.5, y: 0.5, width: 0.492, height: 0.872, angle: 0, softness: 0.001)
+  )
+  let hud = text("SYS.CLK // 128.BPM", x: 0.5, y: 0.915, size: 0.015, font: "mono")
+
+  // 6. Layer 1: Dark Emerald PCB Substrate
+  field sub_grid = (0.5 + 0.5 * sin(x * 180)) * (0.5 + 0.5 * sin(y * 180)) * 0.15
+  field substrate = sub_grid + ~~uniform(0, 1) * 0.03
+  let paint_pcb = paint(substrate, palette: ["#040a09", "#091916", "#0f2924"])
+
+  // 7. Layer 2: Gold/Copper Traces & IC Package
+  field copper = merge(merge(traces) * 0.85, merge(pads), merge(vias), ic_core, pcb_rail * 0.5, hud * 0.7)
+  let paint_copper = paint(
+    copper,
+    palette: ["#1a0f05", "#c86418", "#f4b43a", "#fff2cc"],
+    alpha: copper
+  )
+
+  // 8. Layer 3: Glowing Cyan Data Pulses & Active Silicon
+  field glow_layer = merge(merge(packets), die_grid * 0.8)
+  let paint_glow = paint(
+    glow_layer,
+    palette: ["#002b24", "#00e5ff", "#a8ffef", "#ffffff"],
+    alpha: glow_layer
+  )
+
+  let board = overlay(paint_pcb, paint_copper, blend: "normal", opacity: 0.95)
+  let final_circuit = overlay(board, paint_glow, blend: "screen", opacity: 1.0)
+
+  // 9. Electro Sequencer Pattern (fixed coordinates)
+  pattern arp = repeat 64 event(
+    x: 0.32 + 0.36 * ((i * 0.37) % 1),
+    y: choose { 0.20 | 0.35 | 0.50 | 0.65 | 0.80 },
+    t: i / n,
+    intensity: 0.5 + 0.45 * (i % 4 == 0),
+    size: choose { 3: 0.008 | 1: 0.022 }
+  )
+
+  render image(final_circuit, at: 0.35)
+  render video(
+    final_circuit,
+    duration: 15,
+    sound: [
+      drone(copper, instrument: "glass", scale: "minor", key: 110, gain: 0.55),
+      notes(arp, instrument: "pluck", scale: "minor", key: 220, tempo: 128),
+      texture(glow_layer, kind: "crackle", gain: 0.25)
+    ],
+    room: 0.45,
+    echo: 0.25
+  )
+}

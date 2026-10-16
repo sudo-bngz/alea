@@ -1,0 +1,44 @@
+// 21 · Animation: say when things happen, not how.
+//
+// progress(start, end)        0 before start, 1 after end, straight in between
+// ease(v, "out")              the same journey, with a feel: linear, in, out, in-out,
+//                             sine, back (overshoots), elastic (wobbles), bounce
+// keys([[0, a], [0.5, b], [1, c]], ease: "in-out")
+//                             a value that goes through a, b and c (numbers, points…)
+// sequence([a, b, c], fade: 0.1)
+//                             one thing after another, crossfading
+// at(work, time)              a work at another moment: slowed, frozen, reversed
+//
+// `t` still runs from 0 to 1 over the video; all of these take `time:` to follow
+// another clock.
+
+work Animation {
+  // a dot that travels through three places and comes back
+  let path = keys([[0, [0.2, 0.7]], [0.35, [0.5, 0.25]], [0.7, [0.8, 0.7]], [1, [0.2, 0.7]]], ease: "in-out")
+  let dot  = circle(path.x, path.y, 0.08, 0.01)
+
+  // a ring that pops in at a fifth of the video, overshooting a little
+  let pop  = ease(progress(0.2, 0.35), "back")
+  let halo = ring(0.5, 0.5, 0.5 * pop, 0.015, 0.01) * (pop > 0)
+
+  // a ball that drops and bounces, again and again (fract: every quarter)
+  let fall = ease(fract(t * 4), "bounce")
+  let ball = circle(0.12, 0.1 + 0.8 * fall, 0.05, 0.005)
+
+  let scene = merge(dot, halo, ball)
+
+  // three moods, one after the other
+  let calm  = stripes(count: 8, angle: 0) * 0.3
+  let storm = rotate(waves(count: 10, angle: 0, height: 0.4), angle: t * 90) * 0.3
+  let still = clouds(scale: 3) * 0.3
+  let mood  = sequence([calm, storm, still], fade: 0.15)
+
+  // the same scene, slowed down to end at half its course, then frozen
+  let slow = at(scene, ease(t, "out") * 0.5)
+
+  let frame = max(mood, scene)
+  render image(frame, width: 600, at: 0.3)
+  render video(mosaic([paint(frame, palette: "night"), paint(max(mood, slow), palette: "ember")], columns: 2),
+               duration: 8, width: 960, height: 480,
+               sound: [drone(scene, voices: 4, instrument: "glass", gain: 0.6)])
+}

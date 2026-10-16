@@ -2,7 +2,7 @@
   "name": "alea-lang",
   "displayName": "alea",
   "description": "Syntax highlighting for alea, a non-deterministic language for generative artworks.",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "publisher": "alea",
   "license": "MIT",
   "engines": {

@@ -1,0 +1,75 @@
+// Mondrian — True flat Neoplastic colours (Chapter 20) + layered sound (Chapter 13)
+// Run: ./target/release/alea examples/mondria.alea
+
+work Mondrian {
+  let drift_a = 0.04 * sin(t * tau)
+  let drift_b = 0.04 * sin(t * tau * 2)
+
+  // 1. Static base coordinates (fixed numbers, safe for pattern events)
+  let vx1_0 = ~between(0.28, 0.46)
+  let vx2_0 = ~between(0.58, 0.76)
+  let hy1_0 = ~between(0.25, 0.44)
+  let hy2_0 = ~between(0.58, 0.78)
+
+  // Animated coordinates (fields depending on `t`)
+  let vx1 = vx1_0 + drift_a
+  let vx2 = vx2_0 - drift_a
+  let hy1 = hy1_0 - drift_b
+  let hy2 = hy2_0 + drift_b
+
+  // 2. Crisp boolean grid lines (1 on the line, 0 outside)
+  let w = 0.011
+  field v_left  = abs(x - vx1) < w
+  field v_right = (y < hy2) * (abs(x - vx2) < w)
+  field h_top   = (x < vx2) * (abs(y - hy1) < w)
+  field h_bot   = abs(y - hy2) < w
+  field v_sub   = (y > hy2) * (abs(x - (vx1 + vx2) * 0.5) < w)
+
+  field grid = merge(v_left, v_right, h_top, h_bot, v_sub)
+
+  // 3. Flat colour indices: 0 = Cream, 0.25 = Yellow, 0.5 = Red, 0.75 = Blue
+  let c_tl = choose { 2: 0 | 2: 0.50 | 1: 0.25 }
+  let c_tm = choose { 3: 0 | 1: 0.25 }
+  let c_tr = choose { 1: 0.25 | 1: 0.75 | 1: 0 }
+  let c_ml = choose { 3: 0 | 1: 0.75 }
+  let c_mc = choose { 2: 0 | 1: 0.50 | 1: 0.75 }
+  let c_bl = choose { 1: 0.25 | 2: 0 }
+  let c_br = choose { 1: 0.75 | 1: 0.50 | 2: 0 }
+
+  field cells = (x < vx1) * (y < hy1) * c_tl
+    + (x >= vx1) * (x < vx2) * (y < hy1) * c_tm
+    + (x >= vx2) * (y < hy2) * c_tr
+    + (x < vx1) * (y >= hy1) * (y < hy2) * c_ml
+    + (x >= vx1) * (x < vx2) * (y >= hy1) * (y < hy2) * c_mc
+    + (x < (vx1 + vx2) * 0.5) * (y >= hy2) * c_bl
+    + (x >= (vx1 + vx2) * 0.5) * (y >= hy2) * c_br
+
+  // Where grid is 1 -> 1.0 (Black); elsewhere -> exact cell value
+  field canvas = (1 - grid) * cells + grid
+
+  // 4. Musical notes using the fixed base coordinates
+  pattern boogie = repeat 32 event(
+    x: choose { vx1_0 | vx2_0 },
+    y: choose { hy1_0 | hy2_0 | 0.25 | 0.75 },
+    t: i / n,
+    intensity: ~between(0.4, 0.9),
+    size: ~between(0.008, 0.025)
+  )
+
+  let mondrian = ["#f2efe6", "#f5d000", "#d40920", "#1356a2", "#111111"]
+
+  render image(canvas, palette: mondrian, bands: 5, range: [0, 1])
+  render video(
+    canvas,
+    duration: 20,
+    palette: mondrian,
+    bands: 5,
+    range: [0, 1],
+    sound: [
+      drone(cells, instrument: "organ", scale: "pentatonic", key: 110, gain: 0.5),
+      notes(boogie, instrument: "marimba", scale: "pentatonic", key: 220, tempo: 108)
+    ],
+    room: 0.4,
+    echo: 0.15
+  )
+}

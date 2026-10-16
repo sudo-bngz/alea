@@ -1,0 +1,98 @@
+// DenseCircuit — Fully animated reconfiguring PCB & flowing current
+// Run: ./target/release/alea examples/dense-circuit.alea
+
+work DenseCircuit {
+  let cos(a) = sin(a + tau * 0.25)
+  let pulse  = 0.5 + 0.5 * sin(t * tau * 4)
+
+  // Helper to place a crisp signal dot at point `p`
+  let dot(p, s) = circle(x: p.x, y: p.y, size: s, softness: 0.25)
+
+  // 1. Animated 4-point PCB trace: elbows and lengths slide smoothly over `t`
+  let make_trace(x0, y0, hv, d, s, phase) = [
+    [x0, y0],
+    [
+      x0 + hv * (s + 0.025 * sin(t * tau * 2 + phase)),
+      y0 + (1 - hv) * (s + 0.025 * sin(t * tau * 2 + phase))
+    ],
+    [
+      x0 + hv * (s + 0.025 * sin(t * tau * 2 + phase)) + d,
+      y0 + (1 - hv) * (s + 0.025 * sin(t * tau * 2 + phase)) + abs(d)
+    ],
+    [
+      x0 + hv * (s * 1.8 + 0.04 * cos(t * tau + phase)) + d,
+      y0 + (1 - hv) * (s * 1.8 + 0.04 * cos(t * tau + phase)) + abs(d)
+    ]
+  ]
+
+  // 2. Dense 9x11 grid of animated traces
+  let routes = [
+    make_trace(
+      0.08 + a * 0.095,
+      0.07 + b * 0.082,
+      choose { 0 | 1 },
+      choose { -0.042 | 0.042 },
+      choose { 0.035 | 0.055 },
+      a * 0.6 + b * 0.8
+    )
+    for a in range(9)
+    for b in range(11)
+  ]
+
+  // 3. Traces, pulsing vias, and rotating micro-gates at endpoints
+  let wires = merge([path(r, 0.0022, 0.0005) for r in routes])
+  let vias  = merge([
+    ring(x: r[0].x, y: r[0].y, size: 0.011 + 0.004 * sin(t * tau * 3 + k), width: 0.002)
+    for k in range(count(routes)) for r in [routes[k]]
+  ])
+  let gates = merge([
+    square(x: r[-1].x, y: r[-1].y, size: 0.009, angle: t * 360 + k * 45)
+    for k in range(count(routes)) for r in [routes[k]]
+  ])
+
+  // 4. Second sliding sub-layer of traces for deep parallax motion
+  let sub_layer = move(
+    rotate(wires, angle: 180, x: 0.5, y: 0.5),
+    x: 0.06 * sin(t * tau),
+    y: 0.06 * cos(t * tau)
+  )
+
+  // 5. Electric current waves surging through the wires themselves
+  field surge = 0.5 + 0.5 * sin(x * 35 + y * 35 - t * tau * 6 + 2 * noise(x * 4, y * 4, t * 2))
+  field live_wires = wires * (0.35 + 0.65 * surge)
+
+  // 6. Bright data packets racing along the traces
+  let packets = merge([
+    dot(along(r, ((t * (2 + (k % 3)) + k * 0.11) % 1) * length(r)), 0.018 + 0.006 * pulse)
+    for k in range(count(routes)) for r in [routes[k]]
+  ])
+
+  // 7. Two-layer painted composite so the glowing signals pop over the dark board
+  field base_field = sub_layer * 0.25 + live_wires * 0.85 + vias * 0.75 + gates * 0.70 + ~~uniform(0, 1) * 0.015
+  field glow_field = packets + (wires * (surge > 0.82)) * 0.8
+
+  let board_paint = paint(base_field, palette: ["#05070a", "#122330", "#2a5c78", "#7cc7e8"])
+  let glow_paint  = paint(glow_field, palette: ["#05070a", "#00e5ff", "#ffffff"], alpha: glow_field)
+  let final_circuit = overlay(board_paint, glow_paint, blend: "screen", opacity: 0.95)
+
+  // 8. Synced minimal electronic pulse soundtrack
+  pattern clicks = repeat 60 event(
+    x: 0.1 + 0.8 * ((i * 0.37) % 1),
+    y: choose { 0.2 | 0.4 | 0.6 | 0.8 },
+    t: i / n,
+    intensity: ~between(0.4, 0.9),
+    size: 0.006
+  )
+
+  render image(final_circuit, at: 0.25)
+  render video(
+    final_circuit,
+    duration: 15,
+    sound: [
+      drone(live_wires, instrument: "glass", scale: "pentatonic", key: 98, gain: 0.4),
+      notes(clicks, instrument: "pluck", scale: "pentatonic", key: 196, tempo: 120)
+    ],
+    room: 0.35,
+    echo: 0.2
+  )
+}

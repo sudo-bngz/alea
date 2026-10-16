@@ -1,0 +1,39 @@
+// 22 · Filters: the same picture, seen through something.
+//
+// On a field (values, before colour):
+//   blur(f, 0.01)          softened over that distance
+//   pixelate(f, 0.02)      in square cells of that size
+//   edges(f)               only where the field changes: outlines
+//   relief(f, angle: 135)  lit from one side, like an engraving
+//   posterize(f, 6)        in six flat levels
+//   film(f, 0.08)          a grain that changes at every frame
+//   vignette(f, 0.5)       darker towards the corners
+//
+// On a painting (pixels, after colour), at the very end:
+//   blur, pixelate, film, vignette, and
+//   bloom(p, 0.8)          light bleeding out of the bright parts
+//   chroma(p, 0.5)         red and blue drifting apart, like a cheap lens
+
+work Filters {
+  let shapes = merge(circle(0.35, 0.4, 0.35, 0.005), square(0.65, 0.62, 0.3, angle: 20 + t * 90, softness: 0.005))
+  let land   = clouds(scale: 3, detail: 5)
+
+  let screens = [
+    paint(shapes, palette: "ink"),
+    paint(blur(shapes, 0.04), palette: "ink"),
+    paint(edges(shapes), palette: "ink"),
+    paint(relief(land, depth: 30), palette: "ink"),
+    paint(posterize(land, 5), palette: "lichen"),
+    paint(pixelate(land, 0.05), palette: "sea"),
+  ]
+
+  // a carousel of lights at night, finished like a photograph
+  let lights = merge([circle(0.5 + 0.28 * cos(k * tau / 9 + t * tau), 0.5 + 0.28 * sin(k * tau / 9 + t * tau), 0.07, 0.004)
+                      for k in range(9)])
+  let night = paint(max(lights, land * 0.3), palette: "ember")
+  let photo = vignette(film(chroma(bloom(night, 2.5), 0.8), 0.06), 0.6)
+
+  render image(mosaic(screens, columns: 3, gap: 0.01), width: 900, height: 600)
+  render image(photo, width: 600)
+  render video(photo, duration: 4, width: 480, sound: [texture(land, kind: "crackle", gain: 0.5)])
+}

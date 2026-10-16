@@ -20,7 +20,7 @@ same seed gives back exactly the same files, on any machine and in the browser.
 | | |
 |---|---|
 | **[The guide](docs/guide.md)** | learn the language, one concept per chapter |
-| **[The tour](examples/tour/)** | twenty small works that go with the guide, from `01-hello` to `20-colours` |
+| **[The tour](examples/tour/)** | twenty-two small works that go with the guide, from `01-hello` to `22-filters` |
 | **[The reference](docs/reference.md)** | every statement, primitive, function, render option and limit |
 | **The handbook** (`web/dist/handbook.html`) | the guide and the reference as one illustrated web page |
 | **The playground** (`web/dist/playground.html`) | write and run alea in the browser, with nothing installed |
@@ -65,6 +65,7 @@ work Garden(petals = choose { 5 | 8 }) {   // parameters, for when another work 
   render image(output, palette: ["#0b1d3a", "#e94f37", "#f6f7eb"], bands: 6)   // palettes: a name or a list
   render image(mosaic([paint(output, palette: "night"), paint(merge(crown), palette: "ember")]))   // paintings, side by side
   render video(rotate(output, angle: t * 360), duration: 8)   // t is time
+  render video(bloom(paint(at(output, ease(t, "out")))), duration: 8)   // time eased, filters on the pixels
 }
 ```
 

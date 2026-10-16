@@ -530,6 +530,47 @@ given `sound:` layers.
 
 ---
 
+## Time and filters
+
+Functions that take `time` use `t` when it is not given.
+
+| Function | Parameters (in order) | Gives |
+|---|---|---|
+| `progress` | `start`, `end`, `time` (t) | clamp((time − start) / (end − start), 0, 1) |
+| `ease` | `value`, `kind` ("in-out") | the value clamped to 0–1, through a curve: linear, in (cubic), out (cubic), in-out (smoothstep), sine, back (overshoots by about 10 %), elastic, bounce. On a list, each element |
+| `keys` | `frames` (a list of `[time, value]`, times fixed and in order), `ease` ("linear"), `time` (t) | the first value before the first time, the last after the last, eased between each pair. Values can be numbers, fields or lists of the same shape (points) |
+| `sequence` | `items` (fields or paintings), `fade` (0.1), `time` (t) | item i shows from i/n to (i+1)/n, crossfading over `fade` around each change (at most 1/n). If any item is a painting, a painting |
+| `at` | `of` (a field or a painting), `time` | the field or painting evaluated with `time` in place of t, everywhere inside it |
+
+**Field filters** give a field:
+
+| Function | Parameters | Gives |
+|---|---|---|
+| `blur` | `of`, `radius` (0.01) | a Gaussian average over 40 points on a spiral, out to twice the radius |
+| `pixelate` | `of`, `size` (0.02) | the value at the centre of each square cell |
+| `edges` | `of`, `step` (0.002) | the length of the difference across ±step, in x and y |
+| `relief` | `of`, `angle` (135), `depth` (10), `step` (0.003) | 0.5 + depth × (f towards the light − f away from it) |
+| `posterize` | `of`, `levels` (6) | floor(clamp(f, 0, 1) × levels) / (levels − 1) |
+| `film` | `of`, `amount` (0.08) | f + amount × a uniform grain in [−1, 1], different at every point and frame |
+| `vignette` | `of`, `amount` (0.5) | f × (1 − amount × smoothstep(0.25, 0.75, distance to the centre)) |
+
+**Painting filters** give a painting; they work on the pixels, at the size
+the painting is drawn:
+
+| Function | Parameters | Gives |
+|---|---|---|
+| `blur` | `of`, `radius` (0.01, up to 0.3) | a separable Gaussian of that spread, as a fraction of the shorter side |
+| `pixelate` | `of`, `size` (0.02) | the average of each square block |
+| `film` | `of`, `amount` (0.08) | grain on each channel, new at every frame |
+| `vignette` | `of`, `amount` (0.5) | darker towards the corners |
+| `bloom` | `of`, `amount` (0.8, up to 4) | what is brighter than about half, blurred near and far, screened back on |
+| `chroma` | `of`, `amount` (0.5, up to 4) | red pushed outwards and blue inwards from the centre, by 2 % × amount of the distance |
+
+`bloom` and `chroma` given a field paint it in "ink" first; `edges`,
+`relief` and `posterize` need a field.
+
+---
+
 ## Renders
 
 `render kind(args)` writes one file. A work can have any number of renders;

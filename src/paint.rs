@@ -83,6 +83,42 @@ pub enum Paint {
     Mosaic { cells: Vec<Arc<Paint>>, columns: usize, gap: f64, background: Arc<Paint> },
     Place { inner: Arc<Paint>, x: f64, y: f64, width: f64, height: f64 },
     Overlay { layers: Vec<Arc<Paint>>, blend: Blend, opacity: f64, mask: Option<(Field, u64)> },
+    /// `at(painting, time)`: the painting at another moment.
+    Retime { inner: Arc<Paint>, time: Field, seed: u64 },
+    /// `sequence([…], fade)`: one painting after another, crossfading.
+    Sequence { items: Vec<Arc<Paint>>, fade: f64, time: Field, seed: u64 },
+    /// A filter on the pixels.
+    Filter { inner: Arc<Paint>, kind: FilterKind, seed: u64 },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum FilterKind {
+    /// A Gaussian blur; its spread as a fraction of the canvas.
+    Blur(f64),
+    /// Square blocks of that size.
+    Pixelate(f64),
+    /// Light bleeding out of the bright parts.
+    Bloom(f64),
+    /// Film grain, new at every frame.
+    Film(f64),
+    /// Darker towards the corners.
+    Vignette(f64),
+    /// Red and blue drifting apart towards the edges, like a cheap lens.
+    Chroma(f64),
+}
+
+/// How much each item of a sequence shows at moment `t` (0 to 1): item i
+/// holds the i-th share of the time, crossfading over `fade` at each change.
+pub fn sequence_weights(n: usize, fade: f64, t: f64) -> Vec<f64> {
+    let ramp = |a: f64, b: f64, v: f64| if b <= a { if v >= a { 1.0 } else { 0.0 } } else { ((v - a) / (b - a)).clamp(0.0, 1.0) };
+    (0..n)
+        .map(|i| {
+            let (start, end) = (i as f64 / n as f64, (i + 1) as f64 / n as f64);
+            let rise = if i == 0 { 1.0 } else { ramp(start - fade / 2.0, start + fade / 2.0, t) };
+            let fall = if i + 1 == n { 1.0 } else { 1.0 - ramp(end - fade / 2.0, end + fade / 2.0, t) };
+            rise.min(fall)
+        })
+        .collect()
 }
 
 pub type Pixels = Vec<[f32; 4]>;
@@ -140,6 +176,25 @@ pub fn draw(p: &Paint, w: usize, h: usize, t: f64) -> Pixels {
             }
             out
         }
+        Paint::Retime { inner, time, seed } => draw(inner, w, h, time.eval([0.5, 0.5, t], *seed)),
+        Paint::Sequence { items, fade, time, seed } => {
+            let at = time.eval([0.5, 0.5, t], *seed);
+            let weights = sequence_weights(items.len(), *fade, at);
+            let mut out = vec![[0.0f32; 4]; w * h];
+            for (item, wt) in items.iter().zip(weights) {
+                if wt <= 0.0 {
+                    continue;
+                }
+                let px = draw(item, w, h, t);
+                for (o, p) in out.iter_mut().zip(px.iter()) {
+                    for c in 0..4 {
+                        o[c] += p[c] * wt as f32;
+                    }
+                }
+            }
+            out
+        }
+        Paint::Filter { inner, kind, seed } => filter(draw(inner, w, h, t), w, h, t, *kind, *seed),
         Paint::Overlay { layers, blend, opacity, mask } => {
             let m = mask.as_ref().map(|(f, seed)| crate::media::sample_frame(f, w, h, t, *seed));
             let mut out = draw(&layers[0], w, h, t);
@@ -195,4 +250,161 @@ pub fn frame_rgb(p: &Paint, w: usize, h: usize, t: f64) -> Vec<u8> {
         }
     }
     out
+}
+
+// ───────────────────────────── filters ─────────────────────────────
+
+fn premultiply(px: &mut Pixels) {
+    for p in px.iter_mut() {
+        for c in 0..3 {
+            p[c] *= p[3];
+        }
+    }
+}
+
+fn unpremultiply(px: &mut Pixels) {
+    for p in px.iter_mut() {
+        if p[3] > 1e-6 {
+            for c in 0..3 {
+                p[c] = (p[c] / p[3]).min(1.0);
+            }
+        }
+    }
+}
+
+/// A separable Gaussian blur of `sigma` pixels (on premultiplied pixels).
+fn gaussian(px: &Pixels, w: usize, h: usize, sigma: f64) -> Pixels {
+    if sigma < 0.3 {
+        return px.clone();
+    }
+    let r = ((sigma * 3.0).ceil() as usize).min(256);
+    let kernel: Vec<f32> = {
+        let k: Vec<f64> = (0..=2 * r).map(|i| (-((i as f64 - r as f64) / sigma).powi(2) / 2.0).exp()).collect();
+        let sum: f64 = k.iter().sum();
+        k.iter().map(|v| (v / sum) as f32).collect()
+    };
+    let pass = |src: &Pixels, horizontal: bool| -> Pixels {
+        let mut out = vec![[0.0f32; 4]; w * h];
+        for j in 0..h {
+            for i in 0..w {
+                let mut acc = [0.0f32; 4];
+                for (k, wt) in kernel.iter().enumerate() {
+                    let o = k as i64 - r as i64;
+                    let (x, y) = if horizontal {
+                        ((i as i64 + o).clamp(0, w as i64 - 1) as usize, j)
+                    } else {
+                        (i, (j as i64 + o).clamp(0, h as i64 - 1) as usize)
+                    };
+                    let p = src[y * w + x];
+                    for c in 0..4 {
+                        acc[c] += p[c] * wt;
+                    }
+                }
+                out[j * w + i] = acc;
+            }
+        }
+        out
+    };
+    pass(&pass(px, true), false)
+}
+
+fn filter(mut px: Pixels, w: usize, h: usize, t: f64, kind: FilterKind, seed: u64) -> Pixels {
+    let s = w.min(h) as f64;
+    match kind {
+        FilterKind::Blur(r) => {
+            premultiply(&mut px);
+            let mut out = gaussian(&px, w, h, r * s);
+            unpremultiply(&mut out);
+            out
+        }
+        FilterKind::Pixelate(size) => {
+            let b = ((size * s).round() as usize).max(1);
+            premultiply(&mut px);
+            let mut out = px.clone();
+            for by in (0..h).step_by(b) {
+                for bx in (0..w).step_by(b) {
+                    let (x1, y1) = ((bx + b).min(w), (by + b).min(h));
+                    let mut acc = [0.0f32; 4];
+                    for y in by..y1 {
+                        for x in bx..x1 {
+                            for c in 0..4 {
+                                acc[c] += px[y * w + x][c];
+                            }
+                        }
+                    }
+                    let n = ((x1 - bx) * (y1 - by)) as f32;
+                    for y in by..y1 {
+                        for x in bx..x1 {
+                            out[y * w + x] = acc.map(|v| v / n);
+                        }
+                    }
+                }
+            }
+            unpremultiply(&mut out);
+            out
+        }
+        FilterKind::Bloom(amount) => {
+            // what is bright, blurred twice (near and far), screened back on
+            let mut bright: Pixels = px
+                .iter()
+                .map(|p| {
+                    let lum = 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2];
+                    let k = ((lum - 0.55) / 0.45).clamp(0.0, 1.0) * p[3];
+                    [p[0] * k, p[1] * k, p[2] * k, k]
+                })
+                .collect();
+            let near = gaussian(&bright, w, h, 0.012 * s);
+            bright = gaussian(&bright, w, h, 0.045 * s);
+            for (k, p) in px.iter_mut().enumerate() {
+                for c in 0..3 {
+                    let g = ((near[k][c] + bright[k][c]) * amount as f32).min(1.0);
+                    p[c] = 1.0 - (1.0 - p[c]) * (1.0 - g);
+                }
+            }
+            px
+        }
+        FilterKind::Film(amount) => {
+            let frame = t.to_bits();
+            for (k, p) in px.iter_mut().enumerate() {
+                let n = (crate::eval::hash(&[seed, k as u64, frame]) >> 11) as f64 / (1u64 << 53) as f64 * 2.0 - 1.0;
+                for c in 0..3 {
+                    p[c] = (p[c] + (n * amount * 0.5) as f32).clamp(0.0, 1.0);
+                }
+            }
+            px
+        }
+        FilterKind::Vignette(amount) => {
+            let (cx, cy) = (w as f64 / 2.0, h as f64 / 2.0);
+            let half = (cx * cx + cy * cy).sqrt();
+            for j in 0..h {
+                for i in 0..w {
+                    let r = ((i as f64 + 0.5 - cx).powi(2) + (j as f64 + 0.5 - cy).powi(2)).sqrt() / half;
+                    let e = ((r - 0.35) / 0.6).clamp(0.0, 1.0);
+                    let k = (1.0 - amount * e * e * (3.0 - 2.0 * e)) as f32;
+                    let p = &mut px[j * w + i];
+                    for c in 0..3 {
+                        p[c] *= k;
+                    }
+                }
+            }
+            px
+        }
+        FilterKind::Chroma(amount) => {
+            let src = px.clone();
+            let (cx, cy) = (w as f64 / 2.0, h as f64 / 2.0);
+            let at = |x: f64, y: f64| {
+                let (xi, yi) = (x.round().clamp(0.0, w as f64 - 1.0) as usize, y.round().clamp(0.0, h as f64 - 1.0) as usize);
+                src[yi * w + xi]
+            };
+            for j in 0..h {
+                for i in 0..w {
+                    let (dx, dy) = (i as f64 - cx, j as f64 - cy);
+                    let k = amount * 0.02;
+                    px[j * w + i][0] = at(i as f64 + dx * k, j as f64 + dy * k)[0];
+                    px[j * w + i][2] = at(i as f64 - dx * k, j as f64 - dy * k)[2];
+                }
+            }
+            px
+        }
+    }
 }

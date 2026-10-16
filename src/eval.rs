@@ -216,6 +216,8 @@ pub enum Field {
     Grid { data: Arc<Vec<f64>>, res: usize, di: i64, dj: i64 },
     /// A grown field: its generations, smoothly interpolated in space and time.
     Grow { data: Arc<GrowData>, k: usize },
+    /// `at(field, time)`: `inner` seen at another moment, `time` (itself a field).
+    Retime { inner: Arc<Field>, time: Box<Field> },
 }
 
 /// The recorded generations of a `grow` block.
@@ -341,6 +343,11 @@ impl Field {
             Field::Memo { inner, .. } => inner.reads(memo),
             Field::State(_) | Field::Grid { .. } => xy,
             Field::Grow { .. } => Reads { xy: true, t: true },
+            Field::Retime { inner, time } => {
+                let (i, tm) = (inner.reads(memo), time.reads(memo));
+                // the inner field sees the time only through `time`
+                if i.t { Reads { xy: i.xy || tm.xy, t: tm.t } } else { i }
+            }
         }
     }
 
@@ -360,6 +367,7 @@ impl Field {
                 Field::Reseed { .. } => "reseed", Field::Raster { .. } => "raster", Field::Cache { .. } => "cache",
                 Field::Memo { .. } => "memo",
                 Field::State(_) => "state", Field::Grid { .. } => "grid", Field::Grow { .. } => "grow",
+                Field::Retime { .. } => "retime",
             };
             *n.entry(k).or_default() += 1;
             match f {
@@ -401,6 +409,7 @@ impl Field {
             Field::Reseed { inner, .. } => inner.cost(memo),
             Field::Pattern(e) => 4 * e.len(),
             Field::Raster { .. } => 24,
+            Field::Retime { inner, time } => 1 + inner.cost(memo) + time.cost(memo),
             _ => 1,
         };
         c.min(CAP)
@@ -446,6 +455,14 @@ impl Field {
             }
             Field::Raster { img, cx, cy, width, angle } => {
                 Field::Raster { img: img.clone(), cx: f(cx), cy: f(cy), width: f(width), angle: f(angle) }
+            }
+            Field::Retime { inner, time } => {
+                let time = f(time);
+                match time.constant() {
+                    // one moment for the whole frame: the inner field at that moment
+                    Some(c) => inner.at_time(c, seed),
+                    None => Field::Retime { inner: inner.clone(), time },
+                }
             }
             other => other.clone(),
         }
@@ -551,6 +568,7 @@ impl Field {
                 data[j * *res + i]
             }
             Field::Grow { data, k } => data.sample(*k, p),
+            Field::Retime { inner, time } => inner.eval([p[0], p[1], time.eval(p, seed)], seed),
             Field::Memo { inner, id } => {
                 let k = (*id as usize) % MEMO_SLOTS;
                 let hit = MEMO.with(|m| {
@@ -786,6 +804,7 @@ fn has_state(f: &Field, memo: &mut HashMap<*const Field, bool>) -> bool {
         }
         Field::Remap { inner, x, y } => has_state(inner, memo) || has_state(x, memo) || has_state(y, memo),
         Field::Raster { cx, cy, width, angle, .. } => [cx, cy, width, angle].iter().any(|a| has_state(a, memo)),
+        Field::Retime { inner, time } => has_state(inner, memo) || has_state(time, memo),
         _ => false,
     }
 }
@@ -871,6 +890,102 @@ fn bind_state(f: &Field, cur: &[Arc<Vec<f64>>], res: usize, memo: &mut HashMap<*
         }
         other => other.clone(),
     }
+}
+
+pub const MOTION: &[&str] = &["at", "ease", "keys", "progress", "sequence"];
+pub const FILTERS: &[&str] = &["blur", "pixelate", "edges", "relief", "posterize", "film", "vignette", "bloom", "chroma"];
+pub const EASINGS: &[&str] = &["linear", "in", "out", "in-out", "sine", "back", "elastic", "bounce"];
+
+fn add(a: Field, b: Field) -> Field {
+    fold(Field::Bin(BinOp::Add, Box::new(a), Box::new(b)))
+}
+fn sub(a: Field, b: Field) -> Field {
+    fold(Field::Bin(BinOp::Sub, Box::new(a), Box::new(b)))
+}
+fn mul(a: Field, b: Field) -> Field {
+    fold(Field::Bin(BinOp::Mul, Box::new(a), Box::new(b)))
+}
+fn call(b: Builtin, args: Vec<Field>) -> Field {
+    fold(Field::Call(b, args))
+}
+
+/// From 0 (before `start`) to 1 (after `end`), in a straight line between.
+fn progress_field(start: Field, end: Field, time: Field) -> Field {
+    let span = share_field(sub(end, start.clone()));
+    let safe = call(Builtin::Max, vec![span, Field::Const(1e-9)]);
+    call(Builtin::Clamp, vec![fold(Field::Bin(BinOp::Div, Box::new(sub(time, start)), Box::new(safe))), Field::Const(0.0), Field::Const(1.0)])
+}
+
+/// An easing curve, from 0 to 1 as `u` goes from 0 to 1.
+fn ease_field(u: Field, kind: &str) -> Field {
+    let c = Field::Const;
+    let u = share_field(call(Builtin::Clamp, vec![u, c(0.0), c(1.0)]));
+    let cube = |v: Field| { let v = share_field(v); mul(mul(v.clone(), v.clone()), v) };
+    let square = |v: Field| { let v = share_field(v); mul(v.clone(), v) };
+    match kind {
+        "linear" => u,
+        "in" => cube(u),
+        "out" => sub(c(1.0), cube(sub(c(1.0), u))),
+        "in-out" => call(Builtin::Smoothstep, vec![c(0.0), c(1.0), u]),
+        "sine" => sub(c(0.5), mul(c(0.5), call(Builtin::Cos, vec![mul(c(PI), u)]))),
+        "back" => {
+            // overshoots a little, then settles
+            let (c1, c3) = (1.70158, 2.70158);
+            let v = share_field(sub(u, c(1.0)));
+            add(c(1.0), add(mul(c(c3), cube(v.clone())), mul(c(c1), square(v))))
+        }
+        "elastic" => {
+            // 2^(-10u) · sin((10u − 0.75) · 2π/3) + 1, exactly 0 at the start
+            let decay = call(Builtin::Exp, vec![mul(c(-10.0 * std::f64::consts::LN_2), u.clone())]);
+            let wave = call(Builtin::Sin, vec![mul(sub(mul(c(10.0), u.clone()), c(0.75)), c(TAU / 3.0))]);
+            let e = add(mul(decay, wave), c(1.0));
+            // the formula is not exactly 0 at u = 0 in floating point: hold it
+            mul(e, call(Builtin::Step, vec![c(1e-12), u]))
+        }
+        _ => {
+            // bounce: four parabolas touching 1; the lowest one is the ball
+            let n1 = 7.5625;
+            let d1 = 2.75;
+            let arc = |shift: f64, top: f64| add(mul(c(n1), square(sub(u.clone(), c(shift / d1)))), c(top));
+            let a = mul(c(n1), square(u.clone()));
+            call(Builtin::Min, vec![call(Builtin::Min, vec![a, arc(1.5, 0.75)]), call(Builtin::Min, vec![arc(2.25, 0.9375), arc(2.625, 0.984375)])])
+        }
+    }
+}
+
+/// Applies `f` to a value, or to every value of a list.
+fn map_fields(v: Val, span: Span, f: &dyn Fn(Field) -> Field) -> Res<Val> {
+    match v {
+        Val::Field(x) => Ok(share(Val::Field(f(x)))),
+        Val::List(items) => Ok(Val::List(Arc::new(items.iter().map(|i| map_fields(i.clone(), span, f)).collect::<Res<Vec<_>>>()?))),
+        other => Err(Error::new(format!("expected a value or a list, found {}", kind_of(&other)), span)),
+    }
+}
+
+/// Matches arguments to parameter names: unnamed ones first, in order, then named ones.
+fn bind_slots<'a>(name: &str, names: &[&str], args: &'a [Arg]) -> Res<Vec<Option<&'a Expr>>> {
+    let mut slots: Vec<Option<&Expr>> = vec![None; names.len()];
+    let mut named_seen = false;
+    for (k, a) in args.iter().enumerate() {
+        let slot = match &a.name {
+            None if named_seen => return Err(Error::new("unnamed arguments must come before named ones", a.val.span)),
+            None => k,
+            Some(n) => {
+                named_seen = true;
+                names.iter().position(|p| p == n).ok_or_else(|| {
+                    Error::new(format!("`{name}` has no parameter `{n}` — it has: {}", names.join(", ")), a.val.span)
+                })?
+            }
+        };
+        if slot >= names.len() {
+            return Err(Error::new(format!("`{name}` takes at most {} arguments: {}", names.len(), names.join(", ")), a.val.span));
+        }
+        if slots[slot].is_some() {
+            return Err(Error::new(format!("`{}` given twice", names[slot]), a.val.span));
+        }
+        slots[slot] = Some(&a.val);
+    }
+    Ok(slots)
 }
 
 fn share_field(f: Field) -> Field {
@@ -1670,6 +1785,9 @@ impl Resolver<'_> {
         if matches!(name, "neighbours" | "neighbors" | "spread" | "nearby") {
             return self.grid_helper(name, args, span);
         }
+        if MOTION.contains(&name) || FILTERS.contains(&name) {
+            return self.motion(name, args, span);
+        }
         if let Some(r) = self.primitive(name, args, span) {
             return r;
         }
@@ -2004,6 +2122,252 @@ impl Resolver<'_> {
             }
         };
         Ok(Val::Paint(Arc::new(paint)))
+    }
+
+    /// Time (`at`, `ease`, `keys`, `progress`, `sequence`) and filters
+    /// (`blur`, `pixelate`, `edges`, `relief`, `posterize`, `film`,
+    /// `vignette`, `bloom`, `chroma`).
+    fn motion(&mut self, name: &str, args: &[Arg], span: Span) -> Res<Val> {
+        use crate::paint::{FilterKind, Paint};
+        let names: &[&str] = match name {
+            "at" => &["of", "time"],
+            "ease" => &["value", "kind"],
+            "keys" => &["frames", "ease", "time"],
+            "progress" => &["start", "end", "time"],
+            "sequence" => &["items", "fade", "time"],
+            "blur" => &["of", "radius"],
+            "pixelate" => &["of", "size"],
+            "edges" => &["of", "step"],
+            "relief" => &["of", "angle", "depth", "step"],
+            "posterize" => &["of", "levels"],
+            _ => &["of", "amount"],
+        };
+        let slots = bind_slots(name, names, args)?;
+        let Some(first) = slots[0] else {
+            return Err(Error::new(format!("`{name}` needs {}", names[0]), span));
+        };
+        let num = |r: &mut Self, k: usize, default: f64| -> Res<f64> {
+            match slots[k] {
+                None => Ok(default),
+                Some(e) => r.scalar(e, &format!("`{}`", names[k])),
+            }
+        };
+        let time = |r: &mut Self, k: usize| -> Res<Field> {
+            match slots[k] {
+                None => Ok(Field::T),
+                Some(e) => r.field(e),
+            }
+        };
+        let kind = |r: &mut Self, k: usize, default: &str| -> Res<String> {
+            match slots[k] {
+                None => Ok(default.to_string()),
+                Some(e) => match r.lower(e)? {
+                    Val::Str(s) if EASINGS.contains(&s.as_str()) => Ok(s),
+                    _ => Err(Error::new(format!("an easing is one of: {}", EASINGS.join(", ")), e.span)),
+                },
+            }
+        };
+        let field_only = |what: &str| {
+            Error::new(
+                format!("`{name}` works on a field, not on a painting: apply it before `paint` ({what})"),
+                first.span,
+            )
+        };
+        let shared = |f: Field| -> Arc<Field> {
+            match f {
+                Field::Ref(r) => r,
+                other => Arc::new(other),
+            }
+        };
+        match name {
+            "at" => {
+                let when = time(self, 1)?;
+                if slots[1].is_none() {
+                    return Err(Error::new("`at(work, time)` needs the time to show", span));
+                }
+                match self.lower(first)? {
+                    Val::Field(f) => Ok(Val::Field(Field::Retime { inner: shared(f), time: Box::new(when) })),
+                    Val::Paint(p) => Ok(Val::Paint(Arc::new(Paint::Retime { inner: p, time: when, seed: self.seed }))),
+                    other => Err(Error::new(format!("`at` shows a field or a painting at another time, not {}", kind_of(&other)), first.span)),
+                }
+            }
+            "ease" => {
+                let k = kind(self, 1, "in-out")?;
+                map_fields(self.lower(first)?, first.span, &|f| ease_field(f, &k))
+            }
+            "progress" => {
+                let (a, b) = (self.field(first)?, match slots[1] {
+                    Some(e) => self.field(e)?,
+                    None => return Err(Error::new("`progress(start, end)` needs an end", span)),
+                });
+                Ok(Val::Field(progress_field(a, b, time(self, 2)?)))
+            }
+            "keys" => {
+                let frames = self.list(first)?;
+                if frames.len() < 2 {
+                    return Err(Error::new("`keys` needs at least two frames, [[time, value], [time, value], …]", first.span));
+                }
+                let mut keyed: Vec<(f64, Val)> = Vec::new();
+                for fr in frames.iter() {
+                    let bad = || Error::new("each frame is [time, value], with a fixed time from 0 to 1", first.span);
+                    let Val::List(pair) = fr else { return Err(bad()) };
+                    if pair.len() != 2 {
+                        return Err(bad());
+                    }
+                    let Val::Field(tf) = &pair[0] else { return Err(bad()) };
+                    let tk = tf.constant().ok_or_else(bad)?;
+                    if let Some((prev, _)) = keyed.last() {
+                        if tk < *prev {
+                            return Err(Error::new("the frames of `keys` go in order of time", first.span));
+                        }
+                    }
+                    keyed.push((tk, pair[1].clone()));
+                }
+                let k = kind(self, 1, "linear")?;
+                let when = share_field(time(self, 2)?);
+                let mut acc = keyed[0].1.clone();
+                for w in keyed.windows(2) {
+                    let ((t0, v0), (t1, v1)) = (&w[0], &w[1]);
+                    let u = ease_field(progress_field(Field::Const(*t0), Field::Const(*t1), when.clone()), &k);
+                    let step = bin_val(BinOp::Sub, v1.clone(), v0.clone(), first.span)?;
+                    let step = bin_val(BinOp::Mul, step, Val::Field(u), first.span)?;
+                    acc = bin_val(BinOp::Add, acc, step, first.span)?;
+                }
+                Ok(share(acc))
+            }
+            "sequence" => {
+                let items = self.list(first)?;
+                if items.is_empty() {
+                    return Err(Error::new("`sequence` of an empty list", first.span));
+                }
+                let fade = num(self, 1, 0.1)?.clamp(0.0, 1.0 / items.len() as f64);
+                let when = share_field(time(self, 2)?);
+                if items.iter().any(|v| matches!(v, Val::Paint(_))) {
+                    let ps = items.iter().map(|v| self.as_paint(v.clone(), first.span)).collect::<Res<Vec<_>>>()?;
+                    return Ok(Val::Paint(Arc::new(Paint::Sequence { items: ps, fade, time: when, seed: self.seed })));
+                }
+                let n = items.len() as f64;
+                let mut acc: Option<Field> = None;
+                for (i, v) in items.iter().enumerate() {
+                    let Val::Field(f) = v else {
+                        return Err(Error::new(format!("`sequence` shows fields or paintings, not {}", kind_of(v)), first.span));
+                    };
+                    let (start, end) = (i as f64 / n, (i + 1) as f64 / n);
+                    let h = (fade / 2.0).max(1e-9);
+                    let rise = progress_field(Field::Const(start - h), Field::Const(start + h), when.clone());
+                    let fall = progress_field(Field::Const(end - h), Field::Const(end + h), when.clone());
+                    let mut wt = Field::Const(1.0);
+                    if i > 0 {
+                        wt = rise;
+                    }
+                    if i + 1 < items.len() {
+                        let down = sub(Field::Const(1.0), fall);
+                        wt = if i > 0 { call(Builtin::Min, vec![wt, down]) } else { down };
+                    }
+                    let term = mul(wt, f.clone());
+                    acc = Some(match acc {
+                        None => term,
+                        Some(a) => add(a, term),
+                    });
+                }
+                Ok(Val::Field(acc.expect("not empty")))
+            }
+            _ => {
+                let v = self.lower(first)?;
+                let filter = |kind: FilterKind, r: &Self, p: Arc<Paint>| Val::Paint(Arc::new(Paint::Filter { inner: p, kind, seed: r.seed }));
+                match (name, v) {
+                    ("blur", Val::Paint(p)) => Ok(filter(FilterKind::Blur(num(self, 1, 0.01)?.clamp(0.0, 0.3)), self, p)),
+                    ("pixelate", Val::Paint(p)) => Ok(filter(FilterKind::Pixelate(num(self, 1, 0.02)?.clamp(0.0, 0.5)), self, p)),
+                    ("film", Val::Paint(p)) => Ok(filter(FilterKind::Film(num(self, 1, 0.08)?.clamp(0.0, 1.0)), self, p)),
+                    ("vignette", Val::Paint(p)) => Ok(filter(FilterKind::Vignette(num(self, 1, 0.5)?.clamp(0.0, 1.0)), self, p)),
+                    ("bloom", v) => {
+                        let p = self.as_paint(v, first.span)?;
+                        Ok(filter(FilterKind::Bloom(num(self, 1, 0.8)?.clamp(0.0, 4.0)), self, p))
+                    }
+                    ("chroma", v) => {
+                        let p = self.as_paint(v, first.span)?;
+                        Ok(filter(FilterKind::Chroma(num(self, 1, 0.5)?.clamp(0.0, 4.0)), self, p))
+                    }
+                    ("edges" | "relief" | "posterize", Val::Paint(_)) => Err(field_only("it reads the values of the field")),
+                    (_, Val::Field(f)) => {
+                        let f = shared(f);
+                        let at = |dx: Field, dy: Field| Field::Remap { inner: f.clone(), x: Box::new(add(Field::X, dx)), y: Box::new(add(Field::Y, dy)) };
+                        let c = Field::Const;
+                        Ok(Val::Field(match name {
+                            "blur" => {
+                                let r = num(self, 1, 0.01)?.max(0.0);
+                                if r == 0.0 {
+                                    return Ok(Val::Field(Field::Ref(f)));
+                                }
+                                // 40 taps on a sunflower spiral, out to twice the radius,
+                                // weighted like a Gaussian bell (the spiral leaves no rings)
+                                let n = 40;
+                                let taps: Vec<(f64, f64, f64)> = (0..n)
+                                    .map(|k| {
+                                        let d = 2.0 * r * ((k as f64 + 0.5) / n as f64).sqrt();
+                                        let a = k as f64 * 2.399_963_229_728_653;
+                                        (d * a.cos(), d * a.sin(), (-(d / r).powi(2) / 2.0).exp())
+                                    })
+                                    .collect();
+                                let total: f64 = taps.iter().map(|t| t.2).sum();
+                                let mut acc: Option<Field> = None;
+                                for (dx, dy, w) in taps {
+                                    let term = mul(c(w / total), if dx == 0.0 && dy == 0.0 { Field::Ref(f.clone()) } else { at(c(dx), c(dy)) });
+                                    acc = Some(match acc {
+                                        None => term,
+                                        Some(a) => add(a, term),
+                                    });
+                                }
+                                acc.unwrap()
+                            }
+                            "pixelate" => {
+                                let s = num(self, 1, 0.02)?;
+                                if !(s > 0.0) {
+                                    return Err(Error::new("`pixelate`: the size must be more than 0", span));
+                                }
+                                let cell = |v: Field| mul(add(call(Builtin::Floor, vec![mul(v, c(1.0 / s))]), c(0.5)), c(s));
+                                Field::Remap { inner: f.clone(), x: Box::new(cell(Field::X)), y: Box::new(cell(Field::Y)) }
+                            }
+                            "edges" => {
+                                let h = num(self, 1, 0.002)?.max(1e-6);
+                                let gx = sub(at(c(h), c(0.0)), at(c(-h), c(0.0)));
+                                let gy = sub(at(c(0.0), c(h)), at(c(0.0), c(-h)));
+                                let (gx, gy) = (share_field(gx), share_field(gy));
+                                call(Builtin::Sqrt, vec![add(mul(gx.clone(), gx), mul(gy.clone(), gy))])
+                            }
+                            "relief" => {
+                                let a = num(self, 1, 135.0)?.to_radians();
+                                let depth = num(self, 2, 10.0)?;
+                                let h = num(self, 3, 0.003)?.max(1e-6);
+                                let (dx, dy) = (a.cos() * h, -a.sin() * h);
+                                add(c(0.5), mul(c(depth), sub(at(c(dx), c(dy)), at(c(-dx), c(-dy)))))
+                            }
+                            "posterize" => {
+                                let n = num(self, 1, 6.0)?;
+                                if !(n >= 2.0 && n.fract() == 0.0) {
+                                    return Err(Error::new("`posterize`: the levels are a whole number, 2 or more", span));
+                                }
+                                let v = call(Builtin::Clamp, vec![Field::Ref(f.clone()), c(0.0), c(0.99999)]);
+                                mul(call(Builtin::Floor, vec![mul(v, c(n))]), c(1.0 / (n - 1.0)))
+                            }
+                            "film" => {
+                                let amount = num(self, 1, 0.08)?;
+                                self.next_id += 1;
+                                add(Field::Ref(f.clone()), mul(c(amount), Field::Grain { dist: Dist::Uniform(-1.0, 1.0), id: self.next_id }))
+                            }
+                            "vignette" => {
+                                let amount = num(self, 1, 0.5)?;
+                                let r = call(Builtin::Distance, vec![Field::X, Field::Y, c(0.5), c(0.5)]);
+                                let e = call(Builtin::Smoothstep, vec![c(0.25), c(0.75), r]);
+                                mul(Field::Ref(f.clone()), sub(c(1.0), mul(c(amount), e)))
+                            }
+                            _ => unreachable!(),
+                        }))
+                    }
+                    (_, other) => Err(Error::new(format!("`{name}` filters a field or a painting, not {}", kind_of(&other)), first.span)),
+                }
+            }
+        }
     }
 
     /// `drone(field, …)`, `notes(pattern, …)`, `texture(field, …)`: layers of sound.

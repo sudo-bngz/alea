@@ -2,7 +2,7 @@
 
 Syntax highlighting and snippets for `.alea` files.
 
-Install: `code --install-extension alea-lang-0.9.0.vsix`
+Install: `code --install-extension alea-lang-0.10.0.vsix`
 
 Highlights keywords (`use`, `work`, `output`, `let`, `field`, `pattern`, `constraint`, `render`,
 `repeat`, `event`, `choose`), the draw operators `~` and `~~`, distributions,
