@@ -1,0 +1,26 @@
+// 10 · Patterns: many of something
+// `repeat N event(...)` makes N events. Every `~` inside is drawn again for each one.
+// An event has x, y, t, intensity and size; what you leave out is drawn at random.
+
+work Patterns {
+  pattern rain = repeat 300 event(
+      x: ~uniform(0, 1),
+      y: ~beta(5, 2),                    // more drops towards the bottom
+      intensity: ~between(0.3, 1),
+      size: ~between(0.002, 0.01)
+  )
+
+  // Inside an event, `i` counts from 0 to n − 1 and `n` is the number of events.
+  pattern spiral = repeat 220 event(
+      x: 0.5 + (i / n) * 0.42 * cos(i * 0.45),
+      y: 0.5 + (i / n) * 0.42 * sin(i * 0.45),
+      size: 0.003 + (i / n) * 0.012
+  )
+
+  // Used as a field, a pattern shows each event as a soft spot.
+  render image(rain, width: 512, palette: "sea")
+  render image(spiral, width: 512, palette: "night")
+
+  // scatter(count, size) is a ready-made pattern of random specks.
+  render image(scatter(count: 150, size: 0.004) + clouds() * 0.2, width: 512, palette: "night")
+}

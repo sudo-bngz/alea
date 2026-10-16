@@ -1,0 +1,10 @@
+// Frame — a reusable passe-partout around any artwork.
+// `art` has no default value: this work is meant to be used by others.
+
+work Frame(art, margin = 0.08) {
+  let window = rect(x: 0.5, y: 0.5, width: 1 - 2 * margin, height: 1 - 2 * margin,
+                    angle: 0, softness: 0.002)
+  let paper  = clouds(scale: 8) * 0.1 + 0.55
+
+  output overlap(art, window) + cut(paper, window)
+}

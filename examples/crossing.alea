@@ -1,0 +1,15 @@
+// Crossing — a work made of other works: one of two parents,
+// crossed with a moon folded into a kaleidoscope, then framed.
+
+use "bauhaus.alea"
+use "rosace.alea"
+use "moon.alea"
+use "frame.alea"
+
+work Crossing {
+  let parent = choose { Bauhaus() | Rosace() }    // only the chosen one is drawn
+  let flower = kaleidoscope(Moon(size: 0.35), sides: choose { 6 | 8 })
+
+  render image(Frame(mix(parent, flower, ~between(0.35, 0.65))),
+               palette: choose { "ink" | "ember" | "sea" })
+}

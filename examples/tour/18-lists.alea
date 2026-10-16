@@ -1,0 +1,32 @@
+// 18 · Lists and functions: a constellation.
+//
+// A list holds several values: [a, b, c]. A point is a list of two numbers,
+// [x, y], read with .x and .y. A list can be built by a loop, and a function
+// names a calculation you use more than once.
+
+work Constellation {
+  // a function: a star somewhere near (x0, y0)
+  let star(x0, y0) = [x0 + ~around(0, 0.04), y0 + ~around(0, 0.04)]
+
+  // a list of points, each one drawn by the function
+  let stars = [star(0.15, 0.6), star(0.3, 0.45), star(0.45, 0.5), star(0.55, 0.3),
+               star(0.7, 0.35), star(0.85, 0.2), star(0.75, 0.6)]
+
+  // a loop: one glow per star, brighter for the later ones
+  let glows = [glow(stars[k].x, stars[k].y, 0.05 + 0.01 * k) for k in range(count(stars))]
+
+  // the figure: a path through the stars, and a dot moving along it
+  let figure = path(stars, width: 0.004)
+  let comet = along(stars, t * length(stars))
+
+  // arithmetic on points works element by element: halfway between two stars
+  let middle = mix(stars[0], stars[-1], 0.5)
+
+  let sky = clouds(scale: 3) * 0.15 + grain(0.05)
+  let names = merge([text("{k + 1}", stars[k].x, stars[k].y - 0.04, 0.025, 0, "mono") for k in range(count(stars))])
+  let piece = merge(sky, merge(glows) * 0.6, figure * 0.5, circle(comet.x, comet.y, 0.02), names * 0.7,
+                    ring(middle.x, middle.y, 0.05, 0.003))
+
+  render image(piece, at: 0.4, palette: "night")
+  render video(piece, duration: 6, palette: "night")
+}

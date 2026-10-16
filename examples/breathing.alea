@@ -1,0 +1,15 @@
+// Breathing — a work that moves. Over a video, `t` goes from 0 to 1.
+// `sin(t * tau)` goes up, down and back to where it started,
+// so motion built on it loops seamlessly.
+
+work Breathing {
+  let pulse = 0.5 + 0.5 * sin(t * tau)               // 0 → 1 → 0, once per video
+  let heart = circle(x: 0.5, y: 0.5, size: 0.2 + 0.15 * pulse, softness: 0.02)
+  let rings = ripples(x: 0.5, y: 0.5, count: choose { 8 | 12 | 16 }) * 0.35
+  let petals = kaleidoscope(stripes(count: 6, angle: t * 360), sides: choose { 5 | 6 | 8 })
+
+  output merge(heart, mix(rings, petals * 0.5, pulse))
+
+  render video(output, duration: 8, palette: choose { "ember" | "sea" | "night" })
+  render image(output, at: 0.25)
+}

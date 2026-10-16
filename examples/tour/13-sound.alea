@@ -1,0 +1,28 @@
+// 13 · Sound: layers made from fields and patterns.
+//
+// A soundtrack is a list of layers, each with its own instrument:
+//   drone(field)    voices that hold notes of a scale, loud where the field is high;
+//                   what is on the left of the canvas sounds on the left
+//   notes(pattern)  each event plays one note: y picks it in the scale, x places it,
+//                   t is when (on the beat if a tempo is given)
+//   texture(field)  an ambience whose loudness follows how much of the field is lit
+// They are mixed in stereo, with an echo and a room around them.
+
+work Sound {
+  let swell = 0.5 + 0.5 * sin(y * 8 + t * tau * 3)
+  let mist = clouds(scale: 3) * (0.5 + 0.5 * sin(t * tau))
+
+  pattern bells = repeat 32 event(
+      t: i / n,                                 // evenly spaced in time
+      x: ~between(0, 1),                        // left or right
+      y: ~between(0.1, 0.9),                    // which note of the scale
+      size: ~between(0.01, 0.05),               // how long it rings
+      intensity: ~between(0.4, 1))              // how loud
+
+  let key = choose { 110 | 146.8 | 196 }        // in hertz
+  render sound(drone(swell, voices: 5, instrument: "strings", scale: "dorian", key: key),
+               notes(bells, instrument: "marimba", scale: "dorian", key: key * 2, tempo: 100),
+               texture(mist, kind: "wind", gain: 0.5),
+               duration: 12, room: 0.5, echo: 0.2)
+  render image(swell + bells, width: 512)
+}

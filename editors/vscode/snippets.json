@@ -1,0 +1,79 @@
+{
+  "Work": {
+    "prefix": "work",
+    "body": [
+      "work ${1:Name} {",
+      "\tlet ${2:shape} = ${3:circle()}",
+      "\trender image(${2:shape})",
+      "}"
+    ],
+    "description": "A new work"
+  },
+  "Pattern": {
+    "prefix": "pattern",
+    "body": [
+      "pattern ${1:p} = repeat ${2:~poisson(50)} event(",
+      "\tx: ${3:~uniform(0, 1)},",
+      "\ty: ${4:~uniform(0, 1)},",
+      "\tintensity: ${5:~beta(2, 5)},",
+      "\tsize: ${6:~uniform(0.005, 0.03)}",
+      ")"
+    ],
+    "description": "A pattern of events"
+  },
+  "Choose": {
+    "prefix": "choose",
+    "body": [
+      "choose { ${1:1}: ${2:a} | ${3:1}: ${4:b} }"
+    ],
+    "description": "Weighted structural choice"
+  },
+  "grow": {
+    "prefix": "grow",
+    "body": [
+      "grow over ${1:128} for ${2:200} {",
+      "\t${3:cells} = ${4:~~uniform(0, 1) < 0.3}",
+      "\t\tthen ${5:neighbours($3) == 3 or ($3 and neighbours($3) == 2)}",
+      "}"
+    ],
+    "description": "Fields that evolve generation by generation on a grid"
+  },
+  "for": {
+    "prefix": "for",
+    "body": [
+      "[${1:circle(p.x, p.y, 0.02)} for ${2:p} in ${3:points}]"
+    ],
+    "description": "A list built by a loop"
+  },
+  "fn": {
+    "prefix": "fn",
+    "body": [
+      "let ${1:name}(${2:a}) = ${3:a}"
+    ],
+    "description": "A function"
+  },
+  "sound": {
+    "prefix": "sound",
+    "body": [
+      "render sound(drone(${1:field}, instrument: \"${2|strings,choir,organ,reed,glass,wind,sine|}\", scale: \"${3|dorian,minor,major,pentatonic,lydian,blues|}\", key: ${4:110}),",
+      "             notes(${5:pattern}, instrument: \"${6|marimba,pluck,bell,kalimba,glass,wood,drum,tick|}\", scale: \"$3\", key: ${7:220}),",
+      "             texture(${8:field}, kind: \"${9|wind,waves,rain,crackle|}\"),",
+      "             duration: ${10:20}, room: ${11:0.4}, echo: ${12:0.2})"
+    ],
+    "description": "A layered soundtrack"
+  },
+  "mosaic": {
+    "prefix": "mosaic",
+    "body": [
+      "mosaic([paint(${1:a}, palette: \"${2|ink,sea,ember,lichen,night|}\"), paint(${3:b}, palette: \"${4|ember,ink,sea,lichen,night|}\")], columns: ${5:2}, gap: ${6:0.01})"
+    ],
+    "description": "Paintings side by side"
+  },
+  "overlay": {
+    "prefix": "overlay",
+    "body": [
+      "overlay(${1:below}, ${2:above}, blend: \"${3|normal,screen,multiply,add,lighten,darken,difference,overlay|}\", opacity: ${4:0.6})"
+    ],
+    "description": "One painting over another"
+  }
+}

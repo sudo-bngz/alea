@@ -1,0 +1,8 @@
+// 01 · Hello
+// The smallest work: one draw, one field, one render.
+// Run it twice: each run is a new edition of the same work.
+
+work Hello {
+  field waves = sin(x * ~between(5, 40))   // `~` draws one number for this edition
+  render image(waves)                      // the field becomes a picture
+}

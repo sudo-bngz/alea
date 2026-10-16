@@ -1,0 +1,167 @@
+use "correspondances/route.alea"
+
+// CORRESPONDANCES — the plan of a metro for a Paris that was never built.
+//
+// Every edition keeps the city's grammar: the Seine bending north through the
+// middle, its two islands, the ring road, the woods on either side, the great
+// interchanges, and which of the fourteen lines meet where. What it redraws is
+// the geometry: where each interchange falls, which way each line bends, how
+// the river winds. Then the trains run, through one day of service: t goes
+// once round the clock, from midnight to midnight.
+
+work Correspondances {
+  // ── a day of service ──
+  let hour = t * 24
+  let rush = exp(-((hour - 8.5) / 1.4) ^ 2) + exp(-((hour - 18.3) / 1.7) ^ 2)
+  let night = smoothstep(0.8, 1.5, hour) * (1 - smoothstep(5.2, 5.9, hour))
+  let service = clamp(0.5 + 0.5 * rush, 0, 1) * (1 - night)
+
+  // ── the interchanges: near where they are, snapped to the plan's grid ──
+  let snap(v) = floor(v * 48 + 0.5) / 48
+  let hub(x0, y0) = [snap(~around(x0, 0.012)), snap(~around(y0, 0.012))]
+  let e  = hub(0.288, 0.376)   // Étoile
+  let tr = hub(0.248, 0.465)   // Trocadéro
+  let mp = hub(0.307, 0.576)   // La Motte-Picquet
+  let sl = hub(0.452, 0.363)   // Saint-Lazare
+  let op = hub(0.486, 0.400)   // Opéra
+  let co = hub(0.431, 0.444)   // Concorde
+  let ch = hub(0.570, 0.503)   // Châtelet
+  let re = hub(0.658, 0.429)   // République
+  let ge = hub(0.625, 0.334)   // Gare de l'Est
+  let bb = hub(0.554, 0.300)   // Barbès
+  let st = hub(0.687, 0.289)   // Stalingrad
+  let be = hub(0.732, 0.390)   // Belleville
+  let ba = hub(0.690, 0.548)   // Bastille
+  let gl = hub(0.714, 0.620)   // Gare de Lyon
+  let na = hub(0.836, 0.586)   // Nation
+  let mo = hub(0.435, 0.638)   // Montparnasse
+  let it = hub(0.617, 0.729)   // Place d'Italie
+  let od = hub(0.532, 0.576)   // Odéon
+
+  // ── the fourteen lines, through the interchanges they really serve ──
+  // a terminus: roughly there, beyond the ring road
+  let end(x0, y0) = [~around(x0, 0.008), ~around(y0, 0.008)]
+  let network = [
+    Route([end(0.05, 0.35), e, co, ch, ba, na, end(0.95, 0.62)], label: "1", tone: 1.0, service: service),
+    Route([end(0.19, 0.4), e, bb, st, be, na], label: "2", last: 0, tone: 0.72, service: service),
+    Route([end(0.13, 0.17), sl, op, re, end(0.94, 0.36)], label: "3", tone: 0.86, service: service),
+    Route([end(0.57, 0.05), bb, ge, ch, mo, end(0.475, 0.965)], label: "4", tone: 1.0, service: service),
+    Route([end(0.85, 0.08), st, ge, re, ba, gl, it], label: "5", last: 0, tone: 0.78, service: service),
+    Route([e, tr, mp, mo, it, gl, na], label: "6", first: 0, last: 0, tone: 0.72, service: service),
+    Route([end(0.64, 0.04), ge, op, ch, it, end(0.63, 0.97)], label: "7", tone: 0.9, service: service),
+    Route([end(0.14, 0.8), mp, co, op, re, ba, end(0.93, 0.82)], label: "8", tone: 0.82, service: service),
+    Route([end(0.06, 0.66), tr, sl, re, na, end(0.95, 0.47)], label: "9", tone: 0.95, service: service),
+    Route([end(0.08, 0.76), mp, od, gl], label: "10", tone: 0.76, service: service),
+    Route([ch, re, be, end(0.89, 0.19)], label: "11", first: 0, tone: 0.84, service: service),
+    Route([end(0.495, 0.03), bb, sl, co, mo, end(0.265, 0.94)], label: "12", tone: 0.9, service: service),
+    Route([end(0.36, 0.03), sl, co, mo, end(0.375, 0.975)], label: "13", tone: 0.8, service: service),
+    Route([end(0.44, 0.07), sl, ch, gl, it, end(0.75, 0.96)], label: "14", tone: 1.0, service: service)]
+
+  // the interchanges, and how many lines meet there
+  let interchanges = [[e, 3], [tr, 2], [mp, 3], [sl, 5], [op, 3], [co, 4], [ch, 5], [re, 5], [ge, 3],
+                      [bb, 3], [st, 2], [be, 2], [ba, 3], [gl, 4], [na, 4], [mo, 4], [it, 4]]
+  let size(lines) = 0.017 + 0.0032 * lines
+
+  // ── the city: inside the ring road, a faint tint ──
+  let u = (x - 0.5) / 0.432
+  let v = (y - 0.5) / 0.349
+  let q = sqrt(u * u + v * v) + 0.02 * noise(x * 3, y * 3, 0)
+  let gq = sqrt((u / 0.432) ^ 2 + (v / 0.349) ^ 2) / max(q, 0.001)
+  let city = 1 - smoothstep(0.997, 1.003, q)
+  let road = abs(abs(q - 1) / gq - 0.0036)
+  let ringroad = 1 - smoothstep(0.0006, 0.0013, road)
+
+  // ── the arrondissements: a spiral, from the centre outwards, clockwise ──
+  let r = max(distance(x, y, 0.5, 0.5), 0.01)
+  let th = atan2(v, u) + 0.12 * noise(x * 5, y * 5, 1)
+  let turn = q * 2.1 - (th / tau + 0.5)
+  let ft = fract(turn)
+  let gt = sqrt((2.1 * gq) ^ 2 + (1 / (tau * r)) ^ 2)
+  let arms = 1 - smoothstep(0.0005, 0.0011, min(ft, 1 - ft) / gt)
+  let sectors = 4 + 3 * (floor(turn) >= 1) + 2 * (floor(turn) >= 2)
+  let fa = fract((th / tau + 0.5) * sectors)
+  let spokes = 1 - smoothstep(0.0005, 0.0011, r * tau / sectors * min(fa, 1 - fa))
+  let wards = merge(arms, spokes) * city * smoothstep(0.1, 0.16, q) * (turn > 0)
+
+  // ── the Seine, from the south-east to the south-west, with its islands ──
+  let near(x0, y0, d) = [~around(x0, d), ~around(y0, d)]
+  let seine = [near(0.929, 0.808, 0.006), near(0.793, 0.742, 0.010), near(0.696, 0.647, 0.010),
+               near(0.630, 0.573, 0.006), [0.571, 0.523],             near(0.495, 0.498, 0.006),
+               near(0.424, 0.457, 0.010), near(0.332, 0.457, 0.010), near(0.277, 0.498, 0.010),
+               near(0.207, 0.564, 0.010), near(0.152, 0.655, 0.010), near(0.076, 0.746, 0.006)]
+  let bed = ~between(0.017, 0.024)
+  let river = path(seine, bed, 0.001)
+  let banks = path(seine, bed + 0.005, 0.001)
+  let cite = 0.5 * (seine[3] + seine[4])           // where the islands are
+  let along_river = atan2(seine[3].y - seine[4].y, seine[3].x - seine[4].x) * 360 / tau
+  let isles = merge(
+    rect(cite.x - 0.024, cite.y - 0.016, 0.034, bed * 0.42, along_river, 0.001),
+    rect(cite.x + 0.012, cite.y + 0.012, 0.022, bed * 0.4, along_river, 0.001))
+  let water = cut(river, isles)
+  let shore = cut(banks, river) + cut(zoom(isles, 1.35, cite.x, cite.y), isles) * river
+  let hatch = water * stripes(240, 90, 0.5) * 0.3
+
+  // ── the woods, beyond the ring road: Boulogne to the west, Vincennes to the east ──
+  let woods = merge(blob(0.035, 0.48, ~between(0.12, 0.15), 0.3), blob(0.99, 0.72, ~between(0.12, 0.16), 0.3))
+  let trees = woods * dots(150, 0.3, 0.05) * 0.32
+
+  // ── the plan ──
+  let ground = max(max(max(city * 0.045, wards * 0.22), max(hatch, trees)), max(shore * 0.55, ringroad * 0.55))
+  let lines = merge(network)
+  let inked = max(ground, clamp(lines, 0, 1))
+  let pearled = mix(inked, 0, clamp(-lines, 0, 1))
+  let running = mix(pearled, 1, clamp(lines - 1, 0, 1))
+  let hubs = merge([circle(h[0].x, h[0].y, size(h[1]), 0.0012) for h in interchanges])
+  let rims = merge([ring(h[0].x, h[0].y, size(h[1]), 0.0034, 0.0012) for h in interchanges])
+  let plan = mix(mix(running, 0, hubs), 1, rims)
+
+  // ── the clock: twenty-four hours round the dial, midnight at the top ──
+  let a = hour / 24 * tau - tau / 4
+  let face = (1 - smoothstep(0.0006, 0.0013, abs(distance(x, y, 0.5, 0.5) - 0.05)))
+  let ang = atan2(y - 0.5, x - 0.5) / tau * 24
+  let fh = fract(ang)
+  let rr = distance(x, y, 0.5, 0.5)
+  let ticks = (rr > 0.041) * (rr < 0.048) * (1 - smoothstep(0.0006, 0.0013, rr * tau / 24 * min(fh, 1 - fh)))
+  let lit = (rr < 0.034) * smoothstep(0.08, 0.6, service) * 0.18
+  let hand = line(0.5, 0.5, 0.5 + 0.036 * cos(a), 0.5 + 0.036 * sin(a), 0.0034, 0.001)
+  let dial = max(max(face, ticks), max(lit, hand))
+
+  // ── the still: a sheet, with its title ──
+  let sheet = merge(
+    text("CORRESPONDANCES", 0.5, -0.072, 0.036, 0, "serif"),
+    text("a metro for a Paris that was never built", 0.5, -0.036, 0.014, 0, "mono"),
+    line(0.03, -0.016, 0.97, -0.016, 0.0012, 0.0006),
+    line(0.03, 1.016, 0.97, 1.016, 0.0012, 0.0006),
+    text("14 lines  ·  one day of service  ·  written in alea", 0.03 + 0.21, 1.07, 0.013, 0, "mono"),
+    move(zoom(dial, 0.62), x: 0.4, y: 0.565))
+  let colours = choose { 3: "ink" | 1: "night" | 1: "sea" }
+  output plan
+  render image(max(plan, sheet), width: 1080, height: 1350, at: ~between(7, 23.5) / 24, palette: colours)
+
+  // ── the Reel: the same plan, a day in twenty seconds, with the hour ──
+  let clock = merge([text("{h:02}:00", 0.585, -0.07, 0.03, 0, "mono") * (floor(hour) == h) for h in range(24)])
+  let poster = merge(
+    text("CORRESPONDANCES", 0.5, -0.225, 0.05, 0, "serif"),
+    text("a metro for a Paris that was never built", 0.5, -0.178, 0.018, 0, "mono"),
+    line(0.06, -0.15, 0.94, -0.15, 0.0014, 0.0006),
+    move(dial, x: -0.07, y: -0.57),
+    clock,
+    line(0.06, 1.045, 0.94, 1.045, 0.0014, 0.0006),
+    text("14 lines  ·  one day of service  ·  written in alea", 0.5, 1.075, 0.016, 0, "mono"))
+
+  // a chime for each arrival: many at the rush hour, none at night
+  pattern arrivals = repeat 280 event(
+    t: (i + ~between(0, 1)) / n,
+    y: choose { 0.3 | 0.42 | 0.5 | 0.62 | 0.74 },
+    size: 0.012,
+    intensity: ~between(0.4, 1)
+      * clamp(0.5 + 0.5 * (exp(-((i / n * 24 - 8.5) / 1.4) ^ 2) + exp(-((i / n * 24 - 18.3) / 1.7) ^ 2)), 0, 1)
+      * (1 - smoothstep(0.8, 1.5, i / n * 24) * (1 - smoothstep(5.2, 5.9, i / n * 24))))
+  // the sound of the network: air in the tunnels, quiet at night; an arrival on
+  // the kalimba, on the beat; the clatter of the rails, busiest at the rush hour
+  render video(max(plan, poster), duration: 20, fps: 30, width: 1080, height: 1920, palette: colours,
+               sound: [drone(plan * (0.25 + 0.75 * service), voices: 4, instrument: "wind", scale: "minor", key: 55, gain: 0.7),
+                       notes(arrivals, instrument: "kalimba", scale: "pentatonic", key: 330, tempo: 92),
+                       texture(service, kind: "crackle", gain: 0.5)],
+               room: 0.55, echo: 0.2)
+}

@@ -1,0 +1,62 @@
+// Rosace — a rose window of stained glass.
+//
+// Panes of glass are the bands of a noise field, and the lead between them is
+// drawn as contour lines of constant width; a kaleidoscope folds it all into
+// the window's symmetry. Concentric rings of tracery, petals and small round
+// windows (oculi) organise the glass; a stone wall holds it; light comes
+// through from behind, brightest at the heart.
+
+work Rosace {
+  let sides = choose { 6 | 8 | 10 | 12 | 16 }
+  let seg   = tau / sides
+  let outer = ~between(0.40, 0.44)
+  let r1    = outer * ~between(0.22, 0.3)       // the heart
+  let r2    = outer * ~between(0.55, 0.68)      // the ring of petals
+  let lead  = 0.0035
+
+  // polar coordinates around the centre (inside the folded wedge, |th| ≤ seg / 2)
+  let dx = x - 0.5
+  let dy = y - 0.5
+  let r  = sqrt(dx * dx + dy * dy)
+  let th = atan2(dy, dx)
+
+  // ── the glass: bands of a noise field, each band its own tone ──
+  // (the noise is laid out by arc length, r × th, so panes keep their size near the centre)
+  let g     = noise(r * ~between(6, 10), r * th * ~between(9, 15), 31) * 2.2
+  let e     = 0.002
+  let gx    = (move(g, x: -e, y: 0) - g) / e
+  let gy    = (move(g, x: 0, y: -e) - g) / e
+  let slope = sqrt(gx * gx + gy * gy) + 0.0001
+  let bands = g * 2.5
+  let f     = fract(bands)
+  let seam  = 1 - smoothstep(lead * 0.6, lead * 1.2, min(f, 1 - f) / (slope * 2.5))
+  let tone  = 0.42 + 0.5 * fract(floor(bands) * 0.618 + ~uniform(0, 1))
+
+  // ── the tracery: rings, radial bars, petals and oculi ──
+  let ring1  = 1 - smoothstep(lead, lead * 1.8, abs(r - r1))
+  let ring2  = 1 - smoothstep(lead, lead * 1.8, abs(r - r2))
+  let rim    = 1 - smoothstep(lead * 3, lead * 4.5, abs(r - outer))
+  let bar    = (1 - smoothstep(lead, lead * 1.8, abs(abs(th) - seg / 2) * r)) * (r > r1)
+  let petalr = (r2 - r1) * 0.5
+  let petal  = abs(distance(x, y, 0.5 + (r1 + petalr) , 0.5) - petalr * 0.82)
+  let petals = 1 - smoothstep(lead, lead * 1.8, petal)
+  let oculus = abs(distance(x, y, 0.5 + (r2 + outer) * 0.5 * cos(seg / 2), 0.5 + (r2 + outer) * 0.5 * sin(seg / 2))
+                   - (outer - r2) * 0.32)
+  let oculi  = 1 - smoothstep(lead, lead * 1.8, oculus)
+  let heart  = 1 - smoothstep(lead, lead * 1.8, abs(r - r1 * 0.45))
+  let leads  = max(max(max(seam, ring1), max(ring2, bar)), max(max(petals, oculi), heart))
+
+  // ── light through the glass, brightest at the heart ──
+  let light  = 0.55 + 0.45 * (1 - smoothstep(0, outer, r)) + noise(x * 3, y * 3, 41) * 0.08
+  let glass  = tone * light * (1 - leads)
+  let window = kaleidoscope(glass, sides: sides) * (r < outer)
+
+  // ── the wall ──
+  let stone  = 0.035 + clouds(scale: 9, detail: 4) * 0.05
+  let wall   = stone * (r > outer) * (1 - rim) + rim * 0.02
+  let shadow = (1 - smoothstep(outer, outer + 0.06, r)) * (r > outer) * 0.03
+
+  output window + wall - shadow + grain(0.03)
+
+  render image(output, width: 1080, height: 1350, palette: choose { 3: "ember" | 2: "night" | 2: "sea" })
+}

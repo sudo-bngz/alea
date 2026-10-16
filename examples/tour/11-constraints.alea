@@ -1,0 +1,18 @@
+// 11 · Constraints: what must be true
+// A constraint is a condition every edition must meet. When one fails, alea
+// redraws the whole edition (up to 1000 times). You state the goal; chance finds the way.
+
+work Constraints {
+  let a = circle(size: ~between(0.15, 0.35))
+  let b = circle(size: ~between(0.15, 0.35))
+
+  // Measures of a field over the canvas: mean, stddev, minimum, maximum.
+  constraint maximum(overlap(a, b)) < 0.5          // the two circles never touch
+  constraint mean(merge(a, b)) > 0.1               // and together they fill the canvas a little
+
+  pattern stars = repeat ~poisson(40) event(size: ~between(0.002, 0.006))
+  // count() gives the number of events; `and` / `or` join conditions.
+  constraint count(stars) >= 35 and count(stars) <= 45
+
+  render image(merge(a, b) + stars, palette: "night")
+}

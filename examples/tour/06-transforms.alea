@@ -1,0 +1,19 @@
+// 06 · Transforms
+// A transform takes any shape, texture or field, and changes where it is drawn.
+
+work Transforms {
+  let leaf = blob(x: 0.7, y: 0.5, size: 0.25)
+  let bar  = rect(x: 0.5, y: 0.5, width: 0.7, height: 0.1, angle: 0)
+
+  render image(merge(leaf, move(leaf, x: -0.4) * 0.5), width: 512)  // move, by a distance
+  render image(rotate(bar, angle: 30), width: 512)                    // rotate, in degrees
+  render image(zoom(checker(count: 8), by: 2), width: 512)            // zoom: 2 is twice as big
+  render image(tile(leaf, count: 3), width: 512)                      // repeat in a grid
+  render image(mirror(leaf, axis: "both"), width: 512)                // fold onto itself
+  render image(kaleidoscope(leaf, sides: 7), width: 512)              // fold around the centre
+  render image(warp(stripes(count: 14, angle: 0), amount: 0.05), width: 512)  // a hand-drawn wobble
+
+  // Transforms nest, from the inside out: warp the leaf, fold it into a flower,
+  // then turn the flower.
+  render image(rotate(kaleidoscope(warp(leaf, amount: 0.05), sides: 5), angle: 18), width: 512)
+}

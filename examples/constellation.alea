@@ -1,0 +1,33 @@
+// Constellation — a spiral galaxy whose number of arms is a structural
+// choice, not just a numeric one. `i` and `n` only exist inside a pattern.
+
+work Constellation {
+  let arms      = choose { 2 | 3 | 5 | 8 }
+  let twist     = ~uniform(3, 10)
+  let direction = choose { 1 | -1 }
+
+  pattern stars = repeat 900 event(
+      x: 0.5 + ((i / n) ^ 0.6 * 0.45 + ~normal(0, 0.015))
+               * cos((i % arms) / arms * tau + direction * (i / n) * twist),
+      y: 0.5 + ((i / n) ^ 0.6 * 0.45 + ~normal(0, 0.015))
+               * sin((i % arms) / arms * tau + direction * (i / n) * twist),
+      t: i / n,
+      intensity: ~exponential(2),
+      size: ~uniform(0.0015, 0.006)
+  )
+
+  field dust = 0.12 * noise(x * 5, y * 5, t * 3) + 0.04 * ~~uniform(0, 1)
+  field halo = 0.8 * exp(-distance(x, y, 0.5, 0.5) * 9)
+
+  // drawn once, so the image, the sound and the video agree
+  let colours = choose { "night" | "ember" | "ink" }
+  let pitch   = choose { 55 | 82.5 | 110 }
+
+  // over the video the galaxy turns, following its own spiral
+  field sky = rotate(dust + halo + stars, angle: direction * t * 90)
+
+  render image(dust + halo + stars, palette: colours)
+  render sound(dust + halo, stars, duration: 30, fundamental: pitch, voices: 5)
+  render video(sky, stars, duration: 30, fps: 24, palette: colours,
+               fundamental: pitch, voices: 5)
+}

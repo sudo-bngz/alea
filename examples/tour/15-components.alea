@@ -1,0 +1,20 @@
+// 15 · Works made of works
+// `use` brings in other works; calling one gives its `output`, like any shape.
+
+use "lib/flower.alea"
+use "../frame.alea"              // Frame(art, margin): its parameter is a shape
+
+work Garden {
+  // Every call is a new draw: two different flowers.
+  let a = Flower()
+  let b = Flower()
+
+  // Parameters take decisions back.
+  let centre = Flower(cx: 0.5, cy: 0.5, size: 0.24, petals: 12)
+
+  // `let` keeps one draw: `twin` is the same flower, shown twice.
+  let twin = Flower(cx: 0.2, cy: 0.8, size: 0.1)
+
+  let garden = merge(clouds(scale: 2) * 0.2, a, b, centre, twin, move(twin, x: 0.6))
+  render image(Frame(garden, margin: 0.06), palette: "ember")
+}

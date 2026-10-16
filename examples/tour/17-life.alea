@@ -1,0 +1,17 @@
+// 17 · Growing: Conway's Game of Life.
+//
+// A grown field remembers: each generation is computed from the one before.
+// A cell is born where exactly three neighbours are alive, and survives with
+// two or three. `trace` keeps a fading memory of every cell that lived.
+
+work Life {
+  grow over 120 for 360 {
+    cells = ~~uniform(0, 1) < 0.28
+      then neighbours(cells) == 3 or (cells and neighbours(cells) == 2)
+    trace = 0
+      then max(trace * 0.94, cells)
+  }
+  let glow = trace * 0.45 + cells * 0.55
+  render image(glow, at: 1, palette: "night")
+  render video(glow, duration: 12, palette: "night")   // one generation per frame
+}

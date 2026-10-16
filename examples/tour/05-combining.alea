@@ -1,0 +1,21 @@
+// 05 · Combining
+// A work can have several renders: each one here shows a way to combine shapes.
+
+work Combining {
+  let a = circle(x: 0.42, y: 0.45, size: 0.45)
+  let b = circle(x: 0.58, y: 0.55, size: 0.45)
+  let lines = stripes(count: 24, angle: 45, softness: 0.1)
+
+  render image(merge(a, b), width: 512)               // everything
+  render image(overlap(a, b), width: 512)             // only where both are
+  render image(cut(a, b), width: 512)                 // a, with b removed
+  render image(invert(a), width: 512)                 // inside and outside swapped
+
+  // Arithmetic layers values: `+` adds, `*` scales. Times 0.4 is a lighter tone.
+  render image(merge(a, b) * 0.4 + overlap(overlap(a, b), lines) * 0.6, width: 512)
+
+  // mix(a, b, amount) blends from a (0) to b (1);
+  // threshold turns soft tones into a crisp edge.
+  render image(mix(gradient(angle: 90), clouds(), 0.5), width: 512)
+  render image(threshold(mix(gradient(angle: 90), clouds(), 0.5), level: 0.5), width: 512)
+}

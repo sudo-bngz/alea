@@ -1,0 +1,36 @@
+// Tide — a swell, some foam.
+// Every run draws a different direction, frequency, roughness,
+// amount of foam and palette.
+
+work Tide {
+  let frequency = ~uniform(4, 14)
+  let roughness = ~normal(1, 0.25)
+  let angle     = ~uniform(0, tau)
+
+  // u is already a field: it depends on x and y
+  let u = x * cos(angle) + y * sin(angle)
+
+  field swell = sin(u * frequency + t * 6) * roughness
+              + 0.6 * noise(x * 3, y * 3, t * 2)
+              + 0.06 * ~~normal(0, 1)          // grain: redrawn at every point
+
+  // every `~` inside a pattern is redrawn on each repetition
+  pattern foam = repeat ~poisson(60) event(
+      x: ~normal(0.5, 0.2),
+      y: ~beta(2, 5),
+      t: ~uniform(0, 1),
+      intensity: ~beta(2, 3) * 2,
+      size: ~uniform(0.005, 0.03)
+  )
+
+  constraint count(foam) > 40
+  constraint stddev(swell) > 0.5
+
+  // chosen once, so the image and the video share it
+  let colours = choose { 3: "sea" | 1: "ink" | 1: "night" }
+
+  render image(swell + foam, width: 1024, palette: colours)
+  render sound(swell, foam, duration: 20)
+  render sculpture(swell + foam * 0.5, resolution: 200)
+  render video(swell + foam, foam, duration: 12, width: 1280, height: 720, palette: colours)
+}

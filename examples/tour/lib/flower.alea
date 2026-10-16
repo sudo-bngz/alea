@@ -1,0 +1,11 @@
+// Flower — a component. Parameters let other works place it; anything they
+// don't give is drawn by alea. `output` is what callers receive.
+// (cx, cy is the centre: `x` and `y` are reserved for the canvas.)
+
+work Flower(cx = ~between(0.2, 0.8), cy = ~between(0.2, 0.8),
+            size = ~between(0.12, 0.22), petals = choose { 5 | 6 | 8 }) {
+  let petal = blob(x: cx + size * 0.55, y: cy, size: size * 0.7)
+  output kaleidoscope(petal, sides: petals, x: cx, y: cy) + glow(x: cx, y: cy, size: size * 0.5) * 0.6
+
+  render image(output)          // used only when this file runs on its own
+}

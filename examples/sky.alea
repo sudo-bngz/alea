@@ -1,0 +1,7 @@
+// NightSky — clouds, stars and grain. Usable on its own or inside other works.
+
+work NightSky(stars = 150) {
+  output clouds() * 0.25 + scatter(count: stars, size: 0.003) + grain(0.05)
+
+  render image(output, palette: "night")
+}

@@ -1,0 +1,27 @@
+// 08 · Words and pictures
+// text() and picture() bring your own content in, as shapes.
+
+work WordsAndPictures {
+  // text("words", x, y, size, angle, font): `size` is the height of the line.
+  let fonts = merge(text("sans",  x: 0.5, y: 0.2, size: 0.13),
+                    text("bold",  x: 0.5, y: 0.4, size: 0.13, font: "bold"),
+                    text("serif", x: 0.5, y: 0.6, size: 0.13, font: "serif"),
+                    text("mono",  x: 0.5, y: 0.8, size: 0.13, font: "mono"))
+  render image(fonts, width: 512)
+
+  // Text is a shape: transform it, combine it.
+  let word = text("alea", x: 0.5, y: 0.5, size: 0.3, font: "bold")
+  render image(warp(rotate(word, angle: ~between(-20, 20)), amount: 0.03), width: 512)
+
+  // picture("file") fills the canvas width by default.
+  // The path is relative to this file.
+  let photo = picture("../assets/astronaut.png")
+  render image(photo, width: 512, palette: "night")
+
+  // In "ink", high values are dark ink: invert a photo for a positive print.
+  render image(invert(photo), width: 512)
+
+  // A picture is a field like any other: here, seen only through the letters.
+  render image(overlap(photo, text("SPACE", x: 0.5, y: 0.5, size: 0.3, font: "bold")),
+               width: 512, palette: "sea")
+}

@@ -1,0 +1,82 @@
+// Nocturne — the moon over a sea at night.
+//
+// A sky that darkens upwards, streaks of cloud and a field of stars; a moon
+// (full, gibbous or a crescent) with its halo; a coast on the horizon; and on
+// the water, the moon's reflection breaking into glints on waves that grow
+// finer towards the horizon. Over a video the clouds drift and the glints move,
+// along circles in the noise, so the video loops without a seam.
+
+// As a component, the horizon and the moon's position can be given; they are
+// parameters in the order they are drawn, so editions are the same either way.
+work Nocturne(horizon = ~between(0.6, 0.72), mx = ~between(0.28, 0.72)) {
+  let my      = ~between(0.06, horizon - 0.28)
+  let r       = ~between(0.05, 0.085)
+  let colours = choose { 3: "night" | 2: "sea" | 1: "ember" }
+
+  // time goes round a circle, so the end of a video meets its beginning
+  let cx = cos(t * tau)
+  let cy = sin(t * tau)
+
+  // ── the sky ──
+  let above  = y < horizon
+  let sky    = 0.05 + 0.2 * smoothstep(-0.15, horizon, y)
+  let streak = clamp(noise(x * 1.6 + cx * 0.12, y * 9 + cy * 0.12, 3) * 1.4 - 0.25, 0, 1)
+             * smoothstep(-0.1, horizon - 0.05, y)
+  pattern stars = repeat ~poisson(420) event(
+      y: ~between(-0.4, horizon - 0.02),               // tall enough for a 9:16 frame
+      size: ~between(0.0008, 0.0024),
+      intensity: ~beta(1.5, 4) * 2
+  )
+
+  // ── the moon, its phase and halo ──
+  let disc  = circle(x: mx, y: my, size: 2 * r, softness: 0.0015)
+  let maria = clamp(noise((x - mx) * 18, (y - my) * 18, 11) * 0.8 + 0.2, 0, 1)
+  let phase = choose {
+      2: disc
+    | 2: cut(disc, circle(x: mx + r * 0.55, y: my - r * 0.1, size: 2 * r, softness: 0.006))
+    | 1: cut(disc, circle(x: mx - r * 1.05, y: my, size: 2 * r, softness: 0.004))
+  }
+  let moon  = phase * (0.95 - maria * 0.18)
+  let halo  = glow(x: mx, y: my, size: r * 9) * 0.32 + glow(x: mx, y: my, size: r * 3.5) * 0.25
+
+  // ── the coast on the horizon ──
+  let from  = ~between(-0.2, 0.5)
+  let to    = from + ~between(0.3, 0.8)
+  let broad = clamp(noise(x * 3, 0, 21) * 0.55 + 0.4, 0, 1)
+  let hills = 0.006 + 0.055 * broad * broad + 0.008 * noise(x * 14, 0, 22)
+  let taper = smoothstep(from, from + 0.1, x) * (1 - smoothstep(to - 0.1, to, x))
+  let coast = (y < horizon) * (y > horizon - hills * taper)
+
+  // ── the sea: waves in perspective, finer towards the horizon ──
+  let below  = 1 - above
+  let depth  = clamp(y - horizon, 0.0005, 1)
+  let row    = 42 * ln(depth + 0.004)                        // one unit per wave row
+  let across = x * 14 / (depth * 2.5 + 0.03)                 // waves shorten with distance
+  let waves  = 0.5 + 0.5 * sin(row + noise(across + cx * 0.8, row * 0.35 + cy * 0.8, 5) * 3.5)
+
+  // ── the moon's path: a column that widens towards us, broken into glints ──
+  let width  = 0.01 + depth * 0.32
+  let sway   = noise(row * 0.5 + cx * 0.3, cy * 0.3, 7) * width * 0.5
+  let column = 1 - smoothstep(width * 0.25, width, abs(x - mx + sway))
+  let glints = column * smoothstep(0.7, 0.93, waves) * (1 - depth * 0.9)
+  let sheen  = (1 - smoothstep(0, 0.25, depth)) * 0.06       // the sky's light near the horizon
+  let path   = (1 - smoothstep(0, width * 2.5, abs(x - mx))) * (1 - depth) * 0.07
+  let water  = 0.025 + sheen + path + waves * 0.035 + glints * 1.1
+
+  let night = above * (sky + streak * 0.22 + halo + stars) + below * water
+  let veiled = moon * (1 - streak * 0.55)                    // clouds pass in front of the moon
+  output max(night, above * veiled * 1.05) * (1 - coast) + coast * 0.015 + grain(0.025)
+
+  // a few slow chimes for the soundtrack, high when the moon is high
+  pattern chimes = repeat 12 event(t: (i + ~uniform(0.1, 0.9)) / n, y: my + ~around(0, 0.12),
+                                   size: ~between(0.03, 0.08), intensity: ~between(0.3, 0.7))
+
+  render image(output, width: 1080, height: 1350, palette: colours)
+  // the sound of the night: low strings, glass chimes, and the sea
+  let key = choose { 55 | 61.7 | 73.4 }
+  render video(output, duration: 15, fps: 30, width: 1080, height: 1920, palette: colours,
+               sound: [drone(output, voices: 4, instrument: "strings", scale: "minor", key: key, gain: 0.8),
+                       notes(chimes, instrument: "glass", scale: "minor", key: key * 4),
+                       texture(water, kind: "waves", gain: 0.9)],
+               room: 0.7, echo: 0.3)
+}

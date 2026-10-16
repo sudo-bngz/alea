@@ -1,0 +1,15 @@
+// Moon — a crescent over a night sky.
+// It takes parameters, so other works can place and size it;
+// anything not given is chosen by alea.
+
+use "sky.alea"
+
+// (cx, cy is the centre: `x` and `y` are reserved for the canvas itself)
+work Moon(cx = ~between(0.25, 0.75), cy = ~between(0.25, 0.75), size = ~between(0.25, 0.4)) {
+  let moon  = circle(x: cx, y: cy, size: size)
+  let shade = move(moon, x: ~between(0.04, 0.12), y: ~between(-0.05, 0.05))
+  output cut(moon, shade)
+
+  // used only when this file runs on its own:
+  render image(merge(NightSky(), output), palette: "night")
+}

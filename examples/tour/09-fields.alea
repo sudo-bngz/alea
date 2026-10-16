@@ -1,0 +1,26 @@
+// 09 · Fields: the maths underneath
+// Every shape is a field: a number at each point (x, y) and moment t.
+// x and y go from 0 to 1, starting top-left; t goes from 0 to 1 over a video or a sound.
+
+work Fields {
+  field across = x                                    // 0 on the left, 1 on the right
+  field centre = distance(x, y, 0.5, 0.5)             // 0 in the middle
+  field rings  = sin(centre * 60)                     // functions and operators build new fields
+  field bands  = step(0.5, fract(x * 6))              // fract keeps what is after the point
+  field marble = sin(x * 12 + 4 * noise(x * 4, y * 4, 0))
+  field disc   = 1 - smoothstep(0.28, 0.3, centre)    // roughly what circle() does underneath
+
+  // A comparison gives 1 (true) or 0 (false), so it works as a mask.
+  field halves = (x > 0.5) * rings + (x <= 0.5) * marble
+
+  render image(across, width: 384)
+  render image(centre, width: 384)
+  render image(rings, width: 384)
+  render image(bands, width: 384)
+  render image(marble, width: 384)
+  render image(disc, width: 384)
+  render image(halves, width: 384)
+
+  // Primitives are fields too, so both worlds mix freely.
+  render image(circle(x: 0.5, y: 0.5, size: 0.6) * marble, width: 384)
+}

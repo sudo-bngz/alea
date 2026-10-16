@@ -1,0 +1,32 @@
+use "isohypses.alea"
+use "correspondances.alea"
+use "rosace.alea"
+use "culture.alea"
+
+// THE WALL — the whole exhibition at once, as a wall of screens.
+//
+// Four works are called as components; each is painted in its own colours
+// and shown in its own screen of the mosaic, at the same moment: the map
+// stands still, the trains run, the window glows, the culture grows.
+
+work Wall {
+  let metro = Correspondances()
+  let plate = Culture()
+  let screens = [paint(Isohypses(), palette: "ink"),
+                 paint(metro, palette: "sea"),
+                 paint(Rosace(), palette: "ember"),
+                 paint(plate, palette: "night")]
+
+  // the wall, a little above the middle; a caption underneath
+  let wall = place(mosaic(screens, columns: 2, gap: 0.014, background: 0.03), x: 0.5, y: 0.45, width: 1, height: 1.15)
+  let words = text("ALEA  ·  four works, four screens, one edition each", 0.5, 1.085, 0.02, 0, "mono")
+  let caption = paint(words, palette: "night", alpha: words)
+  let piece = overlay(paint(0, range: [0, 1], palette: "night"), wall, caption)
+
+  render image(piece, width: 1080, height: 1350, at: 0.85)
+  render video(piece, duration: 15, fps: 30, width: 1080, height: 1350,
+               sound: [drone(plate, instrument: "choir", scale: "dorian", key: 73.4, gain: 0.8),
+                       drone(metro, voices: 3, instrument: "wind", scale: "dorian", key: 55, gain: 0.5),
+                       texture(plate, kind: "rain", gain: 0.3)],
+               room: 0.55, echo: 0.2)
+}

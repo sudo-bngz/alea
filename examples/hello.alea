@@ -1,0 +1,7 @@
+// Hello, world — the smallest work: one draw, one field, one render.
+// Run it twice: you get two different editions.
+
+work Hello {
+  field waves = sin(x * ~uniform(5, 40))
+  render image(waves)
+}

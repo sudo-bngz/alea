@@ -1,0 +1,46 @@
+// 20 · Colours of your own: a palette is a list.
+//
+// palette: ["#fff", "#f5d000", …]   a smooth gradient through these colours
+// palette: [[0, "#fff"], [0.6, "#fff"], [0.6, "#d40920"], [1, "#111"]]
+//                                  colours placed at values (two at one place: a sharp edge)
+// bands: 5                         five flat levels instead of a gradient
+// range: [0, 1]                    the field's values as they are, not stretched
+//
+// Here the field only takes five values, one per colour: 0 is the canvas,
+// 0.25 the yellow streets, 0.5, 0.75 and 1 the red, blue and black blocks that
+// travel along them. A generative Broadway Boogie Woogie.
+
+work Boogie {
+  let mondrian = ["#f2efe6", "#f5d000", "#d40920", "#1356a2", "#111111"]
+  let canvas  = 0
+  let yellow  = 0.25
+
+  // the streets: a few vertical and horizontal lines
+  let across = [~between(0.04, 0.96) for k in range(7)]
+  let down   = [~between(0.04, 0.96) for k in range(7)]
+  let street = 0.022
+  let columns = merge([rect(c, 0.5, street, 1.4, 0, 0) for c in across])
+  let rows    = merge([rect(0.5, r, 1.4, street, 0, 0) for r in down])
+  let streets = merge(columns, rows)
+
+  // the traffic: along each street, small squares of colour that move with time
+  // (a hash of the square's number decides its colour)
+  let pick(cell) = fract(sin(cell * 12.9898) * 43758.5453)
+  let colour(cell) = (pick(cell) > 0.55) * (0.5 + 0.25 * (pick(cell + 7) > 0.5) + 0.25 * (pick(cell + 3) > 0.8))
+  // each street has its number k; its squares are numbered along it, and run
+  let up   = merge([rect(across[k], 0.5, street, 1.4, 0, 0) * colour(floor(y * 46 - t * 46) + k * 101) for k in range(7)])
+  let side = merge([rect(0.5, down[k], 1.4, street, 0, 0) * colour(floor(x * 46 + t * 46) + k * 211 + 50) for k in range(7)])
+  let traffic = max(up, side)
+
+  // a few large blocks, set between the streets
+  let block(cx, cy, w, h, c) = rect(cx, cy, w, h, 0, 0) * c
+  let blocks = merge([block(~between(0.1, 0.9), ~between(0.1, 0.9), ~between(0.05, 0.14), ~between(0.05, 0.14),
+                            choose { 0.5 | 0.75 | 0.25 }) for k in range(5)])
+
+  // last one wins: canvas, blocks, streets, traffic
+  let city = mix(mix(max(canvas, blocks), yellow, streets * (traffic == 0)), traffic, traffic > 0)
+
+  render image(city, width: 800, palette: mondrian, bands: 5, range: [0, 1])
+  render video(city, duration: 8, width: 720, palette: mondrian, bands: 5, range: [0, 1],
+               sound: [drone(traffic, voices: 5, instrument: "organ", scale: "major", key: 131, gain: 0.6)], room: 0.3)
+}

@@ -1,0 +1,620 @@
+<title>alea Playground</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a two-pane studio. The score (code) on the left, the wall (editions) on the right; stacked on phones. */
+:root {
+  --paper: #edeff3;
+  --panel: #f9fafc;
+  --ink: #181b30;
+  --muted: #5b6080;
+  --line: #d5d8e1;
+  --accent: #d92b6a;          /* riso pink: the draw operator, Run, the edition stamp */
+  --accent-ink: #ffffff;
+  --code: #fbfbfd;
+  --syn-kw: #3741c4;
+  --syn-prim: #07705f;
+  --syn-str: #965000;
+  --syn-num: #7d33aa;
+  --syn-com: #868ba5;
+  --syn-call: #a61c52;
+  --syn-param: #4a4f70;
+  --err: #b8232b;
+  --err-bg: #b8232b1a;
+  --f-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --f-body: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #11131f; --panel: #181b2b; --ink: #e8e9f2; --muted: #9a9fbd; --line: #2a2e45;
+    --accent: #ff5c98; --accent-ink: #1a0b12; --code: #141625;
+    --syn-kw: #8f9bff; --syn-prim: #4fd2b6; --syn-str: #f1b467; --syn-num: #cf9dff; --syn-com: #6d728f;
+    --syn-call: #ff7fb0; --syn-param: #b3b7d4; --err: #ff6b70; --err-bg: #ff6b701f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #11131f; --panel: #181b2b; --ink: #e8e9f2; --muted: #9a9fbd; --line: #2a2e45;
+  --accent: #ff5c98; --accent-ink: #1a0b12; --code: #141625;
+  --syn-kw: #8f9bff; --syn-prim: #4fd2b6; --syn-str: #f1b467; --syn-num: #cf9dff; --syn-com: #6d728f;
+  --syn-call: #ff7fb0; --syn-param: #b3b7d4; --err: #ff6b70; --err-bg: #ff6b701f;
+  color-scheme: dark;
+}
+
+html, body { height: 100%; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.45 var(--f-body); }
+* { box-sizing: border-box; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app {
+  height: 100%; display: flex; flex-direction: column; gap: 12px;
+  padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ── bar ── */
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+.brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.mark { font: 700 28px/1 var(--f-display); letter-spacing: -0.02em; }
+.mark b { color: var(--accent); font-weight: 700; margin-right: 1px; }
+.tag { color: var(--muted); font-size: 13.5px; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+.btn {
+  border: 1px solid var(--line); background: var(--panel); border-radius: 8px;
+  padding: 7px 12px; cursor: pointer; line-height: 1.2; white-space: nowrap;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn.small { padding: 4px 9px; font-size: 13px; }
+kbd { font: 500 11px var(--f-mono); opacity: .8; margin-left: 6px; }
+select.btn { padding-right: 8px; }
+.seed { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 0 4px 0 10px; background: var(--panel); }
+.seed span, .live span { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.seed input { border: 0; background: transparent; width: 19ch; padding: 7px 4px; font: 13px var(--f-mono); font-variant-numeric: tabular-nums; }
+.seed input:focus { outline: none; }
+.seed:focus-within { border-color: var(--accent); }
+.live { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.live input { accent-color: var(--accent); }
+
+/* ── panes ── */
+.split { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.pane { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.pane-head { display: flex; align-items: center; gap: 10px; min-height: 30px; flex-wrap: wrap; }
+.file { font: 500 13px var(--f-mono); background: var(--panel); border: 1px solid var(--line); border-bottom-color: transparent; border-radius: 8px 8px 0 0; padding: 4px 10px; }
+.status { color: var(--muted); font-size: 13px; margin-left: auto; font-variant-numeric: tabular-nums; }
+.status.busy::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 7px; animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+
+.editor {
+  flex: 1; min-height: 260px; display: flex; background: var(--code);
+  border: 1px solid var(--line); border-radius: 0 var(--r) var(--r) var(--r); overflow: hidden;
+}
+.gutter {
+  flex: none; padding: 14px 10px 14px 12px; text-align: right; color: var(--syn-com);
+  font: 13px/1.6 var(--f-mono); user-select: none; overflow: hidden; border-right: 1px solid var(--line);
+  font-variant-numeric: tabular-nums; min-width: 3.4em;
+}
+.gutter .bad { color: var(--err); font-weight: 600; }
+.ed-area { position: relative; flex: 1; min-width: 0; }
+.ed-area textarea, .ed-area pre {
+  position: absolute; inset: 0; margin: 0; border: 0; padding: 14px 16px;
+  font: 13px/1.6 var(--f-mono); tab-size: 2; white-space: pre; overflow: auto; letter-spacing: 0;
+}
+.ed-area pre { overflow: hidden; pointer-events: none; color: var(--ink); }
+.ed-area textarea { background: transparent; color: transparent; caret-color: var(--ink); resize: none; outline: none; }
+.ed-area textarea::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); color: transparent; }
+.k { color: var(--syn-kw); font-weight: 500; }
+.p { color: var(--syn-prim); }
+.d { color: var(--accent); font-weight: 500; }
+.s { color: var(--syn-str); }
+.n { color: var(--syn-num); }
+.c { color: var(--syn-com); font-style: italic; }
+.w { color: var(--syn-call); font-weight: 500; }
+.a { color: var(--syn-param); font-style: italic; }
+.v { color: var(--syn-kw); }
+.errline { background: var(--err-bg); box-shadow: inset 2px 0 var(--err); }
+
+.error { border: 1px solid var(--err); background: var(--err-bg); border-radius: var(--r); padding: 10px 12px; overflow-x: auto; }
+.error pre { margin: 0; font: 12.5px/1.5 var(--f-mono); color: var(--ink); }
+
+.tray { display: flex; flex-direction: column; gap: 8px; }
+details.ref { border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); }
+details.ref summary { cursor: pointer; padding: 8px 12px; font-weight: 600; font-size: 14px; list-style-position: inside; }
+.ref-body { padding: 0 12px 12px; display: grid; gap: 8px; max-height: 34vh; overflow: auto; }
+.ref-row { display: grid; grid-template-columns: 9.5em minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.ref-row > span { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip {
+  font: 12px var(--f-mono); border: 1px solid var(--line); background: var(--code); color: var(--ink);
+  border-radius: 6px; padding: 3px 7px; cursor: pointer;
+}
+.chip:hover { border-color: var(--accent); }
+.pics { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+
+/* ── the wall ── */
+.out { overflow: auto; }
+.plate {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 16px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--line);
+}
+.plate h1 { font: 700 clamp(26px, 3.2vw, 38px)/1.05 var(--f-display); letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+.stamp { font: 500 12.5px var(--f-mono); font-variant-numeric: tabular-nums; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+.stamp b { color: var(--accent); font-weight: 500; }
+.plate .btn { margin-left: auto; }
+.renders { display: flex; flex-direction: column; gap: 18px; padding-bottom: 8px; }
+figure.card { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.frame { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 10px; display: grid; place-items: center; }
+.frame canvas { display: block; max-width: 100%; height: auto; border-radius: 3px; }
+.frame.wave canvas { width: 100%; height: 72px; }
+figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; color: var(--muted); }
+figcaption .kind { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); font-weight: 600; }
+figcaption .grow { flex: 1; }
+.meter { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.empty { color: var(--muted); padding: 24px 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+@media (max-width: 860px) {
+  html, body { height: auto; }
+  .app { height: auto; }
+  .split { grid-template-columns: minmax(0, 1fr); }
+  .editor { height: 52vh; flex: none; }
+  .out { overflow: visible; }
+  .controls { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .status.busy::before { animation: none; }
+  .meter i { transition: none; }
+}
+</style>
+
+<div class="app">
+  <header class="bar">
+    <div class="brand">
+      <span class="mark" aria-label="alea"><b>~</b>alea</span>
+      <span class="tag">A language where every run is a new edition.</span>
+    </div>
+    <div class="controls">
+      <label for="example" class="sr">Example</label>
+      <select id="example" class="btn" title="Load an example"></select>
+      <button id="run" class="btn primary" title="Run (Ctrl+Enter)">Run<kbd>⌘↵</kbd></button>
+      <button id="reroll" class="btn" title="Draw a new edition of the same work">New edition</button>
+      <label class="seed" for="seed"><span>Seed</span><input id="seed" spellcheck="false" autocomplete="off"></label>
+      <label class="live" for="live" title="Redraw the same edition as you type"><input type="checkbox" id="live" checked><span>Live</span></label>
+    </div>
+  </header>
+
+  <main class="split">
+    <section class="pane" aria-label="Code">
+      <div class="pane-head">
+        <span class="file">main.alea</span>
+        <span id="status" class="status">Loading the engine…</span>
+      </div>
+      <div class="editor">
+        <div class="gutter" id="gutter" aria-hidden="true"></div>
+        <div class="ed-area">
+          <pre id="hl" aria-hidden="true"></pre>
+          <textarea id="src" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="alea source code"></textarea>
+        </div>
+      </div>
+      <div id="error" class="error" role="alert" hidden><pre id="errtext"></pre></div>
+      <div class="tray">
+        <details class="ref" id="ref">
+          <summary>Reference — click to insert</summary>
+          <div class="ref-body" id="refbody"></div>
+        </details>
+        <div class="pics">
+          <span>Pictures:</span>
+          <span class="chips" id="pics"></span>
+          <button id="addpic" class="btn small">Add a picture…</button>
+          <input type="file" id="picfile" accept="image/png,image/jpeg,image/webp" hidden>
+        </div>
+      </div>
+    </section>
+
+    <section class="pane out" aria-label="Edition">
+      <div class="plate">
+        <h1 id="workname">alea</h1>
+        <div class="stamp"><span>Edition <b id="edseed">—</b></span><span id="edinfo"></span></div>
+        <button id="saveall" class="btn small" disabled>Save edition (.zip)</button>
+      </div>
+      <div id="renders" class="renders"><p class="empty">Your work appears here.</p></div>
+    </section>
+  </main>
+</div>
+
+<script id="alea-wasm" type="application/octet-stream">{{WASM}}</script>
+<script>/*ENGINE*/</script>
+<script>
+const ALEA_EXAMPLES = /*EXAMPLES*/;
+const ALEA_ASSETS = /*ASSETS*/;
+</script>
+<script>
+(() => {
+  // ───────────── syntax highlighting ─────────────
+  const KW = new Set(['use','work','let','field','pattern','constraint','render','output','repeat','event','choose','and','or','grow','then','for','in']);
+  const PRIM = new Set(['paint','mosaic','place','overlay','drone','notes','texture','range','join','slice','reverse','sum','path','along','length','neighbours','neighbors','spread','nearby','circle','ring','rect','square','line','blob','stripes','waves','ripples','dots','checker','gradient','glow','clouds','grain','scatter','move','rotate','zoom','tile','mirror','kaleidoscope','warp','merge','overlap','cut','invert','threshold','text','picture']);
+  const DIST = new Set(['uniform','normal','beta','poisson','exponential','between','around']);
+  const FN = new Set(['sin','cos','tan','abs','sqrt','exp','ln','floor','fract','sign','min','max','atan2','step','clamp','mix','smoothstep','distance','noise','mean','stddev','minimum','maximum','count','image','sound','video','sculpture']);
+  const VARS = new Set(['x','y','t','i','n','pi','tau']);
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const TOKEN = /(\/\/.*|#.*)|("[^"\n]*"?)|(~~|~)|(\d[\d_]*(?:\.\d+)?)|([\p{L}_][\p{L}\p{N}_]*)/gu;
+
+  function highlightLine(line) {
+    let out = '', last = 0, m;
+    TOKEN.lastIndex = 0;
+    while ((m = TOKEN.exec(line))) {
+      out += esc(line.slice(last, m.index));
+      const [tok, com, str, draw, num, id] = m;
+      let cls = '';
+      if (com) cls = 'c'; else if (str) cls = 's'; else if (draw) cls = 'd'; else if (num) cls = 'n';
+      else if (id) {
+        const rest = line.slice(m.index + tok.length);
+        if (/^\s*:/.test(rest) && !KW.has(id)) cls = 'a';
+        else if (KW.has(id)) cls = 'k';
+        else if (/^\s*\(/.test(rest)) cls = DIST.has(id) ? 'd' : PRIM.has(id) ? 'p' : FN.has(id) ? 'p' : /^\p{Lu}/u.test(id) ? 'w' : '';
+        else if (VARS.has(id)) cls = 'v';
+      }
+      out += cls ? `<span class="${cls}">${esc(tok)}</span>` : esc(tok);
+      last = m.index + tok.length;
+    }
+    return out + esc(line.slice(last));
+  }
+
+  // ───────────── elements & state ─────────────
+  const $ = (id) => document.getElementById(id);
+  const src = $('src'), hl = $('hl'), gutter = $('gutter'), statusEl = $('status');
+  const seedEl = $('seed'), liveEl = $('live'), rendersEl = $('renders');
+  let errLine = 0, engine = null, gen = 0, playback = [], audioCtx = null, lastEdition = null, busy = false;
+  // The folder the current example lives in, so its relative paths (`use`, pictures) work.
+  let dir = '';
+  const mainPath = () => dir + 'main.alea';
+  const exKey = (e) => e.dir + e.name;
+
+  function paint() {
+    const lines = src.value.split('\n');
+    hl.innerHTML = lines.map((l, i) => {
+      const h = highlightLine(l);
+      return i + 1 === errLine ? `<span class="errline">${h || ' '}</span>` : h;
+    }).join('\n') + '\n ';
+    gutter.innerHTML = lines.map((_, i) => i + 1 === errLine ? `<div class="bad">${i + 1}</div>` : `<div>${i + 1}</div>`).join('') + '<div>&nbsp;</div>';
+    syncScroll();
+  }
+  function syncScroll() { hl.scrollTop = src.scrollTop; hl.scrollLeft = src.scrollLeft; gutter.scrollTop = src.scrollTop; }
+  src.addEventListener('scroll', syncScroll);
+
+  function setStatus(text, busy = false) { statusEl.textContent = text; statusEl.classList.toggle('busy', busy); }
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} },
+  };
+
+  // ───────────── editing ─────────────
+  let liveTimer = 0;
+  src.addEventListener('input', () => {
+    errLine = 0; paint();
+    store.set('alea.draft', JSON.stringify({ example: exampleSel.value, source: src.value }));
+    if (liveEl.checked) { clearTimeout(liveTimer); liveTimer = setTimeout(() => run(), 650); }
+  });
+  src.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); return; }
+    if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); src.setRangeText('  ', src.selectionStart, src.selectionEnd, 'end'); src.dispatchEvent(new Event('input')); }
+  });
+  function insert(text) {
+    src.focus();
+    src.setRangeText(text, src.selectionStart, src.selectionEnd, 'end');
+    src.dispatchEvent(new Event('input'));
+  }
+
+  // ───────────── examples & reference ─────────────
+  const exampleSel = $('example');
+  const groups = {};
+  for (const ex of ALEA_EXAMPLES) {
+    if (!groups[ex.group]) {
+      groups[ex.group] = document.createElement('optgroup');
+      groups[ex.group].label = ex.group;
+      exampleSel.appendChild(groups[ex.group]);
+    }
+    const o = document.createElement('option');
+    o.value = exKey(ex); o.textContent = ex.label;
+    groups[ex.group].appendChild(o);
+  }
+  exampleSel.addEventListener('change', () => {
+    const ex = ALEA_EXAMPLES.find((e) => exKey(e) === exampleSel.value);
+    dir = ex.dir; paintPics();
+    src.value = ex.source; errLine = 0; paint(); src.scrollTop = 0;
+    store.set('alea.draft', JSON.stringify({ example: exKey(ex), source: ex.source }));
+    seedEl.value = aleaRandomSeed();
+    run();
+  });
+
+  const REF = [
+    ['Shapes', ['circle()', 'ring()', 'rect()', 'square()', 'line()', 'blob()']],
+    ['Textures', ['stripes()', 'waves()', 'ripples()', 'dots()', 'checker()', 'gradient()', 'glow()', 'clouds()', 'grain(0.05)', 'scatter()']],
+    ['Transforms', ['move(shape)', 'rotate(shape)', 'zoom(shape)', 'tile(shape)', 'mirror(shape)', 'kaleidoscope(shape)', 'warp(shape)']],
+    ['Combining', ['merge(a, b)', 'overlap(a, b)', 'cut(a, b)', 'invert(a)', 'threshold(a)', 'mix(a, b, 0.5)']],
+    ['Words, pictures', ['text("alea")', 'text("alea", font: "serif")']],
+    ['Chance', ['~between(0, 1)', '~around(0.5, 0.1)', 'choose { a | b }', '~~uniform(0, 1)']],
+    ['Time', ['t', 'sin(t * tau)', 'rotate(shape, angle: t * 360)']],
+    ['Renders', ['render image(output)', 'render video(output, duration: 8)', 'render sound(output, duration: 10)', 'render sculpture(output)']],
+    ['Statements', ['let name = ', 'field name = ', 'output ', 'constraint ', 'use "moon.alea"']],
+  ];
+  $('refbody').innerHTML = REF.map(([label, items]) =>
+    `<div class="ref-row"><span>${label}</span><div class="chips">${items.map((s) => `<button class="chip" data-ins="${esc(s).replace(/"/g, '&quot;')}">${esc(s)}</button>`).join('')}</div></div>`).join('');
+  $('refbody').addEventListener('click', (e) => { const b = e.target.closest('[data-ins]'); if (b) insert(b.dataset.ins); });
+
+  // ───────────── pictures ─────────────
+  const picsEl = $('pics');
+  const pictures = ['assets/astronaut.png'];
+  // Pictures live at the root; from an example in a sub-folder, the path climbs back up.
+  const rel = (p) => '../'.repeat((dir.match(/\//g) || []).length) + p;
+  function paintPics() {
+    picsEl.innerHTML = pictures.map((p) => `<button class="chip" data-ins='picture("${esc(rel(p))}")'>${esc(p)}</button>`).join('');
+  }
+  picsEl.addEventListener('click', (e) => { const b = e.target.closest('[data-ins]'); if (b) insert(b.dataset.ins); });
+  $('addpic').addEventListener('click', () => $('picfile').click());
+  async function addPicture(file) {
+    const name = file.name.replace(/[^\w.\-]+/g, '_');
+    const data = new Uint8Array(await file.arrayBuffer());
+    await engine.addFile('/' + name, data);
+    if (!pictures.includes(name)) pictures.push(name);
+    paintPics();
+    insert(`picture("${rel(name)}")`);
+  }
+  $('picfile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) addPicture(f); e.target.value = ''; });
+  src.addEventListener('dragover', (e) => e.preventDefault());
+  src.addEventListener('drop', (e) => {
+    const f = [...(e.dataTransfer?.files || [])].find((f) => /^image\/(png|jpeg|webp)$/.test(f.type));
+    if (f) { e.preventDefault(); addPicture(f); }
+  });
+
+  // ───────────── running ─────────────
+  function showError(j) {
+    busy = false;
+    setStatus('Fix the error to see the work');
+    $('error').hidden = false;
+    $('errtext').textContent = j.text || j.message || String(j);
+    errLine = j.file === mainPath() && j.line ? j.line : 0;
+    paint();
+    if (errLine) {
+      const lh = parseFloat(getComputedStyle(src).lineHeight) || 20.8;
+      const y = (errLine - 1) * lh;
+      if (y < src.scrollTop || y > src.scrollTop + src.clientHeight - lh * 2) src.scrollTop = Math.max(0, y - src.clientHeight / 3);
+    }
+  }
+  function clearError() { $('error').hidden = true; if (errLine) { errLine = 0; paint(); } }
+  function stopPlayback() {
+    for (const p of playback) p.stop();
+    playback = [];
+  }
+
+  async function run() {
+    if (!engine) return;
+    const my = ++gen;
+    clearTimeout(liveTimer);
+    if (!/^0x[0-9a-f]{1,16}$/i.test(seedEl.value.trim())) seedEl.value = aleaRandomSeed();
+    const seed = seedEl.value.trim().toLowerCase();
+    if (busy) engine.restart();            // cancel anything still drawing
+    busy = true;
+    stopPlayback();
+    setStatus('Drawing the edition…', true);
+    const t0 = performance.now();
+    const res = await engine.request({ type: 'run', path: mainPath(), source: src.value, seed });
+    if (my !== gen || res.cancelled) return;
+    if (res.crash) { busy = false; showError({ text: 'The engine stopped unexpectedly:\n' + res.crash }); setStatus('Stopped'); return; }
+    if (!res.json.ok) { busy = false; showError(res.json); setStatus('Fix the error to see the work'); return; }
+    clearError();
+    lastEdition = { ...res.json, source: src.value };
+    $('workname').textContent = res.json.name;
+    $('edseed').textContent = res.json.seed;
+    $('edinfo').textContent = res.json.attempts > 1 ? `${res.json.attempts} attempts to meet the constraints` : '';
+    $('saveall').disabled = false;
+    await drawAll(res.json, my, t0);
+    if (my === gen) busy = false;
+  }
+
+  function previewSize(w, h, cap) {
+    const avail = Math.max(160, Math.floor(rendersEl.clientWidth - 24));
+    const pw = Math.min(w, cap, avail);
+    return [pw, Math.max(1, Math.round(pw * h / w))];
+  }
+  function putPixels(canvas, bytes, w, h) {
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(bytes), w, h), 0, 0);
+  }
+  function card(kind, detail) {
+    const fig = document.createElement('figure');
+    fig.className = 'card';
+    fig.innerHTML = `<div class="frame"><canvas></canvas></div><figcaption><span class="kind">${kind}</span><span>${detail}</span><span class="grow"></span></figcaption>`;
+    rendersEl.appendChild(fig);
+    return { fig, canvas: fig.querySelector('canvas'), cap: fig.querySelector('figcaption') };
+  }
+  function button(cap, label, onClick) {
+    const b = document.createElement('button');
+    b.className = 'btn small'; b.textContent = label; b.addEventListener('click', onClick);
+    cap.appendChild(b);
+    return b;
+  }
+  async function fetchSound(index, my) {
+    const r = await engine.request({ type: 'sound', index });
+    if (my !== gen || !r.bytes) return null;
+    return aleaChannels(r.bytes);
+  }
+  function drawWave(canvas, channels) {
+    const samples = channels[0];
+    const w = canvas.width = canvas.clientWidth * (devicePixelRatio || 1), h = canvas.height = 72 * (devicePixelRatio || 1);
+    const g = canvas.getContext('2d'), css = getComputedStyle(document.documentElement);
+    g.fillStyle = css.getPropertyValue('--accent');
+    const step = samples.length / w;
+    for (let x = 0; x < w; x++) {
+      let m = 0;
+      for (let i = Math.floor(x * step), e = Math.floor((x + 1) * step); i < e; i += 8) m = Math.max(m, Math.abs(samples[i]));
+      const bh = Math.max(1, m * h * 0.95);
+      g.fillRect(x, (h - bh) / 2, 1, bh);
+    }
+  }
+  function playSamples(channels, loop) {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume();
+    const buf = aleaAudioBuffer(audioCtx, channels);
+    const node = audioCtx.createBufferSource();
+    node.buffer = buf; node.loop = loop; node.connect(audioCtx.destination); node.start();
+    return node;
+  }
+  const slug = () => (lastEdition?.name || 'work').toLowerCase().replace(/[^\w]+/g, '-');
+  const seedTag = () => (lastEdition?.seed || '').replace(/^0x/, '');
+
+  async function drawAll(info, my, t0) {
+    rendersEl.innerHTML = '';
+    const later = [];
+    for (let i = 0; i < info.renders.length; i++) {
+      const r = info.renders[i];
+      if (r.kind === 'image') {
+        const { canvas, cap } = card('image', `${r.width} × ${r.height}`);
+        const [w, h] = previewSize(r.width, r.height, 900);
+        const px = await engine.request({ type: 'pixels', index: i, w, h, t: -1 });
+        if (my !== gen) return;
+        if (px.bytes) putPixels(canvas, px.bytes, w, h); else if (px.json) return showError(px.json);
+        button(cap, 'Save PNG', async () => {
+          setStatus('Preparing the full-size image…', true);
+          const png = await engine.request({ type: 'png', index: i });
+          setStatus('Ready');
+          if (png.bytes && !(await aleaSave(`${slug()}-${seedTag()}.png`, new Uint8Array(png.bytes)))) setStatus('Saving files is not available here');
+        });
+      } else if (r.kind === 'sculpture') {
+        const { canvas, cap } = card('sculpture', `${r.resolution} × ${r.resolution} relief, shaded preview`);
+        const px = await engine.request({ type: 'pixels', index: i, w: 0, h: 0, t: 0 });
+        if (my !== gen) return;
+        if (px.bytes) { putPixels(canvas, px.bytes, r.resolution, r.resolution); canvas.style.width = Math.min(r.resolution * 3, 640) + 'px'; }
+        button(cap, 'Save STL (.zip)', async () => {
+          const stl = await engine.request({ type: 'stl', index: i });
+          if (stl.bytes) await aleaSave(`${slug()}-${seedTag()}-stl.zip`, aleaZip([{ name: `${slug()}-${seedTag()}.stl`, data: new Uint8Array(stl.bytes) }]));
+        });
+      } else if (r.kind === 'sound') {
+        const { fig, canvas, cap } = card('sound', `${r.duration} s`);
+        fig.querySelector('.frame').classList.add('wave');
+        let samples = null, node = null;
+        const play = button(cap, 'Play', async () => {
+          if (node) { node.stop(); node = null; play.textContent = 'Play'; return; }
+          samples = samples || await fetchSound(i, my);
+          if (!samples) return;
+          node = playSamples(samples, false); play.textContent = 'Stop';
+          node.onended = () => { node = null; play.textContent = 'Play'; };
+          playback.push({ stop: () => { try { node && node.stop(); } catch (_) {} } });
+        });
+        button(cap, 'Save WAV (.zip)', async () => {
+          samples = samples || await fetchSound(i, my);
+          if (samples) await aleaSave(`${slug()}-${seedTag()}-sound.zip`, aleaZip([{ name: `${slug()}-${seedTag()}.wav`, data: aleaWav(samples) }]));
+        });
+        later.push(async () => { samples = samples || await fetchSound(i, my); if (samples && my === gen) drawWave(canvas, samples); });
+      } else if (r.kind === 'video') {
+        const { fig, canvas, cap } = card('video', `${r.duration} s · ${r.width} × ${r.height}`);
+        const [w, h] = previewSize(r.width, r.height, 360);
+        const fps = Math.max(1, Math.min(r.fps, 15, Math.floor(150 / r.duration) || 1));
+        const total = Math.max(1, Math.round(r.duration * fps));
+        const frames = new Array(total);
+        const meter = document.createElement('div');
+        meter.className = 'meter'; meter.innerHTML = '<i></i>';
+        fig.insertBefore(meter, cap);
+        const note = document.createElement('span');
+        note.textContent = `preview ${w} px · ${fps} fps`;
+        cap.insertBefore(note, cap.querySelector('.grow'));
+        canvas.width = w; canvas.height = h;
+        const g = canvas.getContext('2d');
+        let ready = 0, start = performance.now(), raf = 0, node = null, samples = null, paused = false;
+        const show = (k) => { if (frames[k]) g.putImageData(frames[k], 0, 0); };
+        const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const tick = () => {
+          const el = node ? (audioCtx.currentTime - node.t0) : (performance.now() - start) / 1000;
+          let k = Math.floor((el % r.duration) * fps) % total;
+          while (k > 0 && !frames[k]) k--;
+          show(k);
+          raf = requestAnimationFrame(tick);
+        };
+        const stop = () => { cancelAnimationFrame(raf); raf = 0; if (node) { try { node.stop(); } catch (_) {} node = null; } };
+        playback.push({ stop });
+        const playBtn = button(cap, reduce ? 'Play' : 'Pause', () => {
+          if (raf) { stop(); paused = true; playBtn.textContent = 'Play'; }
+          else { paused = false; start = performance.now(); tick(); playBtn.textContent = 'Pause'; }
+        });
+        if (r.audio) button(cap, 'Play with sound', async () => {
+          stop();
+          samples = samples || await fetchSound(i, my);
+          if (!samples || my !== gen) return;
+          node = playSamples(samples, true); node.t0 = audioCtx.currentTime;
+          paused = false; tick(); playBtn.textContent = 'Pause';
+        });
+        const first = await engine.request({ type: 'pixels', index: i, w, h, t: 0 });
+        if (my !== gen) return;
+        if (first.json) return showError(first.json);
+        frames[0] = new ImageData(new Uint8ClampedArray(first.bytes), w, h); ready = 1; show(0);
+        later.push(async () => {
+          for (let k = 1; k < total; k++) {
+            const px = await engine.request({ type: 'pixels', index: i, w, h, t: k / total });
+            if (my !== gen || !px.bytes) return;
+            frames[k] = new ImageData(new Uint8ClampedArray(px.bytes), w, h);
+            ready = k + 1;
+            meter.firstChild.style.width = (100 * ready / total) + '%';
+            setStatus(`Rendering video frames ${ready}/${total}`, true);
+            if (ready === 2 && !reduce && !paused && !raf) { start = performance.now(); tick(); }
+          }
+          meter.remove();
+        });
+      }
+    }
+    for (const job of later) { await job(); if (my !== gen) return; }
+    setStatus(`Ready · ${Math.round(performance.now() - t0)} ms`);
+  }
+
+  // ───────────── save the whole edition ─────────────
+  $('saveall').addEventListener('click', async () => {
+    if (!lastEdition) return;
+    setStatus('Preparing the edition…', true);
+    const name = `${slug()}-${seedTag()}`, enc = new TextEncoder();
+    const entries = [{ name: `${name}/${slug()}.alea`, data: enc.encode(lastEdition.source) }];
+    for (let i = 0; i < lastEdition.renders.length; i++) {
+      const r = lastEdition.renders[i];
+      if (r.kind === 'image') { const p = await engine.request({ type: 'png', index: i }); if (p.bytes) entries.push({ name: `${name}/image-${i}.png`, data: new Uint8Array(p.bytes) }); }
+      if (r.kind === 'sculpture') { const p = await engine.request({ type: 'stl', index: i }); if (p.bytes) entries.push({ name: `${name}/sculpture-${i}.stl`, data: new Uint8Array(p.bytes) }); }
+      if (r.kind === 'sound' || (r.kind === 'video' && r.audio)) { const p = await engine.request({ type: 'sound', index: i }); if (p.bytes) entries.push({ name: `${name}/sound-${i}.wav`, data: aleaWav(aleaChannels(p.bytes)) }); }
+    }
+    entries.push({ name: `${name}/README.txt`, data: enc.encode(`${lastEdition.name}, edition ${lastEdition.seed}\n\nReplay it with:  alea ${slug()}.alea --seed ${lastEdition.seed}\n(Videos are rendered by the command-line tool.)\n`) });
+    setStatus('Ready');
+    if (!(await aleaSave(`${name}.zip`, aleaZip(entries)))) setStatus('Saving files is not available here');
+  });
+
+  // ───────────── controls ─────────────
+  $('run').addEventListener('click', () => run());
+  $('reroll').addEventListener('click', () => { seedEl.value = aleaRandomSeed(); run(); });
+  seedEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') run(); });
+
+  // ───────────── start ─────────────
+  let draft = null;
+  try { draft = JSON.parse(store.get('alea.draft') || 'null'); } catch (_) {}
+  const startEx = ALEA_EXAMPLES.find((e) => exKey(e) === draft?.example) || ALEA_EXAMPLES.find((e) => e.name === 'rosace') || ALEA_EXAMPLES[0];
+  exampleSel.value = exKey(startEx);
+  dir = startEx.dir;
+  src.value = draft?.source || startEx.source;
+  seedEl.value = aleaRandomSeed();
+  paint(); paintPics();
+
+  const wasm = aleaBase64ToBytes(document.getElementById('alea-wasm').textContent);
+  const files = [
+    ...ALEA_EXAMPLES.map((e) => ({ path: '/' + e.dir + e.name + '.alea', data: new TextEncoder().encode(e.source) })),
+    ...ALEA_ASSETS.map((a) => ({ path: '/' + a.path, data: aleaBase64ToBytes(a.data) })),
+  ];
+  engine = new AleaEngine(wasm, files);
+  engine.ready.then((r) => {
+    if (r.crash) { setStatus('The engine could not start'); showError({ text: r.crash }); return; }
+    run();
+  });
+})();
+</script>

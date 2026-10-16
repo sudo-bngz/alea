@@ -1,0 +1,77 @@
+// CULTURE — a petri dish, and what grows in it.
+//
+// A few colonies are seeded at random; two chemicals then react and spread,
+// generation after generation (a Gray–Scott reaction–diffusion). The chemistry
+// is not the same everywhere: across the dish it drifts between two regimes
+// drawn for this edition, so two kinds of life grow side by side and meet.
+
+work Culture {
+  // ── the dish ──
+  let dish = circle(0.5, 0.5, 0.86, 0.004)
+
+  // ── the chemistry: two regimes, and a map that blends them ──
+  // each regime is [feed, kill]: how fast the food comes in, how fast life dies away.
+  // cells that divide · coral · maze · fingerprint · holes · spots
+  let regimes = [[0.0367, 0.0649], [0.0545, 0.062], [0.029, 0.057], [0.037, 0.06], [0.039, 0.058], [0.03, 0.062]]
+  let ra = regimes[choose { 0 | 1 | 2 | 3 | 4 | 5 }]
+  let rb = regimes[choose { 0 | 1 | 2 | 3 | 4 | 5 }]
+  let blend = smoothstep(-0.35, 0.35, noise(x * 2.2, y * 2.2, 0))
+  let feed = mix(ra[0], rb[0], blend)
+  let kill = mix(ra[1], rb[1], blend)
+
+  // ── the colonies: a few drops of life ──
+  pattern drops = repeat ~between(18, 36) event(x: ~between(0.12, 0.88), y: ~between(0.12, 0.88), size: ~between(0.011, 0.019))
+  let seeded = step(0.4, drops) * dish
+
+  // ── the growth ──
+  grow over 256 for 6000 {
+    food = 1 - 0.5 * seeded
+      then food + spread(food) - food * life * life + feed * (1 - food)
+    life = 0.25 * seeded + ~~uniform(0, 0.02) * seeded
+      then (life + 0.5 * spread(life) + food * life * life - (feed + kill) * life) * dish
+    trace = 0
+      then max(trace * 0.9993, life)
+  }
+
+  // a culture that died out is not an edition: draw again
+  constraint mean(life) > 0.02
+
+  // ── the light: the colonies as a glistening relief on the agar ──
+  let e = 0.006
+  let gx = (move(life, x: e, y: 0) - move(life, x: -e, y: 0)) / (2 * e)
+  let gy = (move(life, x: 0, y: e) - move(life, x: 0, y: -e)) / (2 * e)
+  let shine = clamp((gx + gy) * 0.05, -0.22, 0.3)
+  let agar = 0.08 + 0.03 * noise(x * 9, y * 9, 2)
+  let stain = smoothstep(0.04, 0.3, trace) * 0.16
+  let tissue = agar + stain + smoothstep(0.06, 0.34, life) * 0.6 + shine * smoothstep(0.02, 0.2, life)
+  let rim = ring(0.5, 0.5, 0.87, 0.006, 0.003) * 0.55 + ring(0.5, 0.5, 0.835, 0.002, 0.002) * 0.25
+  let plate = max(tissue * dish, rim)
+
+  output plate
+  let colours = choose { 3: "ember" | 2: "lichen" | 2: "night" | 2: "sea" }
+
+  // ── the still: the plate at the end of its growth, and its label ──
+  let label = merge(
+    text("CULTURE", 0.5, 1.02, 0.034, 0, "serif"),
+    text("a reaction–diffusion, grown in alea", 0.5, 1.06, 0.014, 0, "mono")) * 0.8
+  render image(max(plate, label), width: 1080, height: 1350, at: ~between(0.8, 1), palette: colours)
+
+  // ── the Reel: seventy-two hours of incubation in twenty seconds ──
+  let turn = (atan2(x - 0.5, 0.5 - y) / tau + 1) % 1
+  let incubation = ring(0.5, 0.5, 0.92, 0.0025, 0.0015) * mix(0.25, 0.8, turn < t)
+  let clock = merge([text("{h} h", 0.5, 1.1, 0.026, 0, "mono") * (floor(t * 72) == h) for h in range(73)])
+  let poster = merge(
+    text("CULTURE", 0.5, -0.14, 0.05, 0, "serif"),
+    text("a reaction–diffusion, grown in alea", 0.5, -0.095, 0.018, 0, "mono"),
+    clock * 0.8)
+  // a note now and then, more often as the culture thickens
+  pattern divisions = repeat 160 event(t: (i + ~between(0, 1)) / n, y: choose { 0.2 | 0.35 | 0.5 | 0.65 },
+                                       size: 0.03, intensity: ~between(0.2, 1) * (0.2 + 0.8 * i / n))
+  // the sound of the plate: a choir whose vowel opens as life spreads, a few
+  // drops of glass, and the wet crackle of growth
+  render video(max(max(plate, incubation), poster), duration: 20, fps: 30, width: 1080, height: 1920, palette: colours,
+               sound: [drone(life, instrument: "choir", scale: "lydian", key: 73.4, gain: 0.9),
+                       notes(divisions, instrument: "glass", scale: "lydian", key: 587),
+                       texture(life, kind: "rain", gain: 0.35)],
+               room: 0.6, echo: 0.3)
+}

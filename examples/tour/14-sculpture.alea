@@ -1,0 +1,14 @@
+// 14 · Sculpture: a field as relief
+// render sculpture(field) turns values into heights, on a solid base,
+// as an STL file a 3D printer's slicer can read. Units are millimetres.
+
+work Sculpture {
+  let hills  = clouds(scale: 3)
+  let rings  = ripples(x: 0.5, y: 0.5, count: 9) * 0.25
+  let name   = text("alea", x: 0.5, y: 0.5, size: 0.25, font: "bold")
+  let relief = hills * 0.6 + rings + name * 0.4
+
+  // relief: the tallest point, as a fraction of the side (0.15 × 120 mm = 18 mm)
+  render sculpture(relief, resolution: 200, relief: 0.15, side: 120, base: 3)
+  render image(relief, width: 512, palette: "lichen")
+}

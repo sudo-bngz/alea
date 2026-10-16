@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>{{TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Instrument+Sans:wght@400;500&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: a single wall. The work, as large as the window allows, with its edition label beneath like a print's. */
+:root {
+  --wall: #f1f2f4; --ink: #181b30; --muted: #5b6080; --line: #d5d8e1; --accent: #d92b6a; --accent-ink: #fff; --card: #fafbfc;
+  --f-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --f-body: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --wall: #0f111b; --ink: #e8e9f2; --muted: #9a9fbd; --line: #2a2e45; --accent: #ff5c98; --accent-ink: #1a0b12; --card: #161927; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--wall); color: var(--ink); font: 15px/1.45 var(--f-body);
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center; gap: 22px;
+  padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+.works { display: flex; flex-direction: column; align-items: center; gap: 22px; width: 100%; }
+canvas { display: block; max-width: min(100%, 76vh); height: auto; box-shadow: 0 1px 2px #0002, 0 12px 40px #0000001f; background: var(--card); }
+.wave { width: min(100%, 720px); height: 80px; box-shadow: none; background: transparent; }
+.label { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+h1 { margin: 0; font: 700 clamp(26px, 4vw, 40px)/1.05 var(--f-display); letter-spacing: -0.02em; text-wrap: balance; }
+.edition { font: 13px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.edition b { color: var(--accent); font-weight: 400; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+button { font: inherit; color: inherit; border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 500; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.status { color: var(--muted); font-size: 13px; min-height: 1.4em; }
+.error { white-space: pre-wrap; font: 12.5px/1.5 var(--f-mono); max-width: 100%; overflow-x: auto; color: var(--ink); border: 1px solid var(--accent); border-radius: 8px; padding: 12px; }
+.made { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="works" id="works"></div>
+<div class="label">
+  <h1 id="name">{{TITLE}}</h1>
+  <div class="edition">Edition <b id="seed">…</b></div>
+</div>
+<div class="actions">
+  <button id="again" class="primary">New edition</button>
+  <button id="sound" hidden>Play sound</button>
+  <button id="link">Copy link to this edition</button>
+</div>
+<div class="status" id="status" role="status">Drawing…</div>
+<pre class="error" id="error" hidden></pre>
+<div class="made">Made with alea. Every visit draws a new edition.</div>
+
+<script id="alea-wasm" type="application/octet-stream">{{WASM}}</script>
+<script>/*ENGINE*/</script>
+<script>
+const ALEA_FILES = /*FILES*/;
+const ALEA_MAIN = "{{MAIN}}";
+</script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const works = $('works');
+  const files = ALEA_FILES.map((f) => ({ path: f.path, data: aleaBase64ToBytes(f.data) }));
+  const main = files.find((f) => f.path === ALEA_MAIN);
+  const source = new TextDecoder().decode(main.data);
+  const engine = new AleaEngine(aleaBase64ToBytes($('alea-wasm').textContent), files);
+  let gen = 0, info = null, audioCtx = null, node = null, timers = [];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function size(w, h, cap) {
+    const avail = Math.min(document.documentElement.clientWidth - 32, cap);
+    const pw = Math.max(64, Math.min(w, avail));
+    return [Math.round(pw), Math.max(1, Math.round(pw * h / w))];
+  }
+  function stopAll() {
+    timers.forEach((t) => cancelAnimationFrame(t)); timers = [];
+    if (node) { try { node.stop(); } catch (_) {} node = null; $('sound').textContent = 'Play sound'; }
+  }
+  async function draw(seed) {
+    const my = ++gen;
+    if (info) engine.restart();
+    stopAll();
+    works.innerHTML = ''; $('error').hidden = true;
+    $('status').textContent = 'Drawing…';
+    const res = await engine.request({ type: 'run', path: ALEA_MAIN.slice(1), source, seed });
+    if (my !== gen || res.cancelled) return;
+    if (res.crash || !res.json.ok) {
+      $('error').hidden = false; $('error').textContent = res.crash || res.json.text; $('status').textContent = ''; return;
+    }
+    info = res.json;
+    $('name').textContent = info.name; $('seed').textContent = info.seed;
+    document.title = `${info.name} · ${info.seed}`;
+    $('sound').hidden = !info.renders.some((r) => r.kind === 'sound' || (r.kind === 'video' && r.audio));
+    const jobs = [];
+    for (let i = 0; i < info.renders.length; i++) {
+      const r = info.renders[i];
+      if (r.kind === 'image') {
+        const [w, h] = size(r.width, r.height, 1400);
+        const c = document.createElement('canvas'); works.appendChild(c);
+        const px = await engine.request({ type: 'pixels', index: i, w, h, t: 0 });
+        if (my !== gen) return;
+        if (px.bytes) { c.width = w; c.height = h; c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(px.bytes), w, h), 0, 0); }
+      } else if (r.kind === 'sculpture') {
+        const c = document.createElement('canvas'); works.appendChild(c);
+        const px = await engine.request({ type: 'pixels', index: i, w: 0, h: 0, t: 0 });
+        if (my !== gen) return;
+        if (px.bytes) { c.width = c.height = r.resolution; c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(px.bytes), r.resolution, r.resolution), 0, 0); c.style.width = Math.min(r.resolution * 3, 720) + 'px'; }
+      } else if (r.kind === 'video') {
+        const [w, h] = size(r.width, r.height, 640);
+        const fps = Math.max(1, Math.min(r.fps, 24, Math.floor(240 / r.duration) || 1));
+        const total = Math.max(1, Math.round(r.duration * fps)), frames = [];
+        const c = document.createElement('canvas'); c.width = w; c.height = h; works.appendChild(c);
+        const g = c.getContext('2d');
+        let start = performance.now();
+        const tick = () => {
+          const el = node && node.video === i ? audioCtx.currentTime - node.t0 : (performance.now() - start) / 1000;
+          let k = Math.floor((el % r.duration) * fps) % total;
+          while (k > 0 && !frames[k]) k--;
+          if (frames[k]) g.putImageData(frames[k], 0, 0);
+          timers[0] = requestAnimationFrame(tick);
+        };
+        const first = await engine.request({ type: 'pixels', index: i, w, h, t: 0 });
+        if (my !== gen || !first.bytes) return;
+        frames[0] = new ImageData(new Uint8ClampedArray(first.bytes), w, h); g.putImageData(frames[0], 0, 0);
+        jobs.push(async () => {
+          for (let k = 1; k < total; k++) {
+            const px = await engine.request({ type: 'pixels', index: i, w, h, t: k / total });
+            if (my !== gen || !px.bytes) return;
+            frames[k] = new ImageData(new Uint8ClampedArray(px.bytes), w, h);
+            $('status').textContent = `Rendering the animation… ${Math.round(100 * (k + 1) / total)}%`;
+            if (k === 1 && !reduce) { start = performance.now(); tick(); }
+          }
+        });
+      }
+    }
+    for (const j of jobs) { await j(); if (my !== gen) return; }
+    $('status').textContent = '';
+  }
+
+  $('sound').addEventListener('click', async () => {
+    if (node) { stopAll(); return; }
+    const i = info.renders.findIndex((r) => r.kind === 'sound' || (r.kind === 'video' && r.audio));
+    $('sound').textContent = 'Loading…';
+    const s = await engine.request({ type: 'sound', index: i });
+    if (!s.bytes) return;
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    await audioCtx.resume();
+    const buf = aleaAudioBuffer(audioCtx, aleaChannels(s.bytes));
+    node = audioCtx.createBufferSource(); node.buffer = buf; node.loop = true; node.connect(audioCtx.destination);
+    node.start(); node.t0 = audioCtx.currentTime; node.video = info.renders[i].kind === 'video' ? i : -1;
+    $('sound').textContent = 'Stop sound';
+  });
+  $('again').addEventListener('click', () => { history.replaceState(null, '', location.pathname); draw(aleaRandomSeed()); });
+  $('link').addEventListener('click', async () => {
+    if (!info) return;
+    history.replaceState(null, '', '#' + info.seed);
+    try { await navigator.clipboard.writeText(location.href); $('status').textContent = 'Link copied: it opens this exact edition.'; }
+    catch (_) { $('status').textContent = 'The address bar now holds the link to this edition.'; }
+  });
+
+  const fromLink = /^#0x[0-9a-f]{1,16}$/i.test(location.hash) ? location.hash.slice(1).toLowerCase() : null;
+  engine.ready.then(() => draw(fromLink || aleaRandomSeed()));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+// 03 · Chance
+// A distribution is a value that hasn't been drawn yet. `~` draws it.
+
+work Chance {
+  // A distribution can be named, and drawn later.
+  let spread = between(0.08, 0.3)
+
+  // `let` keeps what was drawn: `r` is one number, used twice.
+  let r     = ~spread
+  let left  = circle(x: 0.3, y: 0.3, size: r)
+  let right = circle(x: 0.7, y: 0.3, size: r)        // always the same size as `left`
+
+  // Two `~` are two draws: these two sizes differ.
+  let a = circle(x: 0.3, y: 0.72, size: ~spread)
+  let b = circle(x: 0.7, y: 0.72, size: ~spread)
+
+  // `~~` draws again at every point: a grain, fixed for this edition.
+  field grain = ~~uniform(0, 1) * 0.12
+
+  // The distributions:
+  //   uniform(a, b)       any value between a and b, all equally likely  (also: between)
+  //   normal(m, d)        around m, usually within d of it               (also: around)
+  //   beta(a, b)          between 0 and 1, leaning one way
+  //   poisson(λ)          a whole number, λ on average
+  //   exponential(λ)      mostly small, sometimes large
+  let tilt = ~around(0, 12)                           // degrees: usually close to 0
+  render image(rotate(merge(left, right, a, b), angle: tilt) + grain)
+}

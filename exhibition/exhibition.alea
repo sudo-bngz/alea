@@ -1,0 +1,36 @@
+// Alea — the exhibition's opening card.
+// A triptych of the three works, each one called as a component and seen
+// through its own panel. The card itself is an edition: so are the panels.
+
+use "isohypses.alea"
+use "nocturne.alea"
+use "rosace.alea"
+
+work Exhibition {
+  // three panels, side by side
+  let top    = 0.17
+  let bottom = 1.0
+  let mid    = (top + bottom) / 2
+  let h      = bottom - top
+  let panel1 = rect(x: 0.185, y: mid, width: 0.29, height: h, angle: 0, softness: 0.0005)
+  let panel2 = rect(x: 0.5,   y: mid, width: 0.29, height: h, angle: 0, softness: 0.0005)
+  let panel3 = rect(x: 0.815, y: mid, width: 0.29, height: h, angle: 0, softness: 0.0005)
+
+  // each work, moved under its panel (both offsets given, so alea doesn't choose them)
+  let maps   = move(zoom(Isohypses(), by: 1.3, x: 0.5, y: 0.45), x: -0.315, y: mid - 0.45)
+  let night  = move(Nocturne(mx: 0.5), x: 0, y: mid - 0.52)     // the moon centred in its panel
+  let window = move(zoom(Rosace(), by: 1.1, x: 0.5, y: 0.5), x: 0.315, y: mid - 0.5)
+
+  // the titles
+  let title    = text("ALEA", x: 0.5, y: 0.035, size: 0.11, font: "bold")
+  let subtitle = text("three works · endless editions", x: 0.5, y: 0.115, size: 0.028, font: "serif")
+  let names    = text("ISOHYPSES", x: 0.185, y: 1.045, size: 0.02, font: "mono")
+               + text("NOCTURNE", x: 0.5, y: 1.045, size: 0.02, font: "mono")
+               + text("ROSACE", x: 0.815, y: 1.045, size: 0.02, font: "mono")
+  let credit   = text("generative works written in the alea language", x: 0.5, y: 1.092, size: 0.017, font: "mono")
+
+  let panels = maps * 1.5 * panel1 + night * panel2 + window * panel3
+  output panels + (title + subtitle) * 1.1 + names * 0.8 + credit * 0.5 + grain(0.03)
+
+  render image(output, width: 1080, height: 1350, palette: "night")
+}

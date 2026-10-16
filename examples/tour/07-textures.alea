@@ -1,0 +1,20 @@
+// 07 · Textures
+// Textures fill the whole canvas with values from 0 to 1.
+// Like shapes, they decide what you leave out.
+
+work Textures {
+  render image(stripes(), width: 384)
+  render image(waves(), width: 384)
+  render image(ripples(), width: 384)
+  render image(dots(), width: 384)
+  render image(checker(), width: 384)
+  render image(gradient(), width: 384)
+  render image(glow(), width: 384)
+  render image(clouds(), width: 384)
+  render image(grain(), width: 384)
+  render image(scatter(), width: 384)
+
+  // `softness` goes from sharp (0) to smooth (1)
+  render image(stripes(count: 8, angle: 0, softness: 0), width: 384)
+  render image(stripes(count: 8, angle: 0, softness: 1), width: 384)
+}

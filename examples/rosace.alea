@@ -1,0 +1,13 @@
+// Rosace — one wobbly petal, folded into a rose window.
+
+work Rosace {
+  let petal  = blob(x: 0.72, y: 0.5, size: 0.22)
+  let lace   = ripples(x: 0.5, y: 0.5) * 0.35
+  let window = kaleidoscope(warp(merge(petal, lace)),
+                            sides: choose { 5 | 6 | 8 | 12 })
+
+  output window + glow(x: 0.5, y: 0.5, size: 0.25)
+
+  render image(output,
+               palette: choose { "ember" | "lichen" | "night" })
+}

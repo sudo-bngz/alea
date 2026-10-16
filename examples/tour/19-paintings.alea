@@ -1,0 +1,26 @@
+// 19 · Paintings: several works on one canvas, each in its own colours.
+//
+// paint(field, palette)        a field in colour, with its own range
+// mosaic(paintings, columns)   a grid of screens, each showing a whole painting
+// place(painting, x, y, width) a painting anywhere, at any size
+// overlay(below, above, …)     stacked, with a blend mode and an opacity
+// A painting can also be a work's `output`: it then keeps its colours wherever it is used.
+
+work Paintings {
+  let sea   = paint(waves(count: 12, angle: 0) * 0.5 + clouds() * 0.5, palette: "sea")
+  let sun   = paint(glow(0.5, 0.5, 0.6), palette: "ember", alpha: circle(0.5, 0.5, 0.7, 0.05))
+  let rings = paint(rotate(ripples(0.5, 0.5, 14), angle: t * 360), palette: "night")
+  let moss  = paint(clouds(scale: 4), palette: "lichen")
+
+  // four screens
+  let wall = mosaic([sea, sun, rings, moss], columns: 2, gap: 0.02, background: 0.9)
+
+  // one picture: the rings screened over the sea, then two pictures placed on top
+  let veiled = overlay(sea, rings, blend: "screen", opacity: 0.45)
+  let scene  = overlay(veiled, place(sun, x: 0.72, y: 0.3, width: 0.35),
+                       place(moss, x: 0.25, y: 0.72, width: 0.3))
+
+  render image(wall, width: 600)
+  render image(scene, width: 600)
+  render video(mosaic([wall, scene], columns: 2), duration: 6, width: 960, height: 480)
+}

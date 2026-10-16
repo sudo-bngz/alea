@@ -1,0 +1,33 @@
+// 16 · Lighthouse — everything together
+// Chance, choices, shapes, textures, patterns, a constraint, time,
+// and three media from one edition.
+
+work Lighthouse {
+  let horizon = ~between(0.58, 0.7)
+  let colours = choose { 3: "night" | 1: "sea" }
+
+  // above the horizon: clouds and stars
+  pattern stars = repeat ~poisson(140) event(
+      y: ~between(0, horizon - 0.05),
+      size: ~between(0.001, 0.004),
+      intensity: ~between(0.3, 1)
+  )
+  constraint count(stars) >= 110
+  let sky = (clouds(scale: 2) * 0.25 + stars) * (y < horizon)
+
+  // below: a sea that wobbles with time
+  let sea = warp(waves(count: 34, angle: 0, height: 0.004), amount: 0.012) * 0.3 * (y >= horizon)
+
+  // the lighthouse, and a beam that turns once over the video
+  let lamp_y = horizon - 0.26
+  let tower  = rect(x: 0.78, y: horizon - 0.12, width: 0.045, height: 0.24, angle: 0)
+  let lamp   = circle(x: 0.78, y: lamp_y, size: 0.035)
+  let beam   = rotate(rect(x: 1.28, y: lamp_y, width: 1, height: 0.025, angle: 0, softness: 0.02),
+                      angle: t * 360, x: 0.78, y: lamp_y)
+
+  output merge(sky + sea, tower * 0.9, lamp, beam * 0.45 * (y < horizon + 0.02))
+
+  render image(output, at: 0.4, palette: colours)
+  render video(output, duration: 8, fps: 24, width: 480, palette: colours)
+  render sound(sea + beam, duration: 8, voices: 4)
+}

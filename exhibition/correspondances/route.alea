@@ -1,0 +1,57 @@
+// Route: one metro line through a list of stops (points [x, y]).
+//
+// Between two stops the track runs as a schematic map draws it: a diagonal
+// and a straight stretch, in an order chosen by chance. Stations are white
+// pearls at even intervals; trains run both ways, and `service` (0 at night,
+// 1 at the rush hour) decides how many are out.
+//
+// What it returns is coded for the map: 0 to 1 is ink (the track), below 0 is
+// white (stations, halos), above 1 is full black (trains, labels).
+
+work Route(stops, label = "", first = 1, last = 1, tone = 1, width = 0.0075, gap = 0.04,
+           service = 1, laps = 1, phase = ~between(0, 1)) {
+  // ── the bend between two stops: diagonal first (k = 0) or straight first (k = 1) ──
+  let diagonal(a, b) = min(abs(b.x - a.x), abs(b.y - a.y))
+  let bend(a, b, k) = mix(a + sign(b - a) * diagonal(a, b), b - sign(b - a) * diagonal(a, b), k)
+  let legs = count(stops) - 1
+  let corners = [bend(stops[k], stops[k + 1], choose { 0 | 1 }) for k in range(legs)]
+
+  // ── the track: every stop and every corner, in order ──
+  let route = join([p for k in range(legs) for p in [stops[k], corners[k]]], [stops[-1]])
+  let track = path(route, width, 0.0012)
+  let len = length(route)
+
+  // ── stations: evenly spaced along the track ──
+  pattern stations = repeat floor(len / gap) event(
+    x: along(route, (i + 0.5) * len / n).x,
+    y: along(route, (i + 0.5) * len / n).y,
+    size: 0.0019)
+  let pearls = threshold(stations, 0.5, 0.15)
+
+  // ── the line's number, in a ring at each end (`first`, `last`: 0 to leave one out) ──
+  let beyond(p, q) = p + (p - q) / max(distance(p, q), 0.000001) * 0.024
+  let a = beyond(stops[0], stops[1])
+  let z = beyond(stops[-1], stops[-2])
+  let discs = merge(circle(a.x, a.y, 0.03, 0.0012) * first, circle(z.x, z.y, 0.03, 0.0012) * last)
+  let rims = merge(ring(a.x, a.y, 0.03, 0.0032, 0.0012) * first, ring(z.x, z.y, 0.03, 0.0032, 0.0012) * last)
+  let names = merge(text(label, a.x, a.y + 0.0012, 0.017, 0, "bold") * first,
+                    text(label, z.x, z.y + 0.0012, 0.017, 0, "bold") * last)
+
+  // ── trains: a dark bead (2) in a white halo (−1), three each way ──
+  // the later ones only come out when service is high
+  let disc(p, r, shown) = (1 - smoothstep(r - 0.0012, r + 0.0012, distance([x, y], p))) * shown
+  let train(s, shown) = mix(mix(0, -1, disc(along(route, s), 0.0105 * 0.8, shown)), 2,
+                            disc(along(route, s), 0.0105 * 0.5, shown))
+  let ahead = [0, 0.3333, 0.6667]
+  let behind = [0.1667, 0.5, 0.8333]
+  let fade = [[0.05, 0.21], [0.38, 0.54], [0.71, 0.87]]
+  let trains = [tr for j in range(3) for tr in [
+    train(fract(t * laps + phase + ahead[j]) * len, smoothstep(fade[j][0], fade[j][1], service)),
+    train((1 - fract(t * laps + phase + behind[j])) * len, smoothstep(fade[j][0], fade[j][1], service))]]
+
+  let drawn = mix(mix(mix(tone * track, -1, pearls * track), -1, discs), tone, rims)
+  let labelled = mix(drawn, 2, names)
+  let beads = merge(trains)
+  let halos = overlap(trains)
+  output mix(mix(labelled, -1, clamp(-halos, 0, 1)), 2, clamp(beads - 1, 0, 1))
+}

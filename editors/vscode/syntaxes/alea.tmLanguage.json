@@ -1,0 +1,253 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "alea",
+  "scopeName": "source.alea",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "match": "\\b(use)\\s+(\"[^\"]*\")",
+      "captures": {
+        "1": {
+          "name": "keyword.control.import.alea"
+        },
+        "2": {
+          "name": "string.quoted.double.alea"
+        }
+      }
+    },
+    {
+      "include": "#work"
+    },
+    {
+      "include": "#statements"
+    },
+    {
+      "include": "#expressions"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.alea",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.line.number-sign.alea",
+          "match": "#.*$"
+        }
+      ]
+    },
+    "work": {
+      "match": "\\b(work)\\s+([\\p{L}_][\\p{L}\\p{N}_]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.declaration.work.alea"
+        },
+        "2": {
+          "name": "entity.name.type.work.alea"
+        }
+      }
+    },
+    "statements": {
+      "patterns": [
+        {
+          "comment": "let / field / pattern <name>",
+          "match": "\\b(let|field|pattern)\\s+([\\p{L}_][\\p{L}\\p{N}_]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.declaration.alea"
+            },
+            "2": {
+              "name": "entity.name.function.binding.alea"
+            }
+          }
+        },
+        {
+          "comment": "render <kind>",
+          "match": "\\b(render)\\s+(image|sound|video|sculpture)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.control.render.alea"
+            },
+            "2": {
+              "name": "support.class.render-kind.alea"
+            }
+          }
+        },
+        {
+          "name": "keyword.control.alea",
+          "match": "\\b(constraint|render|repeat|choose|output|use|grow|then|for|in)\\b"
+        },
+        {
+          "name": "storage.type.event.alea",
+          "match": "\\bevent\\b"
+        }
+      ]
+    },
+    "expressions": {
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "include": "#strings"
+        },
+        {
+          "include": "#numbers"
+        },
+        {
+          "include": "#draw"
+        },
+        {
+          "include": "#named-arg"
+        },
+        {
+          "include": "#calls"
+        },
+        {
+          "include": "#builtin-vars"
+        },
+        {
+          "include": "#operators"
+        },
+        {
+          "include": "#statements"
+        },
+        {
+          "include": "#identifiers"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.alea",
+      "begin": "\"",
+      "end": "\"|$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.alea"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.alea"
+        }
+      }
+    },
+    "numbers": {
+      "name": "constant.numeric.alea",
+      "match": "\\b\\d[\\d_]*(\\.\\d+)?\\b"
+    },
+    "draw": {
+      "comment": "~~ grain (per point) and ~ draw: the heart of the language",
+      "patterns": [
+        {
+          "name": "keyword.operator.draw.grain.alea",
+          "match": "~~"
+        },
+        {
+          "name": "keyword.operator.draw.alea",
+          "match": "~"
+        }
+      ]
+    },
+    "named-arg": {
+      "comment": "name: inside argument lists (not choose weights, which are numbers)",
+      "match": "([\\p{L}_][\\p{L}\\p{N}_]*)\\s*(:)",
+      "captures": {
+        "1": {
+          "name": "variable.parameter.alea"
+        },
+        "2": {
+          "name": "punctuation.separator.key-value.alea"
+        }
+      }
+    },
+    "calls": {
+      "patterns": [
+        {
+          "name": "support.function.distribution.alea",
+          "match": "\\b(uniform|normal|beta|poisson|exponential|between|around)(?=\\s*\\()"
+        },
+        {
+          "name": "support.function.primitive.alea",
+          "match": "\\b(circle|ring|rect|square|line|blob|stripes|waves|ripples|dots|checker|gradient|glow|clouds|grain|scatter|move|rotate|zoom|tile|mirror|kaleidoscope|warp|merge|overlap|cut|invert|threshold|text|picture)(?=\\s*\\()"
+        },
+        {
+          "name": "support.function.neighbourhood.alea",
+          "match": "\\b(neighbours|neighbors|spread|nearby|range|join|slice|reverse|sum|path|along|length|drone|notes|texture|paint|mosaic|place|overlay)(?=\\s*\\()"
+        },
+        {
+          "name": "keyword.control.grow.alea",
+          "match": "\\b(over|for)\\b(?=\\s+[\\d(~])"
+        },
+        {
+          "name": "support.function.aggregate.alea",
+          "match": "\\b(mean|stddev|minimum|maximum|count)(?=\\s*\\()"
+        },
+        {
+          "name": "support.function.builtin.alea",
+          "match": "\\b(sin|cos|tan|abs|sqrt|exp|ln|floor|fract|sign|min|max|atan2|step|clamp|mix|smoothstep|distance|noise)(?=\\s*\\()"
+        },
+        {
+          "name": "support.class.render-kind.alea",
+          "match": "\\b(image|sound|video|sculpture)(?=\\s*\\()"
+        },
+        {
+          "name": "entity.name.type.work-call.alea",
+          "match": "\\b\\p{Lu}[\\p{L}\\p{N}_]*(?=\\s*\\()"
+        },
+        {
+          "name": "entity.name.function.call.alea",
+          "match": "\\b[\\p{L}_][\\p{L}\\p{N}_]*(?=\\s*\\()"
+        }
+      ]
+    },
+    "builtin-vars": {
+      "patterns": [
+        {
+          "name": "variable.language.coordinate.alea",
+          "match": "\\b(x|y|t)\\b"
+        },
+        {
+          "name": "variable.language.index.alea",
+          "match": "\\b(i|n)\\b"
+        },
+        {
+          "name": "constant.language.alea",
+          "match": "\\b(pi|tau)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.logical.alea",
+          "match": "\\b(and|or)\\b"
+        },
+        {
+          "name": "keyword.operator.comparison.alea",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "name": "keyword.operator.assignment.alea",
+          "match": "="
+        },
+        {
+          "name": "keyword.operator.arithmetic.alea",
+          "match": "[-+*/%^]"
+        },
+        {
+          "name": "keyword.operator.choice.alea",
+          "match": "\\|"
+        }
+      ]
+    },
+    "identifiers": {
+      "name": "variable.other.alea",
+      "match": "\\b[\\p{L}_][\\p{L}\\p{N}_]*\\b"
+    }
+  }
+}

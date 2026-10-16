@@ -1,0 +1,166 @@
+<title>alea Handbook</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a handbook. A quiet index on the left, one readable column on the right; the index folds away on phones. */
+:root {
+  --paper: #f3f4f7;
+  --page: #fbfbfd;
+  --ink: #181b30;
+  --muted: #5b6080;
+  --line: #dcdfe7;
+  --accent: #d92b6a;          /* riso pink, as in the playground: the draw operator and links */
+  --code: #eef0f5;
+  --syn-kw: #3741c4; --syn-prim: #07705f; --syn-str: #965000; --syn-num: #7d33aa;
+  --syn-com: #868ba5; --syn-call: #a61c52; --syn-param: #4a4f70;
+  --f-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --f-body: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0f111b; --page: #151827; --ink: #e8e9f2; --muted: #9a9fbd; --line: #2a2e45;
+    --accent: #ff5c98; --code: #1c2033;
+    --syn-kw: #8f9bff; --syn-prim: #4fd2b6; --syn-str: #f1b467; --syn-num: #cf9dff;
+    --syn-com: #737896; --syn-call: #ff7fb0; --syn-param: #b3b7d4;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0f111b; --page: #151827; --ink: #e8e9f2; --muted: #9a9fbd; --line: #2a2e45;
+  --accent: #ff5c98; --code: #1c2033;
+  --syn-kw: #8f9bff; --syn-prim: #4fd2b6; --syn-str: #f1b467; --syn-num: #cf9dff;
+  --syn-com: #737896; --syn-call: #ff7fb0; --syn-param: #b3b7d4;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 16px/1.62 var(--f-body); }
+a { color: var(--accent); text-underline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.shell {
+  display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 40px;
+  max-width: 1180px; margin: 0 auto;
+  padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ── index ── */
+.side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 20px); align-self: start; max-height: calc(100vh - 40px); overflow: auto; padding-right: 6px; }
+.mark { font: 700 30px/1 var(--f-display); letter-spacing: -0.02em; margin: 0 0 4px; }
+.mark b { color: var(--accent); }
+.sub { color: var(--muted); font-size: 14px; margin: 0 0 22px; }
+.side ul { list-style: none; margin: 0 0 18px; padding: 0; }
+.side li a { display: block; color: var(--ink); text-decoration: none; font-size: 14px; line-height: 1.35; padding: 4px 8px; border-radius: 6px; }
+.side li a:hover { background: var(--code); }
+.side li a.here { color: var(--accent); background: var(--code); }
+.nav-head { margin: 0 0 6px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; }
+.nav-head a { color: var(--muted); text-decoration: none; }
+details.mobile-nav { display: none; }
+
+/* ── page ── */
+main { min-width: 0; }
+.doc { background: var(--page); border: 1px solid var(--line); border-radius: 14px; padding: 8px clamp(18px, 4vw, 56px) 40px; }
+.doc + .doc { margin-top: 28px; }
+.doc > * { max-width: 72ch; }
+.doc > pre, .doc > table, .doc > .table-wrap, .doc > figure { max-width: none; }
+h1, h2, h3 { font-family: var(--f-display); letter-spacing: -0.015em; text-wrap: balance; line-height: 1.15; scroll-margin-top: 16px; }
+h1 { font-size: clamp(32px, 4.4vw, 46px); font-weight: 700; margin: 32px 0 14px; }
+h2 { font-size: clamp(23px, 2.6vw, 29px); font-weight: 600; margin: 46px 0 12px; padding-top: 18px; border-top: 1px solid var(--line); }
+h3 { font-size: 19px; font-weight: 600; margin: 30px 0 8px; }
+hr { display: none; }
+p, li { text-wrap: pretty; }
+blockquote { margin: 0 0 10px; padding: 0; color: var(--muted); font-size: 14px; }
+blockquote p { margin: 0; }
+blockquote code { color: var(--ink); }
+code { font: 0.86em var(--f-mono); background: var(--code); padding: 0.1em 0.35em; border-radius: 4px; }
+pre { background: var(--code); border-radius: 10px; padding: 14px 18px; overflow-x: auto; font: 13.5px/1.6 var(--f-mono); tab-size: 2; }
+pre code { background: none; padding: 0; font: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 14px 0; display: block; overflow-x: auto; }
+th, td { text-align: left; vertical-align: top; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+td code { white-space: nowrap; }
+figure.strip { margin: 6px 0 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+figure.strip img { width: 150px; height: 150px; max-width: calc(50% - 4px); height: auto; aspect-ratio: 1; border-radius: 6px; border: 1px solid var(--line); background: var(--code); }
+figure.strip figcaption { flex-basis: 100%; font: 12px var(--f-mono); color: var(--muted); }
+
+.k { color: var(--syn-kw); font-weight: 500; } .p { color: var(--syn-prim); } .d { color: var(--accent); font-weight: 500; }
+.s { color: var(--syn-str); } .n { color: var(--syn-num); } .c { color: var(--syn-com); font-style: italic; }
+.w { color: var(--syn-call); font-weight: 500; } .a { color: var(--syn-param); font-style: italic; } .v { color: var(--syn-kw); }
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .side { display: none; }
+  details.mobile-nav { display: block; background: var(--page); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+  details.mobile-nav summary { cursor: pointer; font-weight: 600; }
+  details.mobile-nav ul { list-style: none; padding: 0; margin: 8px 0 12px; columns: 2; column-gap: 16px; }
+  details.mobile-nav li a { display: block; padding: 3px 0; font-size: 14px; color: var(--ink); text-decoration: none; }
+  .doc { padding-inline: 16px; }
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="shell">
+  <nav class="side" aria-label="Contents">
+    <p class="mark"><b>~</b>alea</p>
+    <p class="sub">Handbook: the guide and the reference.</p>
+    <!--NAV-->
+  </nav>
+  <main>
+    <details class="mobile-nav"><summary><b style="color:var(--accent)">~</b>alea Handbook · contents</summary><div id="mnav"></div></details>
+    <article class="doc" id="guide"><!--GUIDE--></article>
+    <article class="doc" id="reference"><!--REFERENCE--></article>
+  </main>
+</div>
+
+<script>
+(() => {
+  // alea syntax highlighting, the same rules as the playground's editor.
+  const KW = new Set(['use','work','let','field','pattern','constraint','render','output','repeat','event','choose','and','or','grow','then','for','in']);
+  const PRIM = new Set(['paint','mosaic','place','overlay','drone','notes','texture','range','join','slice','reverse','sum','path','along','length','neighbours','neighbors','spread','nearby','circle','ring','rect','square','line','blob','stripes','waves','ripples','dots','checker','gradient','glow','clouds','grain','scatter','move','rotate','zoom','tile','mirror','kaleidoscope','warp','merge','overlap','cut','invert','threshold','text','picture','sin','cos','tan','abs','sqrt','exp','ln','floor','fract','sign','min','max','atan2','step','clamp','mix','smoothstep','distance','noise','mean','stddev','minimum','maximum','count','image','sound','video','sculpture']);
+  const DIST = new Set(['uniform','normal','beta','poisson','exponential','between','around']);
+  const VARS = new Set(['x','y','t','i','n','pi','tau']);
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const TOKEN = /(\/\/.*|#.*)|("[^"\n]*"?)|(~~|~)|(\d[\d_]*(?:\.\d+)?)|([\p{L}_][\p{L}\p{N}_]*)/gu;
+  const line = (l) => {
+    let out = '', last = 0, m; TOKEN.lastIndex = 0;
+    while ((m = TOKEN.exec(l))) {
+      out += esc(l.slice(last, m.index));
+      const [tok, com, str, draw, num, id] = m;
+      let cls = com ? 'c' : str ? 's' : draw ? 'd' : num ? 'n' : '';
+      if (id) {
+        const rest = l.slice(m.index + tok.length);
+        if (/^\s*:/.test(rest) && !KW.has(id)) cls = 'a';
+        else if (KW.has(id)) cls = 'k';
+        else if (/^\s*\(/.test(rest)) cls = DIST.has(id) ? 'd' : PRIM.has(id) ? 'p' : /^\p{Lu}/u.test(id) ? 'w' : '';
+        else if (VARS.has(id)) cls = 'v';
+      }
+      out += cls ? `<span class="${cls}">${esc(tok)}</span>` : esc(tok);
+      last = m.index + tok.length;
+    }
+    return out + esc(l.slice(last));
+  };
+  for (const code of document.querySelectorAll('code.language-alea')) {
+    code.innerHTML = code.textContent.split('\n').map(line).join('\n');
+  }
+
+  // The same index, folded, on phones.
+  document.getElementById('mnav').innerHTML = document.querySelector('.side').innerHTML.replace(/<p class="mark">.*?<\/p>\s*<p class="sub">.*?<\/p>/s, '');
+
+  // Mark the section being read.
+  const links = [...document.querySelectorAll('.side li a')];
+  const byId = new Map(links.map((a) => [a.getAttribute('href').slice(1), a]));
+  const seen = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      links.forEach((a) => a.classList.remove('here'));
+      byId.get(e.target.id)?.classList.add('here');
+    }
+  }, { rootMargin: '0px 0px -75% 0px' });
+  document.querySelectorAll('h2[id]').forEach((h) => byId.has(h.id) && seen.observe(h));
+})();
+</script>

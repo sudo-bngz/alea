@@ -1,0 +1,14 @@
+// Bauhaus — a few bold shapes, placed and sized by alea.
+
+work Bauhaus {
+  let sun   = circle()
+  let block = rect()
+  let bar   = line(width: 0.025)
+  let frame = ring(x: 0.5, y: 0.5, size: 0.85, width: 0.01)
+
+  // multiplying a shape by a number gives it a lighter tone
+  output merge(sun, block * 0.55, bar, frame) + grain(0.04)
+
+  render image(output, palette: choose { "ink" | "ember" | "sea" })
+  render sculpture(output, relief: 0.04)
+}

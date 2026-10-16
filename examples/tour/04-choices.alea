@@ -1,0 +1,19 @@
+// 04 · Choices
+// `choose` picks one branch. Only the chosen branch is drawn.
+// A weight before the colon makes a branch likelier: here 3 in 6, 2 in 6, 1 in 6.
+
+work Choices {
+  let motif = choose {
+      3: circle(x: 0.5, y: 0.5, size: 0.55)
+    | 2: square(x: 0.5, y: 0.5, size: 0.5, angle: 45)
+    | 1: blob(x: 0.5, y: 0.5, size: 0.6)
+  }
+
+  // Without weights, every branch is equally likely. A choice can give a number…
+  let copies = choose { 2 | 3 | 4 }
+
+  // …or a text, such as the name of a palette.
+  let colours = choose { "ink" | "sea" | "ember" | "lichen" | "night" }
+
+  render image(tile(motif, count: copies), palette: colours)
+}
