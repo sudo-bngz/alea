@@ -193,7 +193,7 @@ fn params(name: &str) -> Option<&'static [&'static str]> {
         "invert" => &["shape"],
         "threshold" => &["shape", "level", "softness"],
         "scatter" => &["count", "size"],
-        "text" => &["words", "x", "y", "size", "angle", "font"],
+        "text" => &["words", "x", "y", "size", "angle", "font", "align"],
         "picture" => &["file", "x", "y", "size", "angle", "channel"],
         _ => return None,
     })
@@ -301,13 +301,25 @@ impl Resolver<'_> {
     }
 
     fn raster(&mut self, b: &Bound, img: Arc<crate::raster::Raster>, width: Field) -> Res<Field> {
+        self.raster_shifted(b, img, width, 0.0)
+    }
+
+    /// Placed with its centre `shift` widths along its own direction from
+    /// x, y (0.5: x, y is its left end; −0.5: its right end).
+    fn raster_shifted(&mut self, b: &Bound, img: Arc<crate::raster::Raster>, width: Field, shift: f64) -> Res<Field> {
         let (x, y) = match b.prim.as_str() {
             "picture" => (Def::Fixed(0.5), Def::Fixed(0.5)),
             _ => (POS, POS),
         };
-        let cx = self.p(b, "x", x)?;
-        let cy = self.p(b, "y", y)?;
+        let mut cx = self.p(b, "x", x)?;
+        let mut cy = self.p(b, "y", y)?;
         let angle = self.p(b, "angle", Def::Fixed(0.0))?;
+        if shift != 0.0 {
+            let along = |c: Builtin| Field::Call(c, vec![angle.clone() * DEG]);
+            let half = width.clone() * shift;
+            cx = cx + half.clone() * along(Builtin::Cos);
+            cy = cy + half * along(Builtin::Sin);
+        }
         Ok(Field::Raster {
             img,
             cx: Box::new(cx),
@@ -621,7 +633,15 @@ impl Resolver<'_> {
                 let line_px = size.constant().map(|s| (s * 2048.0).clamp(48.0, 1024.0)).unwrap_or(512.0) as u32;
                 let img = crate::raster::rasterize_text(&key, &font, &words, line_px);
                 let width = size / img.aspect();
-                self.raster(b, img, width)?
+                // `align`: where x is: the left end of the line, its centre, or its right end
+                let (align, align_span) = self.string(b, "align", Some("center"))?;
+                let shift = match align.as_str() {
+                    "left" => 0.5,
+                    "center" | "centre" => 0.0,
+                    "right" => -0.5,
+                    _ => return Err(Error::new("`align` is \"left\", \"center\" or \"right\"", align_span)),
+                };
+                self.raster_shifted(b, img, width, shift)?
             }
             "picture" => {
                 let (file, span) = self.string(b, "file", None)?;
@@ -641,5 +661,33 @@ impl Resolver<'_> {
             other => unreachable!("primitive `{other}` has parameters but no body"),
         };
         Ok(Val::Field(f))
+    }
+}
+
+#[cfg(test)]
+mod align_tests {
+    /// `align: "left"` puts the start of the line at x; "right" its end.
+    #[test]
+    fn text_aligns() {
+        let dir = std::env::temp_dir().join(format!("alea-align-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let ink = |align: &str| -> (f64, f64) {
+            let path = dir.join(format!("{align}.alea"));
+            std::fs::write(&path, format!("work T {{\n  render image(text(\"MMMM\", 0.5, 0.5, 0.1, 0, \"sans\", \"{align}\"), width: 200)\n}}\n")).unwrap();
+            let m = crate::library::load(path.to_str().unwrap()).unwrap();
+            let ed = crate::eval::resolve(&m, 1).unwrap();
+            let f = ed.renders[0].required_field(0, "f").unwrap();
+            // the leftmost and rightmost x with ink, along the line
+            let xs: Vec<f64> = (0..400).map(|k| k as f64 / 399.0).filter(|x| f.eval([*x, 0.5, 0.0], 1) > 0.5).collect();
+            (xs[0], xs[xs.len() - 1])
+        };
+        let (l0, l1) = ink("left");
+        let (c0, c1) = ink("center");
+        let (r0, r1) = ink("right");
+        assert!((l0 - 0.5).abs() < 0.02, "left: starts at x ({l0})");
+        assert!(((c0 + c1) / 2.0 - 0.5).abs() < 0.02, "center: around x");
+        assert!((r1 - 0.5).abs() < 0.02, "right: ends at x ({r1})");
+        assert!(((l1 - l0) - (r1 - r0)).abs() < 0.01, "the same line, moved");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
