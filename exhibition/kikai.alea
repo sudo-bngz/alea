@@ -1,0 +1,140 @@
+// Kikai — 機械図: the technical drawing of an analog machine that never
+// existed. Each edition draws another one: a cassette deck, a radio-cassette,
+// a portable radio or a rhythm machine, with its own proportions, keys,
+// knobs and speakers, labelled in Japanese like a service manual.
+
+work Kikai {
+  let jp    = "fonts/noto-sans-jp-regular.ttf"
+  let bold  = "fonts/noto-sans-jp-black.ttf"
+  let lw    = 0.0018                         // the pen
+  let kind  = choose { 0 | 1 | 2 | 3 }
+
+  // ── drawing tools ──
+  let frame(u, v, w, h) = cut(rect(u, v, w, h, 0, 0.0008), rect(u, v, w - 2 * lw, h - 2 * lw, 0, 0.0008))
+  let pen(x1, y1, x2, y2) = line(x1, y1, x2, y2, lw, 0.0008)
+  let hoop(u, v, d) = ring(u, v, d, lw, 0.0008)
+  let knob(u, v, d, a) = merge(hoop(u, v, d), hoop(u, v, d * 0.7),
+                               pen(u, v, u + 0.35 * d * cos(a), v + 0.35 * d * sin(a)))
+  let reel(u, v, d) = merge(hoop(u, v, d), hoop(u, v, d * 0.38),
+                            merge([pen(u + 0.19 * d * cos(k * pi / 3), v + 0.19 * d * sin(k * pi / 3),
+                                       u + 0.36 * d * cos(k * pi / 3), v + 0.36 * d * sin(k * pi / 3)) for k in range(6)]))
+  let keys(u, v, w, h, count) = merge([frame(u - w / 2 + (k + 0.5) * w / count, v, w / count * 0.86, h) for k in range(count)])
+  let grille(u, v, d) = merge(hoop(u, v, d), overlap(dots(count: 46, size: 0.45, softness: 0.1), circle(u, v, d * 0.88, 0.001)))
+  let speaker(u, v, d) = merge(hoop(u, v, d), hoop(u, v, d * 0.82), hoop(u, v, d * 0.3), hoop(u, v, d * 0.12))
+  let ticks(u, v, w, count) = merge([pen(u - w / 2 + k * w / count, v, u - w / 2 + k * w / count, v - 0.008 - 0.008 * ((k % 5) < 0.5)) for k in range(count + 1)])
+
+  // a label: a leader from the part to a short rule, the words above the rule
+  let callout(px, py, lx, ly, words) = merge(
+      circle(px, py, 0.007, 0.001),
+      pen(px, py, lx + 0.075 * ((px > lx) * 2 - 1), ly),
+      pen(lx - 0.075, ly, lx + 0.075, ly),
+      text(words, lx, ly - 0.017, 0.025, 0, jp))
+
+  // ── the machines ──
+  let cx = 0.47
+  let cy = 0.45
+
+  // 0 · cassette deck
+  let dw = ~between(0.56, 0.64)
+  let dh = ~between(0.33, 0.38)
+  let nkeys = choose { 5 | 6 | 7 }
+  let deckart = merge(
+      frame(cx, cy, dw, dh),
+      frame(cx - dw * 0.18, cy - dh * 0.12, dw * 0.48, dh * 0.46),
+      reel(cx - dw * 0.29, cy - dh * 0.12, dh * 0.24), reel(cx - dw * 0.07, cy - dh * 0.12, dh * 0.24),
+      pen(cx - dw * 0.29, cy + dh * 0.0, cx - dw * 0.07, cy + dh * 0.0),
+      frame(cx + dw * 0.27, cy - dh * 0.2, dw * 0.3, dh * 0.24),
+      ticks(cx + dw * 0.27, cy - dh * 0.14, dw * 0.24, 10),
+      pen(cx + dw * 0.27, cy - dh * 0.1, cx + dw * 0.27 + dw * 0.09, cy - dh * 0.27),
+      keys(cx - dw * 0.18, cy + dh * 0.3, dw * 0.48, dh * 0.14, nkeys),
+      knob(cx + dw * 0.18, cy + dh * 0.17, dh * 0.2, ~between(0, 6)), knob(cx + dw * 0.36, cy + dh * 0.17, dh * 0.2, ~between(0, 6)),
+      callout(cx - dw * 0.29, cy - dh * 0.12, 0.12, cy - dh * 0.62, "カセット入れ"),
+      callout(cx - dw * 0.18, cy + dh * 0.3, 0.12, cy + dh * 0.62, choose { "操作ボタン" | "再生・停止・録音" }),
+      callout(cx + dw * 0.27, cy - dh * 0.2, 0.83, cy - dh * 0.62, choose { "レベルメーター" | "録音レベル計" }),
+      callout(cx + dw * 0.18, cy + dh * 0.17, 0.83, cy + dh * 0.62, choose { "ボリューム" | "音量つまみ" }),
+      callout(cx + dw * 0.36, cy + dh * 0.17, 0.83, cy + dh * 0.88, choose { "トーン" | "バランス" }),
+      callout(cx - dw * 0.5, cy + dh * 0.05, 0.12, cy + dh * 0.1, "ヘッドフォン端子"))
+
+  // 1 · radio-cassette: two speakers, a cassette in the middle, a dial on top, a handle, an antenna
+  let bw = ~between(0.66, 0.72)
+  let bh = ~between(0.32, 0.37)
+  let sp = bh * ~between(0.55, 0.68)
+  let boomart = merge(
+      frame(cx, cy, bw, bh),
+      frame(cx, cy - bh * 0.62, bw * 0.5, bh * 0.08),
+      pen(cx - bw * 0.22, cy - bh * 0.58, cx - bw * 0.22, cy - bh * 0.5), pen(cx + bw * 0.22, cy - bh * 0.58, cx + bw * 0.22, cy - bh * 0.5),
+      pen(cx + bw * 0.45, cy - bh * 0.5, cx + bw * 0.56, cy - bh * 0.9),
+      speaker(cx - bw * 0.3, cy + bh * 0.05, sp), speaker(cx + bw * 0.3, cy + bh * 0.05, sp),
+      frame(cx, cy - bh * 0.32, bw * 0.3, bh * 0.12), ticks(cx, cy - bh * 0.3, bw * 0.26, 20),
+      frame(cx, cy + bh * 0.02, bw * 0.24, bh * 0.3),
+      reel(cx - bw * 0.055, cy + bh * 0.0, bh * 0.13), reel(cx + bw * 0.055, cy + bh * 0.0, bh * 0.13),
+      keys(cx, cy + bh * 0.33, bw * 0.26, bh * 0.1, 6),
+      callout(cx - bw * 0.3, cy + bh * 0.05, 0.12, cy + bh * 0.85, "スピーカー"),
+      callout(cx, cy - bh * 0.32, 0.12, 0.2, choose { "チューニング" | "周波数目盛り" }),
+      callout(cx + bw * 0.56, cy - bh * 0.9, 0.83, 0.18, "アンテナ"),
+      callout(cx, cy - bh * 0.62, 0.83, 0.26, "ハンドル"),
+      callout(cx + bw * 0.055, cy + bh * 0.0, 0.83, cy + bh * 0.85, "カセット入れ"),
+      callout(cx, cy + bh * 0.33, 0.83, cy + bh * 0.55, "操作ボタン"))
+
+  // 2 · portable radio: a grille, a dial, two knobs, an antenna
+  let rw = ~between(0.54, 0.62)
+  let rh = ~between(0.35, 0.4)
+  let radioart = merge(
+      frame(cx, cy, rw, rh),
+      grille(cx - rw * 0.22, cy + rh * 0.02, rh * 0.7),
+      frame(cx + rw * 0.24, cy - rh * 0.18, rw * 0.36, rh * 0.26), ticks(cx + rw * 0.24, cy - rh * 0.12, rw * 0.3, 15),
+      pen(cx + rw * 0.24 + rw * ~between(-0.12, 0.12), cy - rh * 0.28, cx + rw * 0.24 + rw * ~between(-0.12, 0.12), cy - rh * 0.08),
+      knob(cx + rw * 0.15, cy + rh * 0.2, rh * 0.22, ~between(0, 6)), knob(cx + rw * 0.33, cy + rh * 0.2, rh * 0.22, ~between(0, 6)),
+      pen(cx - rw * 0.4, cy - rh * 0.5, cx - rw * 0.56, cy - rh * 0.82),
+      callout(cx - rw * 0.22, cy + rh * 0.02, 0.12, cy + rh * 0.75, "スピーカー"),
+      callout(cx + rw * 0.24, cy - rh * 0.18, 0.83, 0.2, choose { "チューニング" | "AM・FM 目盛り" }),
+      callout(cx + rw * 0.15, cy + rh * 0.2, 0.83, cy + rh * 0.65, "音量つまみ"),
+      callout(cx + rw * 0.33, cy + rh * 0.2, 0.83, cy + rh * 0.95, "選局つまみ"),
+      callout(cx - rw * 0.56, cy - rh * 0.82, 0.12, 0.2, "ロッドアンテナ"))
+
+  // 3 · rhythm machine: sixteen pads, a row of knobs, a little screen
+  let mw = ~between(0.64, 0.7)
+  let mh = ~between(0.32, 0.36)
+  let nk = choose { 4 | 5 | 6 }
+  let machart = merge(
+      frame(cx, cy, mw, mh),
+      merge([frame(cx - mw * 0.42 + (k % 8 + 0.5) * mw * 0.105, cy + mh * 0.12 + floor(k / 8) * mh * 0.2, mw * 0.08, mh * 0.15) for k in range(16)]),
+      merge([knob(cx - mw * 0.36 + k * mw * 0.44 / (nk - 1), cy - mh * 0.25, mh * 0.13, ~between(0, 6)) for k in range(nk)]),
+      frame(cx + mw * 0.3, cy - mh * 0.25, mw * 0.22, mh * 0.2),
+      text("120", cx + mw * 0.3, cy - mh * 0.25, mh * 0.12, 0, "mono"),
+      callout(cx - mw * 0.36, cy - mh * 0.25, 0.12, 0.2, choose { "音色つまみ" | "チューン・ディケイ" }),
+      callout(cx + mw * 0.3, cy - mh * 0.25, 0.83, 0.2, "テンポ表示"),
+      callout(cx - mw * 0.36, cy + mh * 0.32, 0.12, cy + mh * 0.85, "ステップボタン"),
+      callout(cx + mw * 0.4, cy + mh * 0.32, 0.83, cy + mh * 0.85, choose { "スタート・ストップ" | "パターン選択" }))
+
+  let art = [deckart, boomart, radioart, machart][kind]
+
+  // ── titles and notes ──
+  let model = "AL-{floor(~between(1, 99))}"
+  let names = ["カセットデッキ", "ラジカセ", "ポータブルラジオ", "リズムマシン"]
+  let kinds = ["ステレオカセットデッキ", "ステレオラジオカセットレコーダー", "トランジスタラジオ", "プログラマブルリズムマシン"]
+  let title = text(names[kind], 0.08, 0.0, 0.11, 0, bold, "left")
+  let sub   = text("試作 {kinds[kind]}  {model}", 0.08, 0.085, 0.027, 0, bold, "left")
+  let rules = merge(pen(0.08, 0.118, 0.92, 0.118), pen(0.08, 0.8, 0.92, 0.8))
+  // the notes of each kind of machine, as in its manual: four of six
+  let notes = [
+    ["テープの種類に合わせてイコライザーを切り換えます。", "録音は二つのボタンを同時に押してください。",
+     "針が赤い目盛りに入らないように録音レベルを合わせます。", "早送りと巻戻しは約九十秒。",
+     "ヘッドフォン端子はステレオミニ。", "ヘッドは月に一度、綿棒で掃除してください。"],
+    ["電源は単2電池6本、またはACアダプター。", "内蔵マイクで会話をそのまま録音できます。",
+     "ラジオの番組をテープにそのまま録音できます。", "本体は軽いアルミニウム製。",
+     "ハンドルは折りたたみ式です。", "夜は感度切換を「遠距離」にしてください。"],
+    ["電源は単3電池2本。", "夜は感度切換を「遠距離」にしてください。", "アンテナは窓のそばで伸ばしてください。",
+     "本体は軽いアルミニウム製。", "イヤホンで一人でも聴けます。", "選局つまみはゆっくり回してください。"],
+    ["テンポは六十から二百四十まで。", "十六のステップに音を置いてパターンを作ります。",
+     "パターンは電源を切っても消えません。", "音色つまみで太鼓の長さを変えられます。",
+     "電源は単2電池4本、またはACアダプター。", "ほかの機械とテンポを合わせられます。"],
+  ][kind]
+  let s = floor(~between(0, 6))
+  let block = merge([text(notes[(s + k) % 6], 0.08, 0.845 + k * 0.042, 0.024, 0, jp, "left") for k in range(4)])
+
+  // ── the print: off-white ink on washed charcoal ──
+  let ink = merge(art, title, sub, rules, block)
+  let wash = clouds(scale: 3, detail: 5) * 0.07 + grain(0.035)
+  render image(wash + ink * (0.82 + grain(0.18)), width: 1080, height: 1350, palette: ["#232323", "#efeadf"])
+}
