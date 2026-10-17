@@ -1438,9 +1438,13 @@ impl Resolver<'_> {
                     if output.is_some() {
                         return Err(Error::new("a work has only one `output`", *span));
                     }
-                    let v = share(self.lower(val)?);
-                    if !matches!(v, Val::Field(_) | Val::Paint(_)) {
-                        return Err(Error::new("`output` must be a shape, texture, field, pattern or painting", val.span));
+                    let v = match share(self.lower(val)?) {
+                        // an instrument: named after the work (`Marimba()` plays as "marimba")
+                        Val::Synth(sy) if sy.name == "synth" => Val::Synth(Arc::new(sy.named(&self.module.work.name.to_lowercase()))),
+                        v => v,
+                    };
+                    if !matches!(v, Val::Field(_) | Val::Paint(_) | Val::Synth(_)) {
+                        return Err(Error::new("`output` must be a shape, texture, field, pattern, painting or synth", val.span));
                     }
                     self.env.insert("output".into(), v.clone());
                     output = Some(v);
@@ -1648,14 +1652,29 @@ impl Resolver<'_> {
 
     /// `synth { let … ; sound }`: the `let`s and the sound, with `note` and
     /// the units of a synth in scope; then the patch, compiled.
-    fn synth_block(&mut self, lets: &[(String, Expr)], body: &Expr, span: Span) -> Res<Val> {
+    fn synth_block(&mut self, lets: &[Stmt], body: &Expr, span: Span) -> Res<Val> {
         use crate::synth::{Sig, Synth};
         let mut saved: Vec<(String, Option<Val>)> = Vec::new();
         saved.push(("note".into(), self.env.insert("note".into(), Val::Signal(Arc::new(Sig::NoteRecord)))));
         self.in_synth += 1;
         let mut result = Ok(None);
-        for (name, e) in lets {
-            match self.lower(e) {
+        for stmt in lets {
+            let (name, v) = match stmt {
+                Stmt::Let { name, val, .. } => (name, self.lower(val)),
+                Stmt::Func { name, params, body, .. } => {
+                    // it sees `note` and the lets before it, as a work's functions do
+                    let def = FuncDef { name: name.clone(), params: params.clone(), body: body.clone(), env: self.env.clone() };
+                    (name, Ok(Val::Func(Arc::new(def))))
+                }
+                other => {
+                    let at = match other {
+                        Stmt::Field { span, .. } | Stmt::Pattern { span, .. } | Stmt::Render { span, .. } | Stmt::Output { span, .. } => *span,
+                        _ => span,
+                    };
+                    (&String::new(), Err(Error::new("a synth holds `let`s and its sound, nothing else", at)))
+                }
+            };
+            match v {
                 Ok(v) => saved.push((name.clone(), self.env.insert(name.clone(), v))),
                 Err(err) => {
                     result = Err(err);

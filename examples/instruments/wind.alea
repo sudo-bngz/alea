@@ -1,0 +1,14 @@
+// Wind — breath, tuned: noise through a very narrow band at the note.
+//
+//   use "instruments/wind.alea"
+//   drone(field, instrument: Wind(narrow: 0.97))
+
+work Wind(narrow = 0.95) {
+  output synth {
+    bandpass(noise(), cutoff: note.freq, resonance: narrow) * 3
+  }
+
+  // when this file runs on its own: a drone, louder where the clouds are bright
+  render sound(drone(clouds(scale: 2) * 0.6 + 0.4, voices: 4, instrument: output, scale: "dorian", key: 110),
+               duration: 10, room: 0.4)
+}

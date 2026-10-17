@@ -1,0 +1,19 @@
+// Drum — a tuned drum: a sine whose pitch falls fast, and the skin's noise.
+//
+// It plays two octaves below the note (note.freq / 4), like the built-in drum:
+// low notes make kicks, higher ones toms.
+//
+//   use "instruments/drum.alea"
+//   notes(kick, instrument: Drum(punch: 2))
+
+work Drum(ring = 1, punch = 1.5) {
+  output synth {
+    let drop = perc(attack: 0.0005, release: 0.23)
+    sine(note.freq / 4 * (1 + punch * drop)) * perc(release: 0.3 * ring)
+      + noise() * perc(release: 0.08) * 0.4
+  }
+
+  // when this file runs on its own: a beat
+  let m = meter(100, bars: 2)
+  render sound(notes(steps("X...x...X.x.x...", bars: m, y: 0.97), instrument: output, tempo: m.tempo), duration: m.length, room: 0.15)
+}

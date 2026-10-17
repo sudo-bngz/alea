@@ -502,10 +502,8 @@ impl Parser {
         self.bump(); // {
         let mut lets = Vec::new();
         while self.at_kw("let") {
-            self.bump();
-            let (name, _) = self.free_name()?;
-            self.expect(Tok::Assign, "`=`")?;
-            lets.push((name, self.expr(0)?));
+            // the same `let`s as in a work: values, and functions
+            lets.push(self.stmt()?);
         }
         if self.at(&Tok::RBrace) {
             return Err(self.error_here("a synth ends with its sound: an expression such as `sine(note.freq) * adsr()`"));
@@ -559,7 +557,13 @@ fn relocate(e: &mut Expr, span: Span) {
         }
         ExprKind::Synth { lets, body } => {
             relocate(body, span);
-            lets.iter_mut().for_each(|(_, l)| relocate(l, span));
+            for l in lets.iter_mut() {
+                match l {
+                    Stmt::Let { val, .. } => relocate(val, span),
+                    Stmt::Func { body, .. } => relocate(body, span),
+                    _ => {}
+                }
+            }
         }
         _ => {}
     }

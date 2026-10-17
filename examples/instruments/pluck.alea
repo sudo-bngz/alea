@@ -1,0 +1,22 @@
+// Pluck — a plucked string, the way analog synths make one.
+//
+// A saw (all the harmonics a string has) through a low-pass filter that
+// starts wide open and closes fast: bright at the pluck, mellow after.
+// The built-in "pluck" is a different model (a delay line, Karplus-Strong);
+// this one is easy to bend: more `bite`, a longer `ring`.
+//
+//   use "instruments/pluck.alea"
+//   notes(melody, instrument: Pluck(bite: 0.6))
+
+work Pluck(ring = 1, bite = 0.4) {
+  output synth {
+    let open = perc(release: 0.25 * ring)
+    lowpass(saw() + noise() * perc(release: 0.01) * 0.5,
+            cutoff: note.freq * (1.5 + 14 * bite * open), resonance: 0.1) * perc(release: 1.4 * ring)
+  }
+
+  // when this file runs on its own: a short melody, to hear it
+  pattern melody = repeat 16 event(t: i / n, x: ~between(0.3, 0.7), y: ~between(0.2, 0.8),
+                                   size: 0.04, intensity: ~between(0.5, 1))
+  render sound(notes(melody, instrument: output, scale: "dorian", key: 220, tempo: 100), duration: 6, room: 0.3)
+}

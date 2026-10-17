@@ -1,0 +1,21 @@
+// Organ — pipes: the note and its octaves, added up.
+//
+// An organ stop is a few sines at whole multiples of the note (1, 2, 3, 4,
+// 6, 8 times). The upper ones come in as the drone gets louder
+// (note.level): brighter when louder, like the built-in organ.
+//
+//   use "instruments/organ.alea"
+//   drone(field, instrument: Organ())
+
+work Organ(brightness = 1) {
+  output synth {
+    let up = note.level * brightness
+    sine() + sine(note.freq * 2) * 0.6
+      + (sine(note.freq * 3) * 0.4 + sine(note.freq * 4) * 0.25) * up
+      + (sine(note.freq * 6) * 0.15 + sine(note.freq * 8) * 0.1) * up * up
+  }
+
+  // when this file runs on its own: a drone, louder where the clouds are bright
+  render sound(drone(clouds(scale: 2) * 0.6 + 0.4, voices: 4, instrument: output, scale: "dorian", key: 110),
+               duration: 10, room: 0.4)
+}

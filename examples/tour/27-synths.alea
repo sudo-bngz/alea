@@ -1,0 +1,46 @@
+// 27 · Synths: instruments of your own.
+//
+// synth { … }                  some lets, then the sound: played once per note
+// note.freq, note.velocity     the note being played (also .gate, .time, .level)
+// sine() saw() square()        oscillators, at the note's frequency unless told
+//   triangle() pulse() noise()
+// adsr(attack, decay,          an envelope that follows the note: up, down to
+//      sustain, release)       the sustain level, held, then released
+// perc(attack, release)        a struck envelope: up, then down to silence
+// lowpass(sound, cutoff,       resonant filters; the cutoff can move
+//   resonance), highpass, bandpass
+// delay, drive, chorus         an echo, saturation, a swaying copy
+// + - * /                      mix, scale, modulate: sine(f + sine(f * 2) * 300) is FM
+// use "../instruments/x.alea"  the built-in instruments, as synths to open and change
+//
+// A ~ inside a synth is drawn once per edition: every edition has its own sound.
+
+use "../instruments/strings.alea"
+
+work Synths {
+  let m    = meter(96, bars: 4)
+  let prog = chords("functional", key: "D3", scale: "dorian", bars: m)
+
+  // a bass: a saw through a filter that snaps shut, a little saturated
+  let bass = synth {
+    let env  = adsr(attack: 0.005, decay: 0.2, sustain: 0.5, release: 0.1)
+    let snap = perc(release: ~between(0.15, 0.4))
+    drive(lowpass(saw(), cutoff: 120 + 2400 * snap, resonance: 0.6) * env, amount: 0.3)
+  }
+
+  // an FM bell: one sine bending another; harder notes, brighter bells
+  let bell = synth {
+    let ratio = choose { 1.4 | 2 | 3.5 }
+    let bend  = sine(note.freq * ratio) * note.freq * ~between(1, 3) * perc(release: 0.5) * note.velocity
+    sine(note.freq + bend) * perc(release: 2)
+  }
+
+  let music = [
+    drone(clouds(scale: 2) * 0.5 + 0.5, voices: 3, instrument: Strings(vibrato: 0.005), harmony: prog, gain: 0.6),
+    notes(euclid(3, 8, bars: m, y: 0.97), instrument: bass, harmony: prog, key: prog.key / 2, tempo: m.tempo),
+    arp(prog, euclid(7, 16, bars: m), mode: "updown", gate: 0.5, instrument: bell, gain: 0.7),
+  ]
+
+  render image(kaleidoscope(ripples(count: 7), sides: 6) * 0.6 + glow(size: 0.15), width: 512, palette: "night")
+  render sound(music, duration: m.length, room: 0.3)
+}

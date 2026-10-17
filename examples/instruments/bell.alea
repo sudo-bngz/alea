@@ -1,0 +1,20 @@
+// Bell — a struck bell: inharmonic partials, a long ring.
+//
+// A bell's partials are not whole multiples of its note: here 2.76 and 5.4
+// times, the "metal" of the sound. They ring long, the higher ones less.
+//
+//   use "instruments/bell.alea"
+//   notes(melody, instrument: Bell(ring: 2))
+
+work Bell(ring = 1) {
+  output synth {
+    sine() * perc(release: 2.2 * ring)
+      + sine(note.freq * 2.76) * 0.3 * perc(release: 1.4 * ring)
+      + sine(note.freq * 5.4) * 0.12 * perc(release: 0.85 * ring)
+  }
+
+  // when this file runs on its own: a short melody, to hear it
+  pattern melody = repeat 16 event(t: i / n, x: ~between(0.3, 0.7), y: ~between(0.2, 0.8),
+                                   size: 0.04, intensity: ~between(0.5, 1))
+  render sound(notes(melody, instrument: output, scale: "pentatonic", key: 330, tempo: 90), duration: 8, room: 0.5)
+}

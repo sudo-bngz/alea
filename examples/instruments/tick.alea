@@ -1,0 +1,14 @@
+// Tick — a hi-hat: noise, only its highs, gone in a few hundredths of a second.
+//
+//   use "instruments/tick.alea"
+//   notes(hats, instrument: Tick(tone: 8000))
+
+work Tick(tone = 500, length = 0.04) {
+  output synth {
+    highpass(noise(), cutoff: tone, resonance: 0.3) * perc(attack: 0.0005, release: length)
+  }
+
+  // when this file runs on its own: sixteenths
+  let m = meter(110, bars: 2)
+  render sound(notes(steps(16, density: 0.7, bars: m, y: 0.5), instrument: output, tempo: m.tempo, humanize: 0.3), duration: m.length)
+}

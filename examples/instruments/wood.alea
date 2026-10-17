@@ -1,0 +1,16 @@
+// Wood — a wood block: a short knock with a pitch.
+//
+//   use "instruments/wood.alea"
+//   notes(rhythm, instrument: Wood())
+
+work Wood(ring = 1) {
+  output synth {
+    let body = sine() * perc(release: 0.55 * ring) + sine(note.freq * 2.7) * 0.5 * perc(release: 0.28 * ring)
+    body + noise() * perc(attack: 0.0005, release: 0.02) * 0.3
+  }
+
+  // when this file runs on its own: a short melody, to hear it
+  pattern melody = repeat 16 event(t: i / n, x: ~between(0.3, 0.7), y: ~between(0.2, 0.8),
+                                   size: 0.04, intensity: ~between(0.5, 1))
+  render sound(notes(melody, instrument: output, scale: "minor-pentatonic", key: 440, tempo: 120), duration: 5, room: 0.2)
+}

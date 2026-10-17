@@ -24,6 +24,7 @@ source + used files ──lexer/parser──▶ AST (Work) ──resolve──�
 | `bounds.rs` | tile culling: proves, tile by tile, which parts of a field can't change there, and skips them |
 | `compile.rs` | compiles a simplified tile to a flat program, run once per pixel |
 | `sound.rs` | sound layers: drones, notes, textures, the room and the echo |
+| `synth.rs` | synths written in alea: a patch of oscillators, envelopes, filters and effects, compiled to a flat program and run per sample, per note |
 | `harmony.rs` | note names, meters, progressions (numerals, names, functional), voice leading, arpeggios |
 | `midi.rs` | the same layers as a MIDI score: tracks, notes, controllers; Standard MIDI Files |
 | `live.rs` | playing a score live: on time, or following a DAW's clock (ports through `midir`, feature `midi`) |

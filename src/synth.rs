@@ -674,6 +674,38 @@ work T {
         }
 
         #[test]
+        fn instruments_are_works() {
+            // a work whose output is a synth, used by another, with a parameter;
+            // a function inside a synth block
+            let dir = std::env::temp_dir().join(format!("alea-synth-lib-{}", std::process::id()));
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(
+                dir.join("organ.alea"),
+                "work Organ(stops = 3) {\n  output synth {\n    let pipe(k) = sine(note.freq * k) / k\n    pipe(1) + pipe(2) * (stops > 1) + pipe(4) * (stops > 2)\n  }\n}\n",
+            )
+            .unwrap();
+            let main = dir.join("main.alea");
+            std::fs::write(
+                &main,
+                "use \"organ.alea\"\nwork T {\n  render sound(drone(clouds(), voices: 2, instrument: Organ(stops: 2)), duration: 1)\n}\n",
+            )
+            .unwrap();
+            let m = crate::library::load(main.to_str().unwrap()).unwrap();
+            let ed = crate::eval::resolve(&m, 1).unwrap();
+            let r = &ed.renders[0];
+            let s = crate::media::sound_channels(r, 1).unwrap();
+            assert!(s[0].iter().any(|x| x.abs() > 0.01), "the organ plays");
+            let layers: Vec<_> = r
+                .positional
+                .iter()
+                .filter_map(|(v, _)| if let crate::eval::Val::Sound(l) = v { Some(l.clone()) } else { None })
+                .collect();
+            let score = crate::midi::score(&layers, 1.0, None, "t");
+            assert_eq!(score.tracks, vec!["drone - organ"], "named after its work");
+            let _ = std::fs::remove_dir_all(&dir);
+        }
+
+        #[test]
         fn mistakes_say_how_to_fix_them() {
             let err = |body: &str| {
                 let src = format!("work T {{\n  {body}\n  render image(circle())\n}}");

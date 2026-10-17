@@ -42,8 +42,9 @@ pub enum ExprKind {
     Member(Box<Expr>, String),
     /// `"{h:02}:00"`: a text with values inside.
     Template(Vec<TextPart>),
-    /// `synth { let a = … ; expression }`: a patch, played once per note.
-    Synth { lets: Vec<(String, Expr)>, body: Box<Expr> },
+    /// `synth { let a = … ; let f(x) = … ; expression }`: a patch, played
+    /// once per note (its `lets` are `Stmt::Let` and `Stmt::Func`).
+    Synth { lets: Vec<Stmt>, body: Box<Expr> },
 }
 
 #[derive(Clone, Debug)]

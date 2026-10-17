@@ -1,0 +1,20 @@
+// Strings — three players, slightly apart, with a slow vibrato.
+//
+// A saw has the harmonics of a bowed string (each k times the note, 1/k as
+// loud). Three of them, a few cents apart, each swaying in pitch five times a
+// second, make a section; the filter opens as the drone gets louder.
+//
+//   use "instruments/strings.alea"
+//   drone(field, instrument: Strings(), harmony: prog)
+
+work Strings(vibrato = 0.004, spread = 0.004) {
+  output synth {
+    let player(detune, rate) = saw(note.freq * (1 + detune) * (1 + vibrato * sine(rate)))
+    let section = player(0, 5.2) + player(spread, 5.0) + player(0 - spread * 0.9, 5.4)
+    lowpass(section, cutoff: note.freq * (1.2 + 4 * note.level), resonance: 0.1) * 0.4
+  }
+
+  // when this file runs on its own: a drone, louder where the clouds are bright
+  render sound(drone(clouds(scale: 2) * 0.6 + 0.4, voices: 4, instrument: output, scale: "dorian", key: 110),
+               duration: 10, room: 0.4)
+}
