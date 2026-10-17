@@ -33,6 +33,10 @@ for name, label in GALLERY:
 for f in sorted(ex.glob("*.alea")):
     if f.stem not in listed:
         examples.append({"name": f.stem, "label": f.stem, "group": "Gallery", "dir": "", "source": f.read_text()})
+# alea's instruments, written as synths: each opens, plays, and can be `use`d
+for f in sorted((ex / "instruments").glob("*.alea")):
+    examples.append({"name": f.stem, "label": f.stem.capitalize(), "group": "Instruments", "dir": "instruments/",
+                     "source": f.read_text()})
 assets = [{"path": f"assets/{p.name}", "data": base64.b64encode(p.read_bytes()).decode()}
           for p in sorted((ex / "assets").glob("*")) if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".wav")]
 

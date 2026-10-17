@@ -1,0 +1,24 @@
+// Choir — voices singing a vowel that opens as they get louder.
+//
+// A voice is a buzz (a saw) shaped by the mouth: band-pass filters at the
+// vowel's formants. They move from "oo" (about 300 and 870 Hz) towards "ah"
+// (about 730 and 1100 Hz) with the drone's loudness, with a little vibrato.
+//
+//   use "instruments/choir.alea"
+//   drone(field, instrument: Choir())
+
+work Choir(vibrato = 0.003) {
+  output synth {
+    let buzz = saw(note.freq * (1 + vibrato * sine(5)))
+    let open = note.level
+    let mouth = bandpass(buzz, cutoff: 300 + 430 * open, resonance: 0.8)
+              + bandpass(buzz, cutoff: 870 + 230 * open, resonance: 0.8) * 0.8
+              + bandpass(buzz, cutoff: 2400, resonance: 0.7) * 0.6
+              + bandpass(buzz, cutoff: 3300, resonance: 0.7) * 0.4
+    chorus(mouth, depth: 0.4, mix: 0.4) * 2
+  }
+
+  // when this file runs on its own: a drone, louder where the clouds are bright
+  render sound(drone(clouds(scale: 2) * 0.6 + 0.4, voices: 4, instrument: output, scale: "dorian", key: 110),
+               duration: 10, room: 0.4)
+}

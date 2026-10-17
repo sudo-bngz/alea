@@ -102,6 +102,12 @@ its own soundtrack; `render sculpture(…)` gives an STL to print in 3D;
 `render midi(…)` writes a score, with chords, arpeggios and rhythms, that
 plays in your DAW.
 
+**Instruments of your own.** `synth { … }` builds one from oscillators,
+envelopes and filters: `lowpass(saw(), cutoff: 300 + 3000 * perc(release: 0.2))`
+is a bass that snaps shut, and a `~` inside gives each edition its own
+timbre. See [examples/synths.alea](examples/synths.alea) and
+[the built-in instruments, written as synths](examples/instruments/).
+
 <table>
 <tr>
 <td width="30%"><img src="docs/images/culture.webp" alt="Culture: colonies growing in a petri dish by reaction-diffusion"></td>
@@ -160,9 +166,10 @@ On macOS, the first time: `xattr -d com.apple.quarantine alea`.
 | | |
 |---|---|
 | **[The guide](docs/guide.md)** | the language, one idea per chapter |
-| **[The tour](examples/tour/)** | twenty-six small works that go with the guide, from `01-hello` to `26-harmony` |
+| **[The tour](examples/tour/)** | twenty-seven small works that go with the guide, from `01-hello` to `27-synths` |
 | **[The handbook](https://alea.bngz.io/handbook.html)** | the guide and the reference as one illustrated page |
 | **[The reference](docs/reference.md)** | every statement, function, render option and limit |
+| **[The instruments](examples/instruments/)** | alea's instruments written as synths, to open, change and `use` |
 | **[The examples](examples/)** | finished works: `rosace`, `moon`, `tide`, `poster`, `constellation`… |
 | **[The exhibition](exhibition/)** | larger works: `isohypses`, `nocturne`, `correspondances`, `culture`… |
 

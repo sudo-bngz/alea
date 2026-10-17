@@ -1,0 +1,18 @@
+// Glass — a struck glass: four partials, a long shimmer.
+//
+//   use "instruments/glass.alea"
+//   notes(melody, instrument: Glass(ring: 1.5))
+
+work Glass(ring = 1) {
+  output synth {
+    sine() * perc(release: 2.2 * ring)
+      + sine(note.freq * 2.76) * 0.5 * perc(release: 1.8 * ring)
+      + sine(note.freq * 5.4) * 0.3 * perc(release: 1.5 * ring)
+      + sine(note.freq * 8.93) * 0.15 * perc(release: 1.1 * ring)
+  }
+
+  // when this file runs on its own: a short melody, to hear it
+  pattern melody = repeat 16 event(t: i / n, x: ~between(0.3, 0.7), y: ~between(0.2, 0.8),
+                                   size: 0.04, intensity: ~between(0.5, 1))
+  render sound(notes(melody, instrument: output, scale: "lydian", key: 440, tempo: 80), duration: 8, room: 0.6)
+}

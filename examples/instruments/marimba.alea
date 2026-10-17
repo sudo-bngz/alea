@@ -1,0 +1,22 @@
+// Marimba — a wooden bar struck by a mallet.
+//
+// A bar rings at a few frequencies at once: its note, and partials at 3.93
+// and 9.2 times the note (where a real marimba bar rings), the high ones
+// dying first. The mallet adds a short knock of noise.
+//
+//   use "instruments/marimba.alea"
+//   notes(melody, instrument: Marimba(ring: 1.5))
+
+work Marimba(ring = 1, mallet = 0.3) {
+  output synth {
+    let bar = sine() * perc(release: 1.4 * ring)
+            + sine(note.freq * 3.93) * 0.35 * perc(release: 0.46 * ring)
+            + sine(note.freq * 9.2) * 0.12 * perc(release: 0.23 * ring)
+    bar + noise() * perc(attack: 0.0005, release: 0.02) * mallet
+  }
+
+  // when this file runs on its own: a short melody, to hear it
+  pattern melody = repeat 16 event(t: i / n, x: ~between(0.3, 0.7), y: ~between(0.2, 0.8),
+                                   size: 0.04, intensity: ~between(0.5, 1))
+  render sound(notes(melody, instrument: output, scale: "dorian", key: 220, tempo: 100), duration: 6, room: 0.3)
+}

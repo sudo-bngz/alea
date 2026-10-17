@@ -992,6 +992,89 @@ written in `render midi`, played live with `--midi`, following a DAW with
 
 ---
 
+## 27. Synths: instruments of your own
+
+> Tour: `27-synths.alea`
+
+Every instrument so far had a name, `"marimba"`, `"strings"`, and a sound
+someone else chose. A **synth** is an instrument you build yourself, from
+the parts a synthesizer is made of, and it goes wherever an instrument name
+went:
+
+```alea
+let pad = synth {
+  let env = adsr(attack: 1, decay: 0.5, sustain: 0.8, release: 2)
+  lowpass(saw() + saw(note.freq * 1.004), cutoff: 1200) * env
+}
+render sound(notes(melody, instrument: pad))     // drone and arp take it too
+```
+
+A synth is a few `let`s, then one expression: its sound. It is played once
+for every note, and **`note`** is that note: `note.freq` (its frequency in
+Hz), `note.velocity` (how hard it is played, from the event's intensity),
+`note.gate` (1 while it is held), `note.time` (seconds since it started) and,
+in a drone, `note.level` (how loud the field is there).
+
+The parts:
+
+- **Oscillators** make the raw sound: `sine()` (pure), `triangle()`
+  (soft), `square()` (hollow, a clarinet), `saw()` (bright, strings and
+  brass), `pulse(width: 0.2)` (thin, nasal), `noise()` (breath, hats, rain).
+  They play the note's frequency unless you give one: `saw(note.freq / 2)` is
+  an octave down. Inside a synth, `square` is an oscillator; outside, still
+  a shape.
+- **Envelopes** shape the loudness over time, from 0 to 1. `adsr(attack,
+  decay, sustain, release)` follows the note: it rises, falls to the sustain
+  level, holds while the note is held, then fades. `perc(attack, release)`
+  is struck: it rises and dies away, however long the note.
+- **Filters** take part of the sound away: `lowpass` keeps what is below its
+  `cutoff` (darker), `highpass` what is above (thinner), `bandpass` a band
+  around it (a vowel, a whistle). `resonance` (0–1) makes the cutoff sing.
+- **Effects**: `delay(sound, time, feedback)` an echo, `drive(sound,
+  amount)` saturation, `chorus(sound)` a swaying copy that widens it.
+
+What makes a synth come alive is that **anything can move anything**.
+Multiply by an envelope, and the loudness follows it; give an envelope to a
+cutoff, and the sound opens and closes:
+
+```alea
+let snap = perc(release: 0.2)
+lowpass(saw(), cutoff: 100 + 3000 * snap, resonance: 0.6)    // a bass that snaps shut
+```
+
+An oscillator inside another's frequency bends it: that is **FM**, frequency
+modulation, the sound of bells and electric pianos:
+
+```alea
+sine(note.freq + sine(note.freq * 3.5) * note.freq * 2 * perc(release: 0.5)) * perc(release: 2)
+```
+
+and a slow oscillator is an **LFO**: `cutoff: 800 + 400 * sine(0.3)` sweeps
+the filter once every three seconds.
+
+Chance works here as everywhere: a `~` in a synth is drawn once per edition.
+`saw(note.freq * ~around(1.0, 0.004))` detunes each edition's pad a little
+differently; `choose { 1.4 | 2 | 3.5 }` as an FM ratio gives each edition
+another bell. The same seed still gives back the same sound, sample for
+sample.
+
+**The built-in instruments, as synths.** The folder
+[`examples/instruments/`](../examples/instruments/) has alea's instruments
+written as synths: `marimba.alea`, `bell.alea`, `strings.alea`,
+`choir.alea`… Each is a work whose `output` is a synth, with a few
+parameters; open one to see how it is made, change it, or use it:
+
+```alea
+use "instruments/marimba.alea"
+notes(melody, instrument: Marimba(ring: 2, mallet: 0.6))
+```
+
+A synth's loudness already follows the event's intensity (and a drone's,
+its field), so `note.velocity` and `note.level` are for its timbre: a
+filter that opens on harder notes, a vowel that opens when louder. Envelope
+times are set once per synth (numbers, or `~` draws). The full list of parts
+and their settings is in the reference, under *Synths*.
+
 ## How values become media
 
 Every medium receives the same thing, a field, and translates it:
