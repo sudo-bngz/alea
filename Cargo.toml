@@ -8,7 +8,7 @@ default-members = ["."]
 # "alea" is taken on crates.io: the package is alea-lang, the library and
 # the command are alea.
 name = "alea-lang"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2024"
 license = "MIT"
 description = "A non-deterministic language for generative art: a program is a work, every run draws a new edition (image, sound, video, MIDI)"

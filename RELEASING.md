@@ -3,11 +3,15 @@
 ## Once: set up GitHub, the domain and Homebrew
 
 1. **The site.** In the repository's *Settings › Pages*, set *Source* to
-   **GitHub Actions**. At your DNS provider, add a `CNAME` record for
-   `alea` (in `bngz.io`) pointing to `sudo-bngz.github.io`. Back in
-   *Settings › Pages*, once the domain shows as checked, tick *Enforce HTTPS*.
-   Every push to `main` that touches the site, the web engine, the docs or the
-   works rebuilds alea.bngz.io (`.github/workflows/pages.yml`).
+   **GitHub Actions**; the site is then at `https://sudo-bngz.github.io/alea/`.
+   For alea.bngz.io: at your DNS provider, add a `CNAME` record named `alea`
+   (in `bngz.io`) pointing to `sudo-bngz.github.io` (and remove any other
+   record for `alea`). Then in *Settings › Pages › Custom domain*, enter
+   `alea.bngz.io` and save: a site published by a workflow ignores the
+   `site/CNAME` file, so the domain must be set there. Once the DNS check
+   passes, tick *Enforce HTTPS*. Every push to `main` that touches the site,
+   the web engine, the docs or the works rebuilds it
+   (`.github/workflows/pages.yml`).
 2. **The Homebrew tap.** Create an empty public repository named
    `homebrew-tap` under `sudo-bngz`. Make a fine-grained token (*Settings ›
    Developer settings › Personal access tokens*) with *Contents: read and
@@ -27,7 +31,8 @@
 
 1. Set the version in `Cargo.toml` (and `plugin/Cargo.toml` if the plugin
    changed), commit, push.
-2. Tag it: `git tag v0.1.0 && git push origin v0.1.0`.
+2. Tag it: `git tag v0.1.2 && git push origin v0.1.2` (the tag must match the
+   version in `Cargo.toml`, with a `v`).
 3. The *Release* workflow builds alea for macOS, Linux (x86_64, arm64) and
    Windows, the plugin for each, the playground and the handbook, and
    publishes them with their checksums on the GitHub release; then it updates
