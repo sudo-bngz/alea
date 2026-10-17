@@ -329,12 +329,14 @@ These two default to readable: level text, a picture filling the width.
 
 | Primitive | Omitted |
 |---|---|
-| `text(words, x, y, size, angle, font)` — one line of text centred on x, y; `size` is the line's height | x, y 0.25–0.75 · size 0.06–0.15 · angle 0 · font `"sans"` |
+| `text(words, x, y, size, angle, font, align)` — one line of text at x, y; `size` is the line's height | x, y 0.25–0.75 · size 0.06–0.15 · angle 0 · font `"sans"` · align `"center"` |
 | `picture(file, x, y, size, angle, channel)` — an image centred on x, y; `size` is its width, the height follows its proportions | x, y 0.5 · size 1 · angle 0 · channel `"luminance"` |
 
 - `words` and `file` are required texts. Text is a single line.
 - `font`: `"sans"`, `"bold"`, `"serif"`, `"mono"` (built in), or the path to
-  a `.ttf` / `.otf` file.
+  a `.ttf` / `.otf` file (Japanese, say: see `exhibition/fonts/`).
+- `align`: where x, y is on the line: `"center"` (the middle), `"left"` (its
+  start: lines of a paragraph, one under the other) or `"right"` (its end).
 - `picture` reads PNG, JPEG and WebP; larger than 4096 pixels, it is
   scaled down. `channel`: `"luminance"` (brightness), `"red"`, `"green"`,
   `"blue"`, or `"alpha"` (transparency, to use a cut-out as a shape).
