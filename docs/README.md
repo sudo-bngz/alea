@@ -13,5 +13,8 @@
   lists, your own functions, patterns, growing, paintings, time and filters, inputs, meters, rhythms and harmony, the five renders and their options, live MIDI, palettes, components and
   `use`, the command line, limits, reproducibility.
 
-The same two documents, illustrated with the tour's renders, are built into
+- **[How alea works](architecture.md)**: the engine's parts, how it stays fast
+  without changing a pixel, building the browser engine, and what comes next.
+
+The same two documents (guide and reference), illustrated with the tour's renders, are built into
 one web page by `python3 web/handbook.py` (→ `web/dist/handbook.html`).
