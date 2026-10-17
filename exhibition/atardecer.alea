@@ -1,0 +1,163 @@
+// Atardecer — a sunset on the sea, the sun a record setting into it.
+//
+// The sun turns at the speed of a record, its grooves catching the light,
+// its label printed with the side it plays. Below, the sea breaks its
+// reflection into slats; in front, palms in silhouette. Washed-out colours,
+// like a photograph left in the sun.
+//
+// The Reel plays it: slow, lofi house at 116 BPM, warm and a little worn, with
+// congas, a rolling bass, a hypnotic arpeggio over minor ninths, and the wow
+// of an old tape. The record turns nine times, the sun swells with the kick,
+// the palms sway, and the loop has no seam.
+
+work Atardecer {
+  let horizon = ~between(0.6, 0.66)
+  let cx      = ~between(0.4, 0.6)
+  let r       = ~between(0.25, 0.3)                // the sun's radius
+  let cy      = horizon - r * ~between(0.15, 0.55) // how far it has set
+  let side    = choose { "lado a" | "lado b" }
+  let colours = choose {
+      ["#1b1430", "#4b2b52", "#b4566c", "#ef8a5c", "#f7d8a0"]     // dusk
+    | ["#13202e", "#2d4b5e", "#b06a6a", "#eaa070", "#f4e0b8"]     // sea mist
+    | ["#21142a", "#5a2a48", "#cf5f5a", "#f2a24e", "#f8e3b0"]     // tropic
+  }
+
+  // ── motion: eight bars of four beats, whatever the tempo; time on a circle ──
+  let beat  = t * 32
+  let ph    = fract(beat)
+  let drop  = beat < 30
+  let thump = ph * 6 * exp(1 - ph * 6) * drop
+  let lx    = cos(t * tau)
+  let ly    = sin(t * tau)
+
+  // ── the sun, a record: grooves, a turning sheen, a label, written as a
+  //    function of the point so the sea can mirror it ──
+  let sun(u, v, centre) = (distance(u, v, cx, cy) < r) * (
+      0.86
+      - 0.07 * (0.5 + 0.5 * sin(distance(u, v, cx, cy) * 900)) * (distance(u, v, cx, cy) > r * 0.36)
+      + 0.1 * cos(2 * (atan2(v - cy, u - cx) - t * tau * 9)) * (distance(u, v, cx, cy) > r * 0.36)
+      + 0.06 * thump
+      - centre * 0.24 * (distance(u, v, cx, cy) < r * 0.34) * (distance(u, v, cx, cy) > r * 0.33)
+      - centre * 0.86 * (distance(u, v, cx, cy) < r * 0.025))
+  // the slats of a sunset, widening as it sinks
+  let gaps  = (y > cy + r * 0.25) * (fract((y - cy) * 34 - t * 4) < (y - cy - r * 0.25) / r * 0.9)
+  let label = rotate(merge(text(side, cx, cy - r * 0.13, r * 0.11, 0, "sans"),
+                           text("116 bpm", cx, cy + r * 0.13, r * 0.06, 0, "mono")),
+                     angle: t * 360 * 9, x: cx, y: cy)
+
+  // ── the sky: dusk upwards, streaks of cloud drifting ──
+  let above  = y < horizon
+  let streak = clamp(noise(x * 1.2 + lx * 0.15, y * 11 + ly * 0.15, 3) * 1.5 - 0.3, 0, 1) * smoothstep(-0.3, horizon, y)
+  pattern stars = repeat ~poisson(140) event(y: ~between(-0.4, horizon - 0.3), size: ~between(0.0008, 0.002),
+                                             intensity: ~beta(1.5, 4))
+  let sky = 0.06 + 0.5 * smoothstep(-0.4, horizon, y) ^ 1.6 + streak * 0.1 + stars * (1 - smoothstep(-0.2, 0.3, y)) * 0.5
+  let disc = sun(x, y, 1) * (1 - gaps) - label * 0.4 * (distance(x, y, cx, cy) < r * 0.33)
+
+  // ── the sea: the reflection broken into slats that ripple ──
+  let depth  = clamp(y - horizon, 0.0005, 1)
+  let row    = 50 * ln(depth + 0.004)
+  let ripple = noise(row * 0.6 + lx * 0.6, ly * 0.6, 5)
+  let shift  = ripple * depth * 0.18
+  let slat   = smoothstep(0.25, 0.6, 0.5 + 0.5 * sin(row * 1.0 + ripple * 2))
+  let mirror = sun(x + shift, 2 * horizon - y, 0) * slat * (1 - depth * 0.8)
+  let sea    = 0.1 + 0.25 * (1 - smoothstep(0, 0.2, depth)) + mirror * 0.75 + slat * 0.025
+
+  // ── palms in front, in silhouette, swaying ──
+  // a frond: an arc that rises and droops, leaflets hanging from it
+  let frond(u, v, a, l) = merge(
+      path([[u + l * k / 6 * cos(a), v - l * k / 6 * sin(a) + 0.55 * l * (k / 6) ^ 2] for k in range(7)], 0.008, 0.002),
+      merge([line(u + l * k / 6 * cos(a), v - l * k / 6 * sin(a) + 0.55 * l * (k / 6) ^ 2,
+                  u + l * k / 6 * cos(a) + 0.18 * l * cos(a) * (1 - k / 7), v - l * k / 6 * sin(a) + 0.55 * l * (k / 6) ^ 2 + 0.22 * l * (1 - k / 8),
+                  0.005, 0.002) for k in range(1, 7)]))
+  let palm(px, h, lean, phase) = merge(
+      path([[px + lean * h * (k / 8) ^ 2, 1.5 - h * k / 8] for k in range(9)], 0.016, 0.002),
+      rotate(merge([frond(px + lean * h, 1.5 - h, a, 0.22 * h) for a in [0.1, 0.55, 1.05, 1.45, 1.75, 2.15, 2.65, 3.05]]),
+             angle: 4 * sin(t * tau * 2 + phase), x: px + lean * h, y: 1.5 - h))
+  let palms = choose {
+      merge(palm(~between(0.04, 0.14), ~between(1.05, 1.2), ~between(0.04, 0.12), 0), palm(~between(0.8, 0.93), ~between(0.85, 1), ~between(-0.12, -0.04), 2))
+    | palm(~between(0.06, 0.16), ~between(1.05, 1.2), ~between(0.05, 0.12), 0)
+    | palm(~between(0.84, 0.94), ~between(1.05, 1.2), ~between(-0.12, -0.05), 1)
+  }
+
+  // ── lofi: grain, a tracking line rolling through, faded ──
+  let tracking = smoothstep(0.05, 0, abs(fract(y * 0.4 - t * 2) - 0.5)) * 0.04
+  let scene = (above * max(sky, disc) + (1 - above) * sea) * (1 - palms) + palms * 0.02
+  let print = scene * 0.94 + grain(0.05)
+  output scene
+
+  render image(print, width: 1080, height: 1350, palette: colours, range: [0, 1])
+
+  // ── the Reel: lofi house, 116 BPM ──
+  let m    = meter(116, bars: 8)
+  let prog = chords(choose { "i9 VImaj7 III VII" | "i9 iv7 VImaj7 v7" | "i9 VImaj7 iv7 v7" },
+                    key: choose { "A3" | "F3" | "D3" }, scale: "minor", bars: m)
+  let worn(f) = f * (1 + 0.004 * sine(0.7))       // an old tape, a little slow and a little fast
+
+  let kick = synth {
+    let pitch = note.freq * (1 + 2.5 * perc(attack: 0.0005, release: 0.05))
+    lowpass(drive(sine(pitch) * perc(attack: 0.002, release: 0.38), amount: 0.4), cutoff: 900)
+  }
+  let snare = synth {
+    let body = triangle(190) * perc(release: 0.08) * 0.6
+    lowpass(bandpass(noise(), cutoff: 1800, resonance: 0.2) * perc(attack: 0.002, release: 0.22) + body, cutoff: 4500) * note.velocity
+  }
+  let conga = synth {
+    let pitch = note.freq * (1 + 0.6 * perc(attack: 0.0005, release: 0.02))
+    sine(pitch) * perc(attack: 0.001, release: 0.2) + bandpass(noise(), cutoff: 2500, resonance: 0.3) * perc(release: 0.012) * 0.3
+  }
+  let shaker = synth { bandpass(noise(), cutoff: 6000, resonance: 0.25) * perc(attack: 0.008, release: 0.07) * note.velocity }
+  let bass = synth {
+    let env = adsr(attack: 0.005, decay: 0.15, sustain: 0.5, release: 0.08)
+    drive(lowpass(triangle(worn(note.freq)) + saw(worn(note.freq)) * 0.3, cutoff: 500, resonance: 0.3) * env, amount: 0.3)
+  }
+  let pluck = synth {
+    let v = note.velocity
+    let env = perc(attack: 0.003, release: 0.35)
+    delay(lowpass(saw(worn(note.freq)) + square(worn(note.freq * 2)) * 0.2, cutoff: 400 + 2600 * v * env, resonance: 0.45) * env,
+          time: 60 / m.tempo * 0.75, feedback: 0.5, mix: 0.45)
+  }
+  let lead = synth {
+    let env = adsr(attack: 0.12, decay: 0.4, sustain: 0.7, release: 1.2)
+    let vib = 1 + 0.006 * sine(5) * adsr(attack: 0.8, decay: 0.01, sustain: 1, release: 1)
+    chorus(lowpass(saw(worn(note.freq) * vib) + saw(worn(note.freq) * vib * 1.004), cutoff: 1800, resonance: 0.15) * env, depth: 0.6)
+  }
+  let pad = synth {
+    let env = adsr(attack: 1.2, decay: 0.5, sustain: 0.85, release: 2)
+    chorus(lowpass(saw(worn(note.freq)) + saw(worn(note.freq) * 1.007) + sine(note.freq * 0.5), cutoff: 300 + 900 * note.level) * env, depth: 0.8)
+  }
+
+  // the groove: a round kick, a soft snare on two and four, shakers, congas
+  pattern kicks  = repeat 32 event(t: i / n, x: 0.5, y: 0.99, intensity: i < 30)
+  pattern snares = repeat 16 event(t: (i * 8 + 4) / 128, x: 0.45, y: 0.5, intensity: 0.7 * (i > 1))
+  pattern shakes = repeat 128 event(t: i / n, x: 0.62, y: 0.5, intensity: 0.35 + 0.35 * (i % 2) + 0.2 * (i % 4 == 2))
+  let cg = choose { [3, 6, 10, 11, 14] | [2, 3, 7, 10, 13] | [3, 7, 8, 11, 15] }
+  pattern congas = repeat 7 * count(cg) event(t: ((floor(i / count(cg)) + 1) * 16 + cg[i % count(cg)]) / 128,
+                                              x: 0.3 + 0.4 * (i % 2), y: 0.35 + 0.3 * (i % 3 == 0), intensity: 0.6 + 0.3 * (i % 2))
+
+  // the bass rolls after the kick, from the third bar
+  pattern rolls = repeat 96 event(t: (32 + i) / 128, x: 0.5, y: 0.98 - 0.3 * (i % 4 == 3),
+                                  intensity: (i % 4 != 0) * (0.7 + 0.3 * (i % 4 == 2)))
+  // the arpeggio, from the third bar, opening; the lead's long notes from the fifth
+  pattern ticks = repeat 96 event(t: (32 + i) / 128, x: 0.35 + 0.3 * (i % 2), intensity: 0.4 + 0.6 * i / 96)
+  pattern tune  = repeat 8 event(t: (64 + i * 8) / 128, x: 0.5, y: [0.2, 0.35, 0.1, 0.45, 0.2, 0.3, 0.05, 0.5][i],
+                                 size: 0.09, intensity: 0.8)
+
+  let music = [
+    notes(kicks,  instrument: kick, key: 55, tempo: m.tempo, gain: 1.8),
+    notes(snares, instrument: snare, tempo: m.tempo, gain: 0.45),
+    notes(shakes, instrument: shaker, tempo: m.tempo, swing: 0.58, humanize: 0.3, gain: 0.3),
+    notes(congas, instrument: conga, scale: "minor-pentatonic", key: 196, tempo: m.tempo, swing: 0.58, humanize: 0.2, gain: 0.45),
+    notes(rolls,  instrument: bass, harmony: prog, key: prog.key / 4, tempo: m.tempo, swing: 0.55, gain: 1.1),
+    arp(prog, ticks, mode: choose { "up" | "updown" | "converge" }, octaves: 2, gate: 0.5, instrument: pluck, swing: 0.55, gain: 0.55),
+    notes(tune,   instrument: lead, harmony: prog, key: prog.key * 2, tempo: m.tempo, gain: 0.4),
+    drone(0.4 + 0.6 * lfo(4), voices: 4, instrument: pad, harmony: prog, gain: 0.5),
+    texture(0.5 + x * 0, kind: "crackle", gain: 0.25),
+  ]
+
+  // the sleeve's small print, below the sea in the 9:16 frame
+  let small = merge(text("atardecer", 0.08, 1.27, 0.03, 0, "sans", "left"),
+                    text("{side} · 116 bpm", 0.92, 1.27, 0.03, 0, "mono", "right"))
+  let film = scene * 0.94 + 0.03 * thump * above + small * 0.75 + grain(0.05) + tracking
+  render video(film, duration: m.length, fps: 30, width: 1080, height: 1920, palette: colours, range: [0, 1],
+               sound: music, room: 0.45, echo: 0.2)
+}
