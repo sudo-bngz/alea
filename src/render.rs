@@ -22,6 +22,7 @@ pub fn render_all(ed: &Edition, dir: &Path, slug: &str) -> Res<Vec<(String, Path
             "sound" => "wav",
             "video" if media::video_spec(r)?.gif => "gif",
             "video" => "mp4",
+            "midi" => "mid",
             _ => "stl",
         };
         let path = dir.join(format!("{slug}-{:016x}{suffix}.{ext}", ed.seed));
@@ -29,6 +30,7 @@ pub fn render_all(ed: &Edition, dir: &Path, slug: &str) -> Res<Vec<(String, Path
             "image" => image(ed, r, &path)?,
             "sound" => sound(ed, r, &path)?,
             "video" => video(ed, r, &path)?,
+            "midi" => std::fs::write(&path, crate::midi::smf(&media::midi_score(r, &ed.name)?, &ed.name)).map_err(|e| io_err(&path, e))?,
             _ => sculpture(ed, r, &path)?,
         }
         outputs.push((r.kind.clone(), path));

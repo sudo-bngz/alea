@@ -28,8 +28,8 @@ work Filters {
   ]
 
   // a carousel of lights at night, finished like a photograph
-  let lights = merge([circle(0.5 + 0.28 * cos(k * tau / 9 + t * tau), 0.5 + 0.28 * sin(k * tau / 9 + t * tau), 0.07, 0.004)
-                      for k in range(9)])
+  let light(k) = orbit(0.28, phase: k / 9)
+  let lights = merge([circle(light(k).x, light(k).y, 0.07, 0.004) for k in range(9)])
   let night = paint(max(lights, land * 0.3), palette: "ember")
   let photo = vignette(film(chroma(bloom(night, 2.5), 0.8), 0.06), 0.6)
 

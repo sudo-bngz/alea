@@ -1,19 +1,16 @@
-// Isohypses — maps of places that don't exist.
-//
-// An imaginary relief, read the way a cartographer would: contour lines of
-// constant width with a heavier line every fifth level, layer tints that
-// darken with altitude, a sea with its hatching and soundings, towns on the
-// land, and a title cartouche with its scale. Every edition is a new country.
+// Isohypses — animated maps & stepped 3D topographic sculpture
 
 work Isohypses {
-  // ── the relief ──
-  let scale  = ~between(1.3, 2.3)
-  let relief = 0.5 + (clouds(scale: scale, detail: 3) - 0.5) * ~between(2.2, 2.8)
-  let sea    = ~between(0.36, 0.5)
-  let levels = choose { 16 | 22 | 28 }
+  let pal = choose { 5: "ink" | 2: "sea" | 1: "lichen" }
+
+  // ── the relief (slowly shifting over the loop) ──
+  let scale   = ~between(1.3, 2.3)
+  let ground  = mix(clouds(scale: scale, detail: 3), clouds(scale: scale, detail: 3), 0.35 * lfo())
+  let relief  = 0.5 + (ground - 0.5) * ~between(2.2, 2.8)
+  let sea     = ~between(0.38, 0.48) + 0.06 * sin(t * tau)
+  let levels  = choose { 16 | 22 | 28 }
 
   // ── the slope, from the relief and a slightly shifted copy of it ──
-  // (both offsets are given: an omitted one would be chosen by alea)
   let e  = 0.002
   let gx = (move(relief, x: -e, y: 0) - relief) / e
   let gy = (move(relief, x: 0, y: -e) - relief) / e
@@ -43,6 +40,10 @@ work Isohypses {
           + water * (0.17 + hatch * 0.16 + contours * 0.12)
           + coast
 
+  // ── 3D sculpture: flat sea + architectural stepped contour levels ──
+  let stepped_levels = floor(clamp(relief - sea, 0, 1) * levels) / levels
+  field topo_model   = land * (0.04 + stepped_levels * 0.8 + clamp(relief - sea, 0, 1) * 0.15 + towns * 0.05)
+
   // ── the sheet: a double neat line, a cartouche and a scale ──
   let frame  = rect(x: 0.5, y: 0.455, width: 0.9, height: 1.03, angle: 0, softness: 0.0004)
   let neat   = cut(rect(x: 0.5, y: 0.455, width: 0.918, height: 1.048, angle: 0, softness: 0.0004),
@@ -59,5 +60,20 @@ work Isohypses {
 
   output map * frame + sheet + grain(0.03)
 
-  render image(output, width: 1080, height: 1350, palette: choose { 5: "ink" | 2: "sea" | 1: "lichen" })
+  render image(output, at: 0.5, width: 1080, height: 1350, palette: pal)
+  render sculpture(topo_model, side: 120, base: 3, relief: 0.14, resolution: 256)
+  render video(
+    output,
+    duration: 12,
+    width: 1080,
+    height: 1350,
+    palette: pal,
+    sound: [
+      drone(relief * land, instrument: "strings", scale: "dorian", key: "D3", gain: 0.55),
+      notes(towns, instrument: "glass", scale: "dorian", key: "D4", gain: 0.35),
+      texture(water, kind: "waves", gain: 0.3)
+    ],
+    room: 0.6,
+    echo: 0.25
+  )
 }

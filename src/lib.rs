@@ -7,10 +7,13 @@ pub mod ast;
 pub mod bounds;
 pub mod compile;
 pub mod error;
+pub mod harmony;
+pub mod input;
 pub mod eval;
 pub mod lexer;
 pub mod library;
 pub mod media;
+pub mod midi;
 pub mod paint;
 pub mod parser;
 pub mod prims;
@@ -20,6 +23,9 @@ pub mod vfs;
 
 #[cfg(feature = "native")]
 pub mod render;
+
+#[cfg(feature = "native")]
+pub mod live;
 
 #[cfg(target_arch = "wasm32")]
 mod web;

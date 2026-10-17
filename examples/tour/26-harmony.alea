@@ -1,0 +1,49 @@
+// 26 · Harmony and rhythm: a generative track.
+//
+// meter(tempo, bars)              a length in bars: .length (seconds), .tempo, .bar, .beat
+// key: "D3"                       notes by name, anywhere a key goes
+// euclid(hits, steps)             hits spread as evenly as possible: euclid(3, 8) is the tresillo
+// steps("X..x..x.")               a step sequencer: X accent, x hit, o soft, . rest, | next bar
+// steps(16, density: field)       random hits, more where the field is high
+// chords("i iv V7 i")             a progression: roman numerals or names ("Am F C G7")
+// chords("functional")            drawn: tonic, subdominant, dominant, cadences; new each edition
+// harmony: prog                   drones move from chord to chord; notes play chord tones
+// arp(prog, rhythm, mode)         the chord, one note at a time: up, down, updown, random, converge
+// swing:, humanize:               every second sixteenth late; a human looseness
+//
+// Every edition: another tempo, mode, progression, groove and arpeggio.
+
+work Track {
+  let m    = meter(floor(~between(88, 118)), bars: 8)
+  let mode = choose { "dorian" | "minor" | "mixolydian" | "major" }
+  let prog = chords("functional", key: choose { "D3" | "F3" | "A3" | "C3" }, scale: mode, bars: m, tension: ~between(0.2, 0.7))
+
+  // the groove
+  let kick  = steps(choose { "X...x...X...x..o" | "X..x..x.X...x..." | "X.......X.x....." }, bars: m, y: 0.97)
+  let snare = steps("....X.......X...", bars: m, y: 0.75)
+  let hats  = steps(16, density: 0.25 + 0.6 * lfo(2), bars: m, y: 0.42)
+  let rim   = euclid(choose { 3 | 5 | 7 }, 16, rotate: choose { 0 | 2 | 3 }, bars: m, y: 0.6)
+  let swing = ~between(0.5, 0.62)
+
+  let music = [
+    drone(clouds(scale: 2) * 0.4 + 0.6, voices: 4, instrument: "strings", harmony: prog, gain: 0.7),
+    notes(euclid(3, 8, bars: m, y: 0.97), instrument: "pluck", harmony: prog, key: prog.key / 4, tempo: m.tempo),
+    arp(prog, euclid(choose { 7 | 9 | 11 }, 16, bars: m), mode: choose { "up" | "updown" | "converge" | "random" },
+        octaves: 2, gate: 0.6, instrument: choose { "marimba" | "kalimba" | "pluck" }, swing: swing),
+    notes(kick, instrument: "drum", tempo: m.tempo),
+    notes(snare, instrument: "drum", tempo: m.tempo, gain: 0.8),
+    notes(hats, instrument: "tick", tempo: m.tempo, swing: swing, humanize: 0.3, gain: 0.5),
+    notes(rim, instrument: "wood", harmony: prog, tempo: m.tempo, gain: 0.5),
+    cc(lfo(2), 74),
+  ]
+
+  // the picture moves with the music: a flash on every beat, a turn at every chord
+  let beat  = lfo(m.bars * 4, shape: "pulse")
+  let rings = rotate(kaleidoscope(stripes(count: 7, angle: 0), sides: 6), angle: prog.index * 30 + t * 40)
+  let heart = circle(0.5, 0.5, 0.08 + 0.1 * beat, 0.02)
+  let piece = merge(rings * (0.25 + 0.35 * beat), heart)
+
+  render image(merge(piece, merge(kick, snare, hats, rim) * 0.8), width: 600, palette: "night")
+  render video(piece, duration: m.length, width: 480, palette: "ember", sound: music, room: 0.25)
+  render midi(music, duration: m.length, tempo: m.tempo)
+}

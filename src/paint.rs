@@ -89,6 +89,8 @@ pub enum Paint {
     Sequence { items: Vec<Arc<Paint>>, fade: f64, time: Field, seed: u64 },
     /// A filter on the pixels.
     Filter { inner: Arc<Paint>, kind: FilterKind, seed: u64 },
+    /// An image input in its own colours, centred, `width` wide.
+    Picture { input: Arc<crate::input::Input>, width: f64 },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -195,6 +197,21 @@ pub fn draw(p: &Paint, w: usize, h: usize, t: f64) -> Pixels {
             out
         }
         Paint::Filter { inner, kind, seed } => filter(draw(inner, w, h, t), w, h, t, *kind, *seed),
+        Paint::Picture { input, width } => {
+            let crate::input::Kind::Image(img) = &input.kind else { return vec![[0.0; 4]; w * h] };
+            let s = w.min(h) as f64;
+            let (ox, oy) = (0.5 - w as f64 / (2.0 * s), 0.5 - h as f64 / (2.0 * s));
+            let height = width * img.aspect();
+            let mut out = Vec::with_capacity(w * h);
+            for j in 0..h {
+                let y = oy + (j as f64 + 0.5) / s;
+                for i in 0..w {
+                    let x = ox + (i as f64 + 0.5) / s;
+                    out.push(img.sample((x - 0.5) / width + 0.5, (y - 0.5) / height + 0.5));
+                }
+            }
+            out
+        }
         Paint::Overlay { layers, blend, opacity, mask } => {
             let m = mask.as_ref().map(|(f, seed)| crate::media::sample_frame(f, w, h, t, *seed));
             let mut out = draw(&layers[0], w, h, t);

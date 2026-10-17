@@ -153,6 +153,36 @@ pub extern "C" fn alea_fs_clear() {
     crate::vfs::clear();
 }
 
+/// Gives the work an input (`name` "" for the default one, what a pipe would
+/// bring on the command line). Returns 0, or 1 with an error message as output.
+///
+/// # Safety
+/// Both buffers must come from `alea_alloc` and be fully written.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn alea_input_put(name: *mut u8, name_len: usize, data: *mut u8, data_len: usize) -> u32 {
+    let name = String::from_utf8_lossy(&unsafe { take(name, name_len) }).into_owned();
+    match crate::input::put(&name, unsafe { take(data, data_len) }) {
+        Ok(i) => {
+            let what = match &i.kind {
+                crate::input::Kind::Image(img) => format!("an image, {}×{}", img.w, img.h),
+                crate::input::Kind::Sound(c) => format!("a sound, {:.1} s", c.duration()),
+                crate::input::Kind::Text(t) => format!("a text, {} words", t.split_whitespace().count()),
+            };
+            set_out(format!(r#"{{"ok":true,"what":{}}}"#, json_str(&what)).into_bytes());
+            0
+        }
+        Err(e) => {
+            set_out(format!(r#"{{"ok":false,"message":{}}}"#, json_str(&e)).into_bytes());
+            1
+        }
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn alea_input_clear() {
+    crate::input::clear();
+}
+
 /// Loads `path`, draws the edition `seed`, and checks every render.
 /// On success the output is a JSON description of the edition.
 ///
@@ -190,6 +220,10 @@ pub unsafe extern "C" fn alea_run(path: *mut u8, path_len: usize, seed_hi: u32, 
                     r#"{{"kind":"video","width":{},"height":{},"fps":{},"duration":{},"audio":{},"gif":{}}}"#,
                     s.w, s.h, s.fps, s.duration, s.audio, s.gif
                 )
+            }
+            "midi" => {
+                let s = media::midi_spec(r).expect("validated");
+                format!(r#"{{"kind":"midi","duration":{}}}"#, s.duration)
             }
             _ => {
                 let s = media::sculpture_spec(r).expect("validated");
@@ -267,6 +301,49 @@ pub extern "C" fn alea_sound(index: usize) -> u32 {
         let mut out = (channels.len() as f32).to_le_bytes().to_vec();
         for c in &channels {
             out.extend(c.iter().flat_map(|x| (*x as f32).to_le_bytes()));
+        }
+        Ok(out)
+    })
+}
+
+/// The music of an edition as a Standard MIDI File: render `index` if it is
+/// a `render midi`, otherwise (index = any) what it would play live.
+#[unsafe(no_mangle)]
+pub extern "C" fn alea_midi(index: usize) -> u32 {
+    with_state(|st| {
+        let name = st.edition.name.clone();
+        let score = match st.edition.renders.get(index) {
+            Some(r) if r.kind == "midi" => media::midi_score(r, &name)?,
+            _ => match media::live_score(&st.edition) {
+                Some(s) => s?,
+                None => return Err(Error::bare("this edition has no music to send: give it `render midi(…)` or sound layers")),
+            },
+        };
+        Ok(crate::midi::smf(&score, &name))
+    })
+}
+
+/// A score as timed messages, for the page to play (Web MIDI, or a preview):
+/// the duration (f32), then for each message its time in seconds (f32), its
+/// length, and up to three bytes.
+#[unsafe(no_mangle)]
+pub extern "C" fn alea_score(index: usize) -> u32 {
+    with_state(|st| {
+        let name = st.edition.name.clone();
+        let score = match st.edition.renders.get(index) {
+            Some(r) if r.kind == "midi" => media::midi_score(r, &name)?,
+            _ => match media::live_score(&st.edition) {
+                Some(s) => s?,
+                None => return Err(Error::bare("this edition has no music")),
+            },
+        };
+        let mut out = (score.duration as f32).to_le_bytes().to_vec();
+        for m in &score.msgs {
+            out.extend((m.at as f32).to_le_bytes());
+            out.push(m.bytes.len() as u8);
+            let mut b = [0u8; 3];
+            b[..m.bytes.len().min(3)].copy_from_slice(&m.bytes[..m.bytes.len().min(3)]);
+            out.extend(b);
         }
         Ok(out)
     })

@@ -137,6 +137,10 @@ details.ref summary { cursor: pointer; padding: 8px 12px; font-weight: 600; font
   border-radius: 6px; padding: 3px 7px; cursor: pointer;
 }
 .chip:hover { border-color: var(--accent); }
+#inputname { color: var(--ink); }
+.frame.roll { height: 180px; padding: 0; }
+.frame.roll canvas { width: 100%; height: 180px; }
+#inputname.muted { color: var(--muted); }
 .pics { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 
 /* ── the wall ── */
@@ -217,6 +221,13 @@ figcaption .grow { flex: 1; }
           <button id="addpic" class="btn small">Add a picture…</button>
           <input type="file" id="picfile" accept="image/png,image/jpeg,image/webp" hidden>
         </div>
+        <div class="pics">
+          <span>Input:</span>
+          <span class="chips"><span id="inputname" class="muted">none: drop an image, a WAV sound or a text on the work, read it with <code>input()</code></span></span>
+          <button id="addinput" class="btn small">Choose…</button>
+          <button id="clearinput" class="btn small" hidden>Remove</button>
+          <input type="file" id="inputfile" accept="image/png,image/jpeg,image/webp,audio/wav,audio/x-wav,.wav,text/plain,.txt,.csv" hidden>
+        </div>
       </div>
     </section>
 
@@ -241,9 +252,9 @@ const ALEA_ASSETS = /*ASSETS*/;
 (() => {
   // ───────────── syntax highlighting ─────────────
   const KW = new Set(['use','work','let','field','pattern','constraint','render','output','repeat','event','choose','and','or','grow','then','for','in']);
-  const PRIM = new Set(['at','ease','keys','progress','sequence','blur','pixelate','edges','relief','posterize','film','vignette','bloom','chroma','paint','mosaic','place','overlay','drone','notes','texture','range','join','slice','reverse','sum','path','along','length','neighbours','neighbors','spread','nearby','circle','ring','rect','square','line','blob','stripes','waves','ripples','dots','checker','gradient','glow','clouds','grain','scatter','move','rotate','zoom','tile','mirror','kaleidoscope','warp','merge','overlap','cut','invert','threshold','text','picture']);
+  const PRIM = new Set(['meter','euclid','steps','chords','arp','lfo','orbit','cc','input','colours','colors','band','at','ease','keys','progress','sequence','blur','pixelate','edges','relief','posterize','film','vignette','bloom','chroma','paint','mosaic','place','overlay','drone','notes','texture','range','join','slice','reverse','sum','path','along','length','neighbours','neighbors','spread','nearby','circle','ring','rect','square','line','blob','stripes','waves','ripples','dots','checker','gradient','glow','clouds','grain','scatter','move','rotate','zoom','tile','mirror','kaleidoscope','warp','merge','overlap','cut','invert','threshold','text','picture']);
   const DIST = new Set(['uniform','normal','beta','poisson','exponential','between','around']);
-  const FN = new Set(['sin','cos','tan','abs','sqrt','exp','ln','floor','fract','sign','min','max','atan2','step','clamp','mix','smoothstep','distance','noise','mean','stddev','minimum','maximum','count','image','sound','video','sculpture']);
+  const FN = new Set(['sin','cos','tan','abs','sqrt','exp','ln','floor','fract','sign','min','max','atan2','step','clamp','mix','smoothstep','distance','noise','mean','stddev','minimum','maximum','count','image','sound','video','sculpture','midi']);
   const VARS = new Set(['x','y','t','i','n','pi','tau']);
   const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const TOKEN = /(\/\/.*|#.*)|("[^"\n]*"?)|(~~|~)|(\d[\d_]*(?:\.\d+)?)|([\p{L}_][\p{L}\p{N}_]*)/gu;
@@ -343,8 +354,9 @@ const ALEA_ASSETS = /*ASSETS*/;
     ['Combining', ['merge(a, b)', 'overlap(a, b)', 'cut(a, b)', 'invert(a)', 'threshold(a)', 'mix(a, b, 0.5)']],
     ['Words, pictures', ['text("alea")', 'text("alea", font: "serif")']],
     ['Chance', ['~between(0, 1)', '~around(0.5, 0.1)', 'choose { a | b }', '~~uniform(0, 1)']],
-    ['Time', ['t', 'sin(t * tau)', 'rotate(shape, angle: t * 360)']],
-    ['Renders', ['render image(output)', 'render video(output, duration: 8)', 'render sound(output, duration: 10)', 'render sculpture(output)']],
+    ['Time', ['t', 'lfo()', 'lfo(4, shape: "pulse")', 'orbit(0.3, times: [2, 3])', 'rotate(shape, angle: t * 360)']],
+    ['Renders', ['render image(output)', 'render video(output, duration: 8)', 'render sound(output, duration: 10)', 'render sculpture(output)', 'render midi(drone(output), cc(output, 74))']],
+    ['Music', ['meter(100, bars: 8)', 'euclid(5, 16)', 'steps("X...x...X...x..o")', 'chords("functional", key: "D3", scale: "dorian")', 'arp(prog, euclid(7, 16), mode: "updown")']],
     ['Statements', ['let name = ', 'field name = ', 'output ', 'constraint ', 'use "moon.alea"']],
   ];
   $('refbody').innerHTML = REF.map(([label, items]) =>
@@ -374,6 +386,33 @@ const ALEA_ASSETS = /*ASSETS*/;
   src.addEventListener('drop', (e) => {
     const f = [...(e.dataTransfer?.files || [])].find((f) => /^image\/(png|jpeg|webp)$/.test(f.type));
     if (f) { e.preventDefault(); addPicture(f); }
+  });
+
+  // ───────────── the input (what a pipe brings on the command line) ─────────────
+  async function setInput(file) {
+    const data = file ? new Uint8Array(await file.arrayBuffer()) : null;
+    const r = await engine.setInput('', data);
+    const el = $('inputname');
+    if (file && !r.ok) {
+      el.textContent = `${file.name}: ${r.message}`;
+    } else if (file) {
+      el.textContent = `${file.name} (${r.what})`;
+      el.classList.remove('muted');
+    } else {
+      el.innerHTML = 'none: drop an image, a WAV sound or a text on the work, read it with <code>input()</code>';
+      el.classList.add('muted');
+    }
+    $('clearinput').hidden = !(file && r.ok);
+    run();
+  }
+  $('addinput').addEventListener('click', () => $('inputfile').click());
+  $('clearinput').addEventListener('click', () => setInput(null));
+  $('inputfile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) setInput(f); e.target.value = ''; });
+  const outPane = document.querySelector('.pane.out');
+  outPane.addEventListener('dragover', (e) => e.preventDefault());
+  outPane.addEventListener('drop', (e) => {
+    const f = [...(e.dataTransfer?.files || [])][0];
+    if (f) { e.preventDefault(); setInput(f); }
   });
 
   // ───────────── running ─────────────
@@ -469,6 +508,68 @@ const ALEA_ASSETS = /*ASSETS*/;
     node.buffer = buf; node.loop = loop; node.connect(audioCtx.destination); node.start();
     return node;
   }
+  // ───────────── MIDI ─────────────
+  function drawRoll(canvas, score, notes) {
+    const w = canvas.width = canvas.clientWidth * (devicePixelRatio || 1), h = canvas.height = 180 * (devicePixelRatio || 1);
+    const g = canvas.getContext('2d'), css = getComputedStyle(document.documentElement);
+    if (!notes.length) return;
+    const lo = Math.min(...notes.map((n) => n.note)) - 1, hi = Math.max(...notes.map((n) => n.note)) + 1;
+    const row = h / (hi - lo + 1);
+    const colours = [css.getPropertyValue('--accent'), css.getPropertyValue('--syn-kw'), css.getPropertyValue('--syn-prim'), css.getPropertyValue('--syn-str'), css.getPropertyValue('--syn-num')];
+    for (const n of notes) {
+      g.globalAlpha = 0.35 + 0.65 * n.vel / 127;
+      g.fillStyle = colours[n.ch % colours.length];
+      const x = n.start / score.duration * w, x2 = Math.max(x + 2, n.end / score.duration * w);
+      g.fillRect(x, h - (n.note - lo + 1) * row, x2 - x, Math.max(2, row - 1));
+    }
+  }
+  // A plain preview in the page: sines for notes, noise for drums (channel 10).
+  function previewScore(score, notes, done) {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume();
+    const t0 = audioCtx.currentTime + 0.1, nodes = [];
+    const master = audioCtx.createGain(); master.gain.value = 0.18; master.connect(audioCtx.destination);
+    for (const n of notes) {
+      const g = audioCtx.createGain(), a = t0 + n.start, b = t0 + Math.max(n.end, n.start + 0.05);
+      g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(n.vel / 127, a + 0.01);
+      g.gain.setTargetAtTime(0, n.ch === 9 ? a + 0.02 : b, n.ch === 9 ? 0.03 : 0.08);
+      let src;
+      if (n.ch === 9) {
+        const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.3, audioCtx.sampleRate), d = buf.getChannelData(0);
+        for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1;
+        src = audioCtx.createBufferSource(); src.buffer = buf;
+        const f = audioCtx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 80 * Math.pow(2, (n.note - 35) / 6); src.connect(f); f.connect(g);
+      } else {
+        src = audioCtx.createOscillator(); src.type = 'triangle'; src.frequency.value = 440 * Math.pow(2, (n.note - 69) / 12); src.connect(g);
+      }
+      g.connect(master); src.start(a); src.stop(b + 0.6); nodes.push(src);
+    }
+    const timer = setTimeout(stop, (score.duration + 0.8) * 1000);
+    function stop() { clearTimeout(timer); master.disconnect(); for (const s of nodes) { try { s.stop(); } catch (_) {} } done(); }
+    return stop;
+  }
+  let midiAccess = null;
+  async function chooseMidiOutput(anchor) {
+    if (!navigator.requestMIDIAccess) { setStatus('This browser has no Web MIDI: try Chrome or Edge, or the command line (alea work.alea --midi)'); return null; }
+    try { midiAccess = midiAccess || await navigator.requestMIDIAccess(); }
+    catch (e) { setStatus('MIDI was not allowed here: open the downloaded playground.html, or use alea work.alea --midi'); return null; }
+    const outs = [...midiAccess.outputs.values()];
+    if (!outs.length) { setStatus('No MIDI device found: connect one (or a virtual port), then try again'); return null; }
+    if (outs.length === 1) return outs[0];
+    const names = outs.map((o, k) => `${k + 1}. ${o.name}`).join('\n');
+    const pick = parseInt(prompt(`Play to which MIDI port?\n${names}`, '1'), 10);
+    return outs[pick - 1] || null;
+  }
+  // Every message sent ahead with its timestamp: Web MIDI keeps the time.
+  function sendScore(port, score, done) {
+    const t0 = performance.now() + 150, used = new Set();
+    for (const m of score.msgs) { port.send(m.bytes, t0 + m.at * 1000); used.add(m.bytes[0] & 0x0f); }
+    const timer = setTimeout(finish, score.duration * 1000 + 300);
+    function silence() { for (const ch of used) port.send([0xb0 | ch, 123, 0]); }
+    function finish() { clearTimeout(timer); done(); }
+    return () => { clearTimeout(timer); if (port.clear) port.clear(); silence(); done(); };
+  }
+
   const slug = () => (lastEdition?.name || 'work').toLowerCase().replace(/[^\w]+/g, '-');
   const seedTag = () => (lastEdition?.seed || '').replace(/^0x/, '');
 
@@ -515,6 +616,34 @@ const ALEA_ASSETS = /*ASSETS*/;
           if (samples) await aleaSave(`${slug()}-${seedTag()}-sound.zip`, aleaZip([{ name: `${slug()}-${seedTag()}.wav`, data: aleaWav(samples) }]));
         });
         later.push(async () => { samples = samples || await fetchSound(i, my); if (samples && my === gen) drawWave(canvas, samples); });
+      } else if (r.kind === 'midi') {
+        const { fig, canvas, cap } = card('midi', `${r.duration} s`);
+        fig.querySelector('.frame').classList.add('roll');
+        const res = await engine.request({ type: 'score', index: i });
+        if (my !== gen) return;
+        if (!res.bytes) { if (res.json) return showError(res.json); continue; }
+        const score = aleaScore(res.bytes), notes = aleaNotes(score);
+        later.push(async () => drawRoll(canvas, score, notes));
+        let stopHere = null;
+        const here = button(cap, 'Listen', () => {
+          if (stopHere) { stopHere(); return; }
+          stopHere = previewScore(score, notes, () => { stopHere = null; here.textContent = 'Listen'; });
+          here.textContent = 'Stop';
+          playback.push({ stop: () => stopHere && stopHere() });
+        });
+        let stopOut = null;
+        const out = button(cap, 'Play to MIDI…', async () => {
+          if (stopOut) { stopOut(); return; }
+          const port = await chooseMidiOutput(out);
+          if (!port) return;
+          stopOut = sendScore(port, score, () => { stopOut = null; out.textContent = 'Play to MIDI…'; });
+          out.textContent = `Stop (${port.name})`;
+          playback.push({ stop: () => stopOut && stopOut() });
+        });
+        button(cap, 'Save .mid', async () => {
+          const f = await engine.request({ type: 'midi', index: i });
+          if (f.bytes) await aleaSave(`${slug()}-${seedTag()}.mid`, new Uint8Array(f.bytes));
+        });
       } else if (r.kind === 'video') {
         const { fig, canvas, cap } = card('video', `${r.duration} s · ${r.width} × ${r.height}`);
         const [w, h] = previewSize(r.width, r.height, 360);
@@ -583,6 +712,7 @@ const ALEA_ASSETS = /*ASSETS*/;
     for (let i = 0; i < lastEdition.renders.length; i++) {
       const r = lastEdition.renders[i];
       if (r.kind === 'image') { const p = await engine.request({ type: 'png', index: i }); if (p.bytes) entries.push({ name: `${name}/image-${i}.png`, data: new Uint8Array(p.bytes) }); }
+      if (r.kind === 'midi') { const p = await engine.request({ type: 'midi', index: i }); if (p.bytes) entries.push({ name: `${name}/music-${i}.mid`, data: new Uint8Array(p.bytes) }); }
       if (r.kind === 'sculpture') { const p = await engine.request({ type: 'stl', index: i }); if (p.bytes) entries.push({ name: `${name}/sculpture-${i}.stl`, data: new Uint8Array(p.bytes) }); }
       if (r.kind === 'sound' || (r.kind === 'video' && r.audio)) { const p = await engine.request({ type: 'sound', index: i }); if (p.bytes) entries.push({ name: `${name}/sound-${i}.wav`, data: aleaWav(aleaChannels(p.bytes)) }); }
     }
@@ -599,11 +729,19 @@ const ALEA_ASSETS = /*ASSETS*/;
   // ───────────── start ─────────────
   let draft = null;
   try { draft = JSON.parse(store.get('alea.draft') || 'null'); } catch (_) {}
-  const startEx = ALEA_EXAMPLES.find((e) => exKey(e) === draft?.example) || ALEA_EXAMPLES.find((e) => e.name === 'rosace') || ALEA_EXAMPLES[0];
+  // a link can open a work and an edition: playground.html?work=rosace&seed=0xa1ea0e
+  let asked = null, askedSeed = null;
+  try {
+    const q = new URLSearchParams(location.search);
+    const w = q.get('work');
+    if (w) asked = ALEA_EXAMPLES.find((e) => exKey(e) === w) || ALEA_EXAMPLES.find((e) => e.name === w) || null;
+    if (/^(0x[0-9a-f]+|[0-9]+)$/i.test(q.get('seed') || '')) askedSeed = q.get('seed');
+  } catch (_) {}
+  const startEx = asked || ALEA_EXAMPLES.find((e) => exKey(e) === draft?.example) || ALEA_EXAMPLES.find((e) => e.name === 'rosace') || ALEA_EXAMPLES[0];
   exampleSel.value = exKey(startEx);
   dir = startEx.dir;
-  src.value = draft?.source || startEx.source;
-  seedEl.value = aleaRandomSeed();
+  src.value = asked ? startEx.source : (draft?.source || startEx.source);
+  seedEl.value = askedSeed || aleaRandomSeed();
   paint(); paintPics();
 
   const wasm = aleaBase64ToBytes(document.getElementById('alea-wasm').textContent);

@@ -1,0 +1,53 @@
+// Autonomy — Zero coordinates, zero colours: alea decides everything
+// Run: ./target/release/alea examples/autonomy.alea
+
+work Autonomy {
+  // 1. Autonomous organic bodies orbiting random pivots through warped space
+  let bodies = [
+    warp(rotate(blob(), angle: t * 360))
+    for k in range(6)
+  ]
+
+  let membranes = [
+    warp(rotate(ring(), angle: -t * 360))
+    for k in range(4)
+  ]
+
+  // 2. Living background currents (waves, ripples & clouds left entirely to alea)
+  field current = warp(
+    mix(
+      rotate(waves(), angle: t * 360),
+      rotate(ripples(), angle: -t * 360),
+      0.5 + 0.5 * sin(t * tau)
+    )
+  )
+
+  // 3. Structural choice: alea decides how the organism folds and combines
+  let core = choose {
+      warp(merge(bodies))
+    | kaleidoscope(merge(bodies))
+    | mirror(cut(merge(bodies), merge(membranes)))
+  }
+
+  // 4. All event attributes (x, y, t, intensity, size) decided by alea
+  pattern spores = repeat 50 event()
+
+  field organism = current * 0.35
+    + core
+    + edges(core) * 0.6
+    + relief(core) * 0.3
+    + spores
+
+  // Ensure alea rejects flat or empty draws
+  constraint stddev(organism) > 0.14
+
+  render image(organism)
+  render video(
+    organism,
+    sound: [
+      drone(organism),
+      notes(spores),
+      texture(current)
+    ]
+  )
+}

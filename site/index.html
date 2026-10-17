@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>alea, a language for generative art</title>
+<meta name="description" content="alea is a language where a program is a work of art and every run draws a new edition of it: an image, a sound, a video, a sculpture or a MIDI score. Open source.">
+<meta property="og:title" content="alea, a language for generative art">
+<meta property="og:description" content="A program is a work. Every run draws a new edition: image, sound, video, sculpture, MIDI.">
+<meta property="og:image" content="https://alea.bngz.io/og.jpg">
+<meta property="og:url" content="https://alea.bngz.io/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/lora.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+  <a class="mark" href="./" aria-label="alea, home"><svg viewBox="0 0 32 20" aria-hidden="true"><path d="M2 13c4-9 9-9 14 0s10 9 14 0" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg>alea</a>
+  <nav aria-label="Main">
+    <a href="playground.html">Playground</a>
+    <a href="handbook.html">Handbook</a>
+    <a href="#exhibition">Exhibition</a>
+    <a href="#install">Install</a>
+    <a href="https://github.com/sudo-bngz/alea">GitHub</a>
+  </nav>
+</header>
+
+<main id="main">
+<section class="hero" aria-labelledby="hero-title">
+  <figure class="live">
+    <div class="sheet">
+      <img id="still" src="img/hero.webp" width="1080" height="1350" alt="Isohypses: a contour map of a country that does not exist">
+      <canvas id="live" aria-label="Isohypses, a new edition drawn in your browser" hidden></canvas>
+    </div>
+    <figcaption class="label">
+      <span class="label-work">Isohypses</span>
+      <span>edition <code id="seed">0xa1ea03</code></span>
+      <span id="status" class="label-status" aria-live="polite">an edition from the exhibition</span>
+      <button id="again" type="button" class="quiet" disabled>Draw another edition</button>
+    </figcaption>
+  </figure>
+
+  <div class="pitch">
+    <h1 id="hero-title">A language where a program is a work of art, and every run draws a new edition of it.</h1>
+    <p class="lede">This map was drawn by alea in your browser, a moment ago. Its seed names it: run the same program with the same seed and you get this exact map back, on any machine. Any other seed draws a country no one has seen.</p>
+    <p class="actions">
+      <a class="button" href="playground.html?work=rosace">Open the playground</a>
+      <a class="button secondary" href="#install">Install alea</a>
+    </p>
+  </div>
+
+  <details class="source" open>
+    <summary>The program, <span class="nowrap">isohypses.alea</span></summary>
+    <pre><code id="code" class="alea">Loading…</code></pre>
+  </details>
+</section>
+
+<section class="language" aria-labelledby="language-title">
+  <h2 id="language-title">Chance is part of the language</h2>
+  <div class="cols">
+    <div class="prose">
+      <p>An alea program describes a family of artworks. Where you would write a number, you can write a distribution instead: <code>~between(0.25, 0.4)</code> lets alea decide, once per edition. <code>~~</code> decides again at every point of the picture, and <code>choose</code> picks between whole structures.</p>
+      <p>Then you say what to make of it. The same work can render an image, a looping video, a sound, a sculpture to print in 3D, or a MIDI score that plays in your DAW. Works can use other works as parts, take a photo or a sound as input, and read from a pipe.</p>
+      <p>It is written for artists first: no setup to try it, plain words for its functions, and error messages that say how to fix the problem.</p>
+    </div>
+<pre class="example"><code class="alea">work Moon {
+  let moon  = circle(size: ~between(0.25, 0.4))  // alea decides
+  let shade = move(moon, x: 0.08)                 // nudged right
+  render image(merge(clouds() * 0.25, cut(moon, shade)), palette: "night")
+}</code></pre>
+  </div>
+</section>
+
+<section class="exhibition" id="exhibition" aria-labelledby="exhibition-title">
+  <div class="section-head">
+    <h2 id="exhibition-title">Exhibition</h2>
+    <p>Five works, six editions each, as posted on <a href="https://www.instagram.com/sudo.mp3/">Instagram @sudo.mp3</a>. Each picture is named by its seed; the command beside each work draws its first one again.</p>
+  </div>
+<!--GALLERY-->
+</section>
+
+<section class="reels" aria-labelledby="reels-title">
+  <div class="section-head">
+    <h2 id="reels-title">In motion, with sound</h2>
+    <p>A <code>render video</code> and a <code>render sound</code> in the same work give a film with its own soundtrack, both drawn from the same edition.</p>
+  </div>
+  <div class="reel-row">
+<!--REELS-->
+  </div>
+</section>
+
+<section class="install" id="install" aria-labelledby="install-title">
+  <h2 id="install-title">Install</h2>
+  <div class="ways">
+    <div class="way">
+      <h3>In the browser</h3>
+      <p>Nothing to install: the <a href="playground.html">playground</a> runs alea, with examples and the tour of the language.</p>
+    </div>
+    <div class="way">
+      <h3>macOS and Linux</h3>
+<pre><code>brew install sudo-bngz/tap/alea</code></pre>
+    </div>
+    <div class="way">
+      <h3>With Rust</h3>
+<pre><code>cargo install alea-lang</code></pre>
+    </div>
+    <div class="way">
+      <h3>Any system</h3>
+      <p>The <a href="https://github.com/sudo-bngz/alea/releases/latest">latest release</a> has alea for macOS, Linux and Windows, and the plugin for Ableton Live and other DAWs (VST3, CLAP).</p>
+    </div>
+  </div>
+<pre class="first-run"><code>alea isohypses.alea              # one edition: isohypses-&lt;seed&gt;.png
+alea isohypses.alea -n 6         # six editions
+alea isohypses.alea --seed 0x2a  # edition 0x2a, again</code></pre>
+  <p class="next">Then read the <a href="handbook.html">handbook</a>: the guide, one idea per chapter, and the reference.</p>
+</section>
+</main>
+
+<footer class="foot">
+  <p>alea is open source, under the MIT licence. <a href="https://github.com/sudo-bngz/alea">Code on GitHub</a>, works on <a href="https://www.instagram.com/sudo.mp3/">Instagram</a>.</p>
+</footer>
+<script src="engine.js"></script>
+<script src="site.js"></script>
+</body>
+</html>

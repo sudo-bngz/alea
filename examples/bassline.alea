@@ -1,0 +1,56 @@
+// Bassline — Generative harmony, acid arp, gliding sub-bass & MIDI filter sweep
+// Run: ./target/release/alea examples/bassline.alea
+
+work Bassline {
+  let bpm  = choose { 118 | 124 | 130 }
+  let sw   = ~between(0.54, 0.60)
+  let root = choose { "A2" | "C3" | "D3" | "F2" }
+  let mode = choose { "minor" | "dorian" }
+  let m    = meter(bpm, bars: 8)
+
+  // 1. Generative functional chord progression (new changes every edition)
+  let prog = chords("functional", key: root, scale: mode, bars: m, tension: 0.6)
+
+  // 2. Root-note step bass (`y: 0.1` locks to the lowest chord tone, `prog.key / 4` drops 2 octaves)
+  let bass_groove = choose {
+      steps("X..x..X...x.X.o.|X..x..X.o.x.X.x.", bars: m, y: 0.1)
+    | steps("..X...x...X..o.x|..X...x.o.X..x.o", bars: m, y: 0.1)
+    | steps("X.o.x.X...x.o.X.|X.o.x.X.o.x.X.o.", bars: m, y: 0.1)
+  }
+
+  // 3. Polyrhythmic Euclidean bass arpeggiator climbing 1–2 octaves
+  let arp_rhythm = euclid(choose { 7 | 9 | 11 }, 16, bars: m, rotate: choose { 0 | 1 | 2 })
+  let arp_mode   = choose { "up" | "down" | "updown" | "converge" }
+
+  // 4. Gliding sub-bass field (sits at the top of the canvas where `drone` voices are lowest)
+  field sub_field = smoothstep(0.25, 0, y) * (0.6 + 0.4 * lfo(8, shape: "pulse"))
+
+  // 5. Tight drum foundation to lock the pocket
+  let kick  = steps("X...X...X...X...|X...X...X..oX...", bars: m, y: 0.10)
+  let snare = steps("....X.......X...|....X..o....X..o", bars: m, y: 0.35)
+  let hats  = steps("..X...X...X...X.|..X...X...X.o.X.", bars: m, y: 0.72)
+
+  let track = [
+    // Bass layers (dropped into bass register via `prog.key / 4` and `prog.key / 2`)
+    notes(bass_groove, harmony: prog, key: prog.key / 4, instrument: "pluck", tempo: m.tempo, swing: sw, humanize: 0.08, gain: 1.0),
+    arp(prog, arp_rhythm, mode: arp_mode, octaves: choose { 1 | 2 }, gate: 0.55, key: prog.key / 2, instrument: "marimba", gain: 0.75),
+    drone(sub_field, harmony: prog, key: prog.key / 4, voices: 2, instrument: "organ", gain: 0.55),
+
+    // MIDI CC 74 (Filter Cutoff) LFO sweep on Channel 1 & 2 for external synths/DAW
+    cc(lfo(4, shape: "sine", from: 0.2, to: 0.95), 74, channel: 1),
+    cc(lfo(16, shape: "saw", from: 0.85, to: 0.25), 74, channel: 2),
+
+    // Drum kit
+    notes(kick,  instrument: "drum", tempo: m.tempo, swing: sw, gain: 0.95),
+    notes(snare, instrument: "drum", tempo: m.tempo, swing: sw, humanize: 0.12, gain: 0.85),
+    notes(hats,  instrument: "drum", tempo: m.tempo, swing: sw, humanize: 0.20, gain: 0.60)
+  ]
+
+  // Visual follows chord changes (`prog.index`) + bass triggers
+  field chord_wave = sin(y * (8 + prog.index * 4) - t * tau * 8) * 0.5 + 0.5
+  field visual     = chord_wave * 0.4 + bass_groove + arp_rhythm * 0.7
+
+  render sound(track, duration: m.length, room: 0.25, echo: 0.15)
+  render midi(track, duration: m.length, tempo: m.tempo)
+  render video(visual, duration: m.length, palette: "night", sound: track, room: 0.25, echo: 0.15)
+}

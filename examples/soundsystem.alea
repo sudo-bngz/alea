@@ -1,0 +1,61 @@
+// SoundSystem — Full-spectrum audio-reactive visualizer (Chapter 24)
+// Run: ffmpeg -i track.mp3 -f wav - | ./target/release/alea examples/soundsystem.alea -o .
+
+work SoundSystem {
+  let song  = input()
+  let cos(a) = sin(a + tau * 0.25)
+
+  // 1. Sub-woofer core driven by `song.bass` and kick `song.pulse`
+  let sub_size = 0.22 + 0.28 * song.bass + 0.12 * song.pulse
+  let woofer   = warp(
+    ring(x: 0.5, y: 0.5, size: sub_size, width: 0.008 + 0.015 * song.bass),
+    amount: 0.02 + 0.08 * song.bass
+  )
+
+  // Consecutive pressure waves inside the cone
+  field cone_waves = circle(x: 0.5, y: 0.5, size: sub_size)
+    * (0.5 + 0.5 * sin(distance(x, y, 0.5, 0.5) * 60 - t * tau * 8 - song.bass * 6))
+
+  // 2. 12-band frequency spectrum analyzer using `band(song, low_hz, high_hz)`
+  let eq_bars = [
+    rect(
+      x: 0.22 + k * 0.051,
+      y: 0.84 - 0.12 * band(song, 60 + k * 250, 60 + (k + 1) * 250),
+      width: 0.032,
+      height: 0.02 + 0.24 * band(song, 60 + k * 250, 60 + (k + 1) * 250),
+      angle: 0,
+      softness: 0.002
+    )
+    for k in range(12)
+  ]
+
+  // 3. High-hat / treble geometric blades rotating in the centre
+  let hihat_star = rotate(
+    kaleidoscope(
+      square(x: 0.58, y: 0.5, size: 0.06 + 0.18 * song.treble, angle: 45),
+      sides: 6, x: 0.5, y: 0.5
+    ),
+    angle: t * 180 + song.mid * 45
+  )
+
+  // 4. Long-exposure beat constellation (`song.beats` pattern used as a field)
+  field beat_halo = rotate(song.beats, angle: t * 90, x: 0.5, y: 0.5) * (0.3 + 0.7 * song.pulse)
+
+  // 5. Assemble & paint with CRT bloom + chromatic aberration on every kick hit
+  field body = cone_waves * 0.55 + woofer + hihat_star * 0.75 + merge(eq_bars) * 0.9
+  let base_p = paint(body, palette: ["#05070a", "#122a38", "#00d2ff", "#e8fbff"])
+  let beat_p = paint(beat_halo, palette: ["#05070a", "#ff3366", "#ffcc00", "#ffffff"], alpha: beat_halo)
+
+  let stage  = overlay(base_p, beat_p, blend: "screen", opacity: 0.95)
+  let master = vignette(film(chroma(bloom(stage, 1.4), 0.4), 0.04), 0.5)
+
+  //Video automatically takes `song.duration` and embeds `song` in the soundtrack
+  render video(
+    master,
+    sound: [
+      song,
+      notes(song.beats, instrument: "glass", scale: "minor", key: 220, gain: 0.18)
+    ],
+    room: 0.4
+  )
+}

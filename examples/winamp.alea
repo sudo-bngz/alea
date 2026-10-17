@@ -1,0 +1,50 @@
+// Tube — 3D audio-reactive tunnel flight with shifting palettes
+// Run: ffmpeg -t 15 -i track.mp3 -f wav - | ./target/release/alea examples/tube.alea -o .
+
+work Tube {
+  let song   = input()
+  let cos(a) = sin(a + tau * 0.25)
+
+  // 1. Wandering tunnel vanishing point (sways with the music)
+  let sway = ~between(0.06, 0.18)
+  let cx   = 0.5 + sway * cos(t * tau * 2) + 0.05 * song.bass
+  let cy   = 0.5 + sway * sin(t * tau * 3) + 0.05 * song.mid
+
+  // 2. 3D perspective rings: `"in"` easing makes rings accelerate as they rush toward you
+  let speed = choose { 2 | 3 | 4 }
+  let rings = merge([
+    ring(
+      x: mix(cx, 0.5, ease(fract(t * speed + k / 10), "in")),
+      y: mix(cy, 0.5, ease(fract(t * speed + k / 10), "in")),
+      size: 1.35 * ease(fract(t * speed + k / 10), "in"),
+      width: 0.004 + 0.025 * ease(fract(t * speed + k / 10), "in") * (0.4 + song.pulse)
+    )
+    for k in range(10)
+  ])
+
+  // 3. Twisting tunnel walls (symmetry, stripes & warp left to alea)
+  let walls = rotate(
+    kaleidoscope(warp(stripes()), x: cx, y: cy),
+    angle: t * 360 + song.bass * 60,
+    x: cx, y: cy
+  )
+
+  // Continuous depth vortex pulled toward (cx, cy)
+  field depth  = distance(x, y, cx, cy)
+  field vortex = 0.5 + 0.5 * sin(1.5 / (depth + 0.05) - t * tau * 8 - song.bass * 4)
+
+  // Darken the deep center so the tunnel has 3D depth
+  field tunnel = (rings + walls * vortex * (0.5 + song.treble)) * smoothstep(0.02, 0.22, depth)
+
+  // 4. Changing colours: crossfade through 4 palettes over the flight
+  let shift = sequence([
+    paint(tunnel, palette: "night"),
+    paint(tunnel, palette: "sea"),
+    paint(tunnel, palette: "ember"),
+    paint(tunnel, palette: "lichen")
+  ], fade: 0.25)
+
+  let viz = vignette(chroma(bloom(shift, 1.8), 0.5), 0.6)
+
+  render video(viz, sound: [song])
+}

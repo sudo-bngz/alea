@@ -1,0 +1,32 @@
+// 24 · Listening: a sound as input.
+//
+//   alea 24-listening.alea --in song.wav -o .
+//   ffmpeg -i song.mp3 -f wav - | alea 24-listening.alea -o .   (any format, through ffmpeg)
+//
+// song.level             how loud, from 0 to 1, along the sound (a field of t)
+// song.bass, .mid, .treble, band(song, 200, 800)
+//                        the same, for some frequencies only
+// song.pulse             jumps to 1 on each beat, then fades quickly
+// song.beats             the beats as a pattern: one event per beat, its strength as intensity
+// song.duration          in seconds; a video lasts as long as the sound
+// sound: [song]          the sound itself, as the soundtrack
+//
+// An equaliser that breathes with the music; the beats also ring as glass notes.
+
+work Equaliser {
+  let song = input(or: "../assets/groove.wav")
+
+  let heart  = circle(0.5, 0.5, 0.1 + 0.22 * song.pulse, 0.03)
+  let thump  = ring(0.5, 0.5, 0.42 + 0.12 * song.bass, 0.01 + 0.05 * song.bass, 0.01)
+  let spoke(a) = line(0.5 + 0.2 * cos(a), 0.5 + 0.2 * sin(a), 0.5 + 0.36 * cos(a), 0.5 + 0.36 * sin(a),
+                      width: 0.003 + 0.012 * song.treble, softness: 0.004)
+  let spokes = merge([spoke(k * tau / 12 + t * tau / 4) for k in range(12)])
+  let swirl  = rotate(waves(count: 14, angle: 0, height: 0.05 + 0.3 * song.mid), angle: t * 60) * 0.25 * song.level
+
+  let scene = merge(swirl, spokes * 0.7, thump, heart)
+
+  // the still is a long exposure: every beat of the sound at once, as stars
+  render image(merge(scene, song.beats), width: 600, at: 0.4, palette: "night")
+  render video(scene, width: 540, palette: "ember",
+               sound: [song, notes(song.beats, instrument: "glass", scale: "minor", key: 440, gain: 0.25)])
+}

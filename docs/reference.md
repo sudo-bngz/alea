@@ -541,6 +541,8 @@ Functions that take `time` use `t` when it is not given.
 | `keys` | `frames` (a list of `[time, value]`, times fixed and in order), `ease` ("linear"), `time` (t) | the first value before the first time, the last after the last, eased between each pair. Values can be numbers, fields or lists of the same shape (points) |
 | `sequence` | `items` (fields or paintings), `fade` (0.1), `time` (t) | item i shows from i/n to (i+1)/n, crossfading over `fade` around each change (at most 1/n). If any item is a painting, a painting |
 | `at` | `of` (a field or a painting), `time` | the field or painting evaluated with `time` in place of t, everywhere inside it |
+| `lfo` | `times` (1), `shape` ("sine"), `phase` (0, in turns), `from` (0), `to` (1), `time` (t) | with u = fract(time × times + phase): sine 0.5 − 0.5 cos(2π(time × times + phase)); triangle 1 − abs(2u − 1); saw u; square step(0.5, u); pulse (1 − u)⁴; then scaled from `from` to `to`. A whole number of `times` loops over the work |
+| `orbit` | `radius` (0.25, or [rx, ry]), `times` (1, or [tx, ty]), `phase` (0, in turns), `x` (0.5), `y` (0.5), `time` (t) | the point [x + rx cos(2π(time × tx + phase)), y + ry sin(2π(time × ty + phase))]: clockwise on the canvas (y grows downwards) |
 
 **Field filters** give a field:
 
@@ -568,6 +570,104 @@ the painting is drawn:
 
 `bloom` and `chroma` given a field paint it in "ink" first; `edges`,
 `relief` and `posterize` need a field.
+
+---
+
+## Inputs
+
+`input(name, or)` gives what the work was given: the default input (`name`
+omitted) comes from the pipe or `--in FILE`; a named one from
+`--in NAME=FILE`. Without one, `or` is used: a text is a file to read
+(relative to the work), anything else is used as it is. Without either, an
+error. `or` is computed in every case, so the work makes the same draws with
+or without an input.
+
+An input is recognised by its first bytes: PNG, JPEG or WebP (an image), WAV
+(a sound: PCM 8, 16, 24 or 32 bits, or float, at most two channels and ten
+minutes), otherwise UTF-8 text. Inputs make no draw.
+
+| Image | Gives |
+|---|---|
+| `.luma` (`.luminance`), `.red`, `.green`, `.blue`, `.alpha`, `.hue`, `.saturation`, `.lightness` | a field, 0 to 1 (transparent pixels give 0; hue goes round from red at 0). The image is centred and covers the canvas: its shorter side spans 0 to 1 |
+| `.painting` | the image in its own colours, placed the same way |
+| `.width`, `.height`, `.aspect` | its size in pixels, and height ÷ width |
+| `colours(image, count)` (5) | a list of `count` colours (1–32), `"#rrggbb"`, darkest first: k-means on up to 16 000 of its pixels, always the same for the same image |
+
+An image input sets the default size of images (its own size) and the
+proportions of videos (`width` 720 and the image's proportions).
+
+| Sound | Gives |
+|---|---|
+| `.level` | the loudness along the sound (t = 0 at its start, 1 at its end), 200 values per second, scaled so the loudest 1 % reach 1; quick to rise, slower to fall |
+| `.bass`, `.mid`, `.treble` | the same through a band: 20–200, 200–2000, 2000–16 000 Hz (fourth-order filters) |
+| `band(sound, low, high)` | the same for any band, in Hz |
+| `.pulse` | each beat: its strength, then an exponential fade (0.18 s) |
+| `.beats` | a pattern: one event per onset (a sudden rise in three bands, at least 0.1 s apart), at the time of the onset; intensity its strength (0.2–1); position drawn from the edition's seed (no draw is made) |
+| `.duration` | seconds |
+| `sound: [song]`, `render sound(song)` | the sound itself, as a layer: not through the room or the echo |
+
+A sound input sets the default `duration` of videos and sounds (its own,
+at most 600 s).
+
+| Text | Gives |
+|---|---|
+| `.text` | all of it |
+| `.words`, `.lines` | lists of texts (blank lines skipped) |
+| `.rows` | a list per line: cells split on `,` `;` or tabs (otherwise spaces); a cell that reads as a number is a number |
+
+A default given as a value stands in for the input: its channels and curves
+(`.luma`, `.level`…) are itself, `.alpha` is 1, `.painting` paints it in
+"ink", and `colours` gives "ink" colours.
+
+---
+
+## Music: meters, rhythms, harmony
+
+| Function | Parameters (in order) | Gives |
+|---|---|---|
+| `meter` | `tempo` (120; 20–400), `bars` (8), `beats` (4) | a meter: `.length` = bars × beats × 60 ÷ tempo seconds (at most 600), `.tempo`, `.bars`, `.beats`, `.bar`, `.beat` (seconds) |
+| `euclid` | `hits`, `steps` (1–64), `rotate` (0), `bars` (1, or a meter), `y` (0.5) | a pattern: in each bar, a hit on step k when ((k − rotate) × hits) mod steps < hits; t = x = the step's moment over the work; intensity 1 on the first hit of the cycle, 0.8 otherwise |
+| `steps` | `pattern` (a text, or a number of steps 1–64), `bars` (1, or a meter), `y` (0.5), `density` (0.5) | a written pattern: `X` 1, `x` 0.65, `o` 0.35, `.` `-` `_` rest, spaces ignored, `\|` the next bar (the bars written repeat over `bars`). A number: a hit on each step with the probability of the field at (t, 0.5, t), clamped to 0–1 (intensity 0.5 + 0.5 × it); drawn from the edition's seed without a draw |
+| `chords` | `progression` (a text), `key` ("A3", 220 Hz), `scale` ("major"; any scale of semitones), `bars` (4, or a meter: its tempo goes with the progression), `tension` (0.4), `repeat` (1) | a progression over the work. Written: chords separated by spaces, `,` or `\|`, each with an optional `:weight`, repeated `repeat` times, sharing the time by weight. `"functional"`: `bars` chords, see below |
+| `arp` | `harmony`, `rhythm` (a pattern), `mode` ("up"), `octaves` (2; 1–5), `gate` (0.8), `instrument` ("pluck"), `key` (the progression's), `gain` (1), `tempo` (the progression's meter), `swing` (0.5), `humanize` (0) | a `notes` layer: the r-th event in time order plays step r of the mode over the chord's tones, ascending over `octaves` octaves from the key's register; held `gate` × the time to the next event (in MIDI) |
+
+**Roman numerals** are counted on the scale (a scale of other than seven
+notes uses the major or minor scale it is closest to): I–VII, upper case
+major (0 4 7), lower case minor (0 3 7), then `°` (0 3 6; `°7` adds 9), `ø`
+(0 3 6 10), `+` (0 4 8), `7` (adds 10), `maj7` (11), `9` (10 and 14), `6`
+(9), `sus2`/`sus4` (the third becomes 2 or 5); `b`/`#` before the numeral
+lower or raise the root. **Chord names**: a letter A–G, `#` or `b`, then
+nothing (major), `m`, `dim`, `aug`, `7`, `maj7`, `m7`, `m7b5`, `dim7`,
+`sus2`, `sus4`, `6`, `m6`, `9`, `m9` or `add9`; their roots are counted from
+the key's note.
+
+**`"functional"`**: chord 1 is I and the last is I, with V before it; the
+others walk between functions, tonic (I 0.5, vi 0.35, iii 0.15),
+subdominant (IV 0.55, ii 0.45) and dominant (V 0.8, vii 0.2), from tonic to
+tonic 0.15, subdominant 0.5, dominant 0.35 + 0.2 × tension; from subdominant
+to itself 0.15, dominant 0.6 + 0.2 × tension, tonic 0.25; from dominant to
+tonic 0.8, itself 0.1 + 0.1 × tension, subdominant 0.1. The fourth chord of
+each phrase is V with probability 0.6 (a half cadence). Chords are the
+scale's own triads, with its seventh with probability tension × 0.8 for V,
+tension × 0.35 otherwise; in a minor scale V is made major with probability
+0.5 + 0.5 × tension. The draws use the edition's randomness.
+
+**A progression's members**: `.names` (a list of texts), `.count`, `.key`
+(Hz), `.index` (a field of t: 0, 1, 2… which chord is playing).
+
+**`harmony:`** on `drone`: each voice starts on a tone of the first chord
+(stacked upwards from the layer's key) and, at each change, moves to the
+nearest pitch of the new chord that no other voice holds, gliding over 60 ms;
+the default key is the progression's, an octave down. On `notes`: the
+height of an event picks among the chord's tones over three octaves from the
+layer's key (default: the progression's), the bottom of the canvas the
+lowest. The progression gives the notes, the layer's key the register (the
+key's pitch class is replaced by the progression's).
+
+**`swing`** (0.5–0.75) and **`humanize`** (0–1) on `notes` and `arp`: on the
+tempo's grid, every odd sixteenth moves by (swing − 0.5) × 2 sixteenths;
+humanize moves each note by up to ± 30 ms × humanize and scales its
+velocity by up to ± 40 % × humanize, from the edition's seed.
 
 ---
 
@@ -614,7 +714,9 @@ them); they are mixed, sent through an echo and a room, and mastered.
 | `room` | 0.25 | 0–1: the size of the space around the sound (0: none; 0.5: a hall, about a second of tail; 0.9: a cathedral) |
 | `echo` | 0 | 0–1: a ping-pong echo, three eighths of a beat (of the notes' tempo, or 0.375 s) |
 
-**`drone(field, voices, instrument, scale, key, gain)`**: voices that hold
+`key` can always be a note name ("A3", "C#4", "Bb2"; A4 = 440 Hz) as well as a frequency. With `harmony:`, see *Music* above.
+
+**`drone(field, voices, instrument, scale, key, gain, harmony)`**: voices that hold
 notes of a scale. Voice k (from 0) listens to the field along the line
 y = (k + 0.5) / voices, at x = 0.3 and at x = 0.7, as `t` goes from 0 to 1:
 it is loud where the field is high there, sounds towards the side where it is
@@ -630,7 +732,7 @@ voices make chords); the first voice, at the top of the canvas, is the lowest.
 | `key` | 110 | 20–2000 Hz: the first note |
 | `gain` | 1 | 0–10 |
 
-**`notes(pattern, instrument, scale, key, gain, tempo)`**: each event plays
+**`notes(pattern, instrument, scale, key, gain, tempo, harmony, swing, humanize)`**: each event plays
 one note. It starts at `t` × duration (on the nearest sixteenth note if
 `tempo` is given, in beats per minute); its `y` picks the note, over three
 octaves of the scale from the bottom of the canvas to the top; its `x`
@@ -734,6 +836,41 @@ Colours are written `"#rrggbb"` or `"#rgb"`. With these options (on `image`,
 | `lichen` | dark moss → green → pale green → cream |
 | `night` | black → violet → pink → white |
 
+### midi
+
+`render midi(layers…, duration, tempo)` → a Standard MIDI File (format 1, 480 ticks per quarter note)
+
+| Option | Default | Range |
+|---|---|---|
+| `duration` | 20 (or a sound input's) | 0.5–600 s |
+| `tempo` | the first `notes` layer's `tempo`, else 120 | 1–400 BPM (the file's grid; the notes keep their moments in seconds) |
+
+A first track holds the title, the tempo and 4/4; then one track per layer,
+on its own channel (1, 2, 3…, skipping 10).
+
+| Layer | Becomes |
+|---|---|
+| `drone` | a General MIDI program (sine → 89, organ → 19, reed → 68, strings → 48, choir → 52, glass → 92, wind → 91); each voice a note (the degree it holds), on when its loudness passes 0.06 (velocity 30 + 97 × √loudness), off below 0.02; controller 11 (expression) follows the loudest voice, 25 times a second |
+| `notes` | a program (bell → 14, pluck → 24, marimba → 12, kalimba → 108, glass → 9, wood → 115); a note per event at its moment (on the tempo's grid if it has one), velocity 127 × intensity, held 90 % of its ring. `drum` and `tick` go to channel 10, the degree picking from the kit (36 kick, 41, 38 snare, 39, 45, 42 closed hat, 46 open hat, 48, 51 ride, 49 crash) or from ticks (37, 42, 75, 76, 77, 44) |
+| `cc(field, number, channel)` | controller `number` (74; 0–127) on `channel` (1; 1–16): the field's mean over the canvas, clamped to 0–1, as 0–127, 50 times a second when it changes. Silent in a sound |
+| `texture`, a sound input | nothing (they have no notes) |
+
+Notes are the nearest MIDI notes to alea's pitches. For a scale of semitones
+whose key falls between two notes, a pitch bend on the channel (range ±2)
+puts the whole layer in tune; the harmonic series is rounded.
+
+### Live MIDI
+
+`--midi` plays the edition's `render midi` (else its first `render sound` of
+layers, else its first video `sound:`) in real time, then stops; `--loop`
+goes on with new editions (S, S+1… with `--seed S`), each prepared while the
+one before plays. `--sync` waits for a DAW's start and follows its clock (24
+ticks per beat): the music's beats at the DAW's tempo, its stop silences the
+notes, a new start begins the edition again, and with `--loop` each edition
+starts on the next bar. Ctrl-C, or the end, sends a note-off for every note
+still on and "all notes off" (controller 123) on every channel used.
+Needs the feature `midi` (except `--midi-port print`).
+
 ---
 
 ## Components
@@ -777,18 +914,31 @@ use "lib/flower.alea"
 
 ```
 alea <file.alea> [options]
+cat input | alea <file.alea> [options] > output
 ```
 
 | Option | Effect |
 |---|---|
 | `-s`, `--seed N` | draw edition N (decimal or `0x…` hexadecimal) instead of a random one |
 | `-n`, `--editions N` | draw N editions; with `--seed S`, editions S, S+1, … |
-| `-o`, `--out DIR` | write files into DIR (default: the current folder) |
+| `-o`, `--out DIR` | write files into DIR (default: the current folder). `-o -`: the first render to the standard output |
+| `--in FILE` | the default input, instead of the pipe; `--in -` waits for the pipe however long it takes (otherwise, a pipe silent for 3 seconds counts as no input) |
+| `--in NAME=FILE` | a named input, for `input("NAME")` |
+| `--seed-from-input` | the seed is the input's fingerprint: the same input, the same edition |
+| `--midi` | play the music live on a new virtual MIDI port, "alea" |
+| `--midi-port P` | play to the existing port whose name contains P; `print` writes the messages as text |
+| `--midi-ports` | list the MIDI ports |
+| `--loop` | with `--midi`: a new edition after each one, until Ctrl-C |
+| `--sync`, `--sync-port P` | with `--midi`: follow a DAW's MIDI clock, from a new port "alea clock" or from P |
 | `--check` | check the work and draw it once (seed 0 unless `-s`), without writing files |
 | `--web FILE` | write a web page that draws a new edition on every visit |
 | `-h`, `--help` | show this list |
 
-Each edition prints its seed and the files it wrote. Errors are printed with
+Each edition prints its seed, the fingerprint of each input it read, and the
+files it wrote. The pipe is read only when the work asks for its input. When
+the standard output is not a terminal and no `-o` is given, the first render
+goes to it and the messages to the error output, so works chain:
+`cat a.png | alea blur.alea | alea frame.alea > b.png`. Errors are printed with
 the file, line and column, and a mark under the problem.
 
 ### In the browser
@@ -822,7 +972,7 @@ browser; the MP4 file comes from the command line.
 
 ## Reproducibility
 
-An edition is fully determined by its work's files and its seed. The same
+An edition is fully determined by its work's files, its seed and its inputs. The same
 seed gives byte-identical PNG, WAV and STL files on every operating system and
 in the browser. MP4 and GIF files are encoded by ffmpeg, whose output can
 vary between ffmpeg versions; their frames don't.

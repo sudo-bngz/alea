@@ -1,9 +1,10 @@
 // 12 · Time: works that move
-// Over a video, `t` goes from 0 to 1. sin(t * tau) goes up, down and back to
-// where it started, so motion built on it loops without a jump.
+// Over a video, `t` goes from 0 to 1. lfo() goes from 0 up to 1 and back over
+// the video, so motion built on it loops without a jump; lfo(3) does it three
+// times (a whole number of times: still a loop). See chapter 21 for more.
 
 work Time {
-  let beat  = 0.5 + 0.5 * sin(t * tau)                       // 0 → 1 → 0
+  let beat  = lfo()                                          // 0 → 1 → 0
   let heart = circle(x: 0.5, y: 0.5, size: 0.15 + 0.2 * beat, softness: 0.01)
   let spin  = rotate(stripes(count: 10, angle: 0), angle: t * 180)   // half a turn
   let piece = merge(heart, overlap(spin, invert(heart)) * 0.4)

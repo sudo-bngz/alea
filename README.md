@@ -1,5 +1,11 @@
 # alea
 
+[![CI](https://github.com/sudo-bngz/alea/actions/workflows/ci.yml/badge.svg)](https://github.com/sudo-bngz/alea/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/sudo-bngz/alea)](https://github.com/sudo-bngz/alea/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+**[alea.bngz.io](https://alea.bngz.io)** · [Playground](https://alea.bngz.io/playground.html) · [Handbook](https://alea.bngz.io/handbook.html) · [Instagram @sudo.mp3](https://www.instagram.com/sudo.mp3/)
+
 A language whose programs don't compile to a binary but to an **artwork**: a
 space of possibilities. Every run draws an **edition** from it and renders it
 as an image, a sound, a video, or a printable sculpture.
@@ -15,12 +21,42 @@ work Moon {
 Run it twice and you get two different moons. Each edition has a seed, and the
 same seed gives back exactly the same files, on any machine and in the browser.
 
+## Install
+
+**Try it without installing anything:** the [playground](https://alea.bngz.io/playground.html) runs alea in the browser.
+
+**macOS and Linux, with Homebrew:**
+
+```sh
+brew install sudo-bngz/tap/alea
+```
+
+**Any platform:** download the archive for your system from the
+[latest release](https://github.com/sudo-bngz/alea/releases/latest)
+(macOS, Linux x86_64 and arm64, Windows), unpack it, and put `alea` on your
+`PATH`. On macOS, the first time: `xattr -d com.apple.quarantine alea`.
+
+**With Rust:**
+
+```sh
+cargo install alea-lang                  # the command is `alea`
+cargo install alea-lang --features midi  # with live MIDI (Linux: libasound2-dev first)
+```
+
+**The plugin** (VST3 and CLAP, for Ableton Live, Bitwig, Reaper…): the
+`alea-plugin-…` archive of the release. See [plugin/README.md](plugin/README.md).
+
+**Editor:** syntax highlighting for VS Code and compatible editors in
+[editors/vscode](editors/vscode/).
+
+Videos and Reels need [ffmpeg](https://ffmpeg.org).
+
 ## Start here
 
 | | |
 |---|---|
 | **[The guide](docs/guide.md)** | learn the language, one concept per chapter |
-| **[The tour](examples/tour/)** | twenty-two small works that go with the guide, from `01-hello` to `22-filters` |
+| **[The tour](examples/tour/)** | twenty-six small works that go with the guide, from `01-hello` to `26-harmony` |
 | **[The reference](docs/reference.md)** | every statement, primitive, function, render option and limit |
 | **The handbook** (`web/dist/handbook.html`) | the guide and the reference as one illustrated web page |
 | **The playground** (`web/dist/playground.html`) | write and run alea in the browser, with nothing installed |
@@ -28,6 +64,8 @@ same seed gives back exactly the same files, on any machine and in the browser.
 | **[The exhibition](exhibition/)** | larger works, made for Instagram: `isohypses`, `correspondances`, `culture`… |
 
 ## Quick start
+
+From a clone of the repository:
 
 ```sh
 cargo build --release
@@ -38,7 +76,12 @@ cargo build --release
 ./target/release/alea examples/moon.alea --web moon.html  # a page: a new edition per visit
 ```
 
-`video` renders need [ffmpeg](https://ffmpeg.org).
+As a plugin in a DAW (Ableton Live, Bitwig, Reaper…): `./plugin/build-macos.sh`
+on macOS, or see [plugin/README.md](plugin/README.md).
+
+`video` renders need [ffmpeg](https://ffmpeg.org). Live MIDI (`--midi`) needs
+`cargo build --release --features midi`, and on Linux ALSA's headers first
+(`sudo apt install libasound2-dev`).
 
 ## The language in one screen
 
@@ -69,10 +112,27 @@ work Garden(petals = choose { 5 | 8 }) {   // parameters, for when another work 
 }
 ```
 
+Works read what they are given and write to the pipe, so they chain:
+
+```sh
+cat portrait.png | alea contours.alea > map.png              # input(), photo.luma, colours(photo, 6)
+ffmpeg -i song.mp3 -f wav - | alea equaliser.alea -o .      # song.bass, song.pulse, sound: [song]
+cat a.png | alea soften.alea | alea poster.alea > print.png
+alea modes.alea --midi --loop                                # live MIDI, a new edition each time (--features midi)
+```
+
+and make music in bars:
+
+```alea
+let m    = meter(100, bars: 8)
+let prog = chords("functional", key: "D3", scale: "dorian", bars: m)   // a new progression each edition
+render midi([drone(sky, harmony: prog), arp(prog, euclid(7, 16, bars: m), mode: "updown")], duration: m.length)
+```
+
 ## Architecture
 
 ```
-source + used files ──lexer/parser──▶ AST (Work) ──resolve──▶ Edition ──render──▶ .png .wav .mp4 .stl
+source + used files ──lexer/parser──▶ AST (Work) ──resolve──▶ Edition ──render──▶ .png .wav .mp4 .stl .mid
                                       space of possibilities  one draw
 ```
 
@@ -84,11 +144,15 @@ source + used files ──lexer/parser──▶ AST (Work) ──resolve──�
 | `eval.rs` | `Work → Edition`: draws, choices, constraints, resolved fields; the distributions |
 | `prims.rs` | artist-level primitives, each lowered to an ordinary field |
 | `raster.rs` | text rasterization (embedded fonts) and picture loading, as fields |
+| `input.rs` | inputs from the pipe or `--in`: images (channels, palettes), sounds (loudness, bands, beats), texts |
 | `library.rs` | loads a work and the works it `use`s; detects cycles |
 | `media.rs` | what each medium computes: frames, colours, sound synthesis, meshes |
 | `bounds.rs` | tile culling: proves, tile by tile, which parts of a field can't change there, and skips them |
 | `compile.rs` | compiles a simplified tile to a flat program, run once per pixel |
 | `sound.rs` | sound layers: drones, notes, textures, the room and the echo |
+| `harmony.rs` | note names, meters, progressions (numerals, names, functional), voice leading, arpeggios |
+| `midi.rs` | the same layers as a MIDI score: tracks, notes, controllers; Standard MIDI Files |
+| `live.rs` | playing a score live: on time, or following a DAW's clock (ports through `midir`, feature `midi`) |
 | `paint.rs` | paintings: fields in colour, mosaics, placements, overlays |
 | `render.rs` | command line: writes PNG / WAV / STL, streams video frames into ffmpeg |
 | `web.rs` | browser: the WebAssembly entry points |
@@ -96,6 +160,7 @@ source + used files ──lexer/parser──▶ AST (Work) ──resolve──�
 | `export.rs` | `--web`: a self-contained page for one work |
 | `error.rs` | diagnostics with line, column and underline |
 | `web/` | the playground, the `--web` page template, the shared JavaScript engine |
+| `plugin/` | alea as a VST3 / CLAP plugin: a work's music in time with the DAW (see [plugin/README.md](plugin/README.md)) |
 | `editors/vscode/` | syntax highlighting and snippets for VS Code |
 
 The `Work` / `Edition` split lives in the types: a renderer only ever receives
@@ -134,3 +199,12 @@ python3 web/handbook.py      # → web/dist/handbook.html, illustrated with the 
 - **Faster growing**: compile grow rules to a stencil (or the GPU); a 256-cell
   grid over thousands of generations takes a couple of minutes today.
 - **Video in the browser**: record the preview to a WebM file.
+- **More inputs**: a sound's spectrogram as a field (`song.spectrum`), video
+  frames as an input (`ffmpeg … | alea` frame by frame), the microphone live
+  in the playground.
+
+## Licence
+
+alea is under the [MIT licence](LICENSE). The plugin (`plugin/`) is under the
+[GPL-3.0](plugin/LICENSE), as the VST3 bindings it builds on require. The
+fonts have their own licences ([fonts/LICENSES.md](fonts/LICENSES.md)).

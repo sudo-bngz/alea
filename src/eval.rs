@@ -15,7 +15,7 @@ use crate::library::Module;
 
 pub const MAX_ATTEMPTS: u32 = 1000;
 const MAX_DEPTH: usize = 16;
-pub const RENDER_KINDS: &[&str] = &["image", "sound", "video", "sculpture"];
+pub const RENDER_KINDS: &[&str] = &["image", "sound", "video", "sculpture", "midi"];
 const EVENT_ATTRS: &[&str] = &["x", "y", "t", "intensity", "size"];
 
 // ───────────────────────────── distributions ─────────────────────────────
@@ -204,6 +204,8 @@ pub enum Field {
     /// A bitmap (text or picture) of width `width`, centred on (cx, cy) and
     /// turned by `angle` radians; its height follows the bitmap's proportions.
     Raster { img: Arc<crate::raster::Raster>, cx: Box<Field>, cy: Box<Field>, width: Box<Field>, angle: Box<Field> },
+    /// A value along time, sampled evenly from t = 0 to t = 1 (a sound's loudness…).
+    Curve(Arc<Vec<f32>>),
     /// `inner`, already computed at every pixel of one frame grid (see
     /// [`Field::cached_for_frames`]). Off that grid, `inner` is evaluated.
     Cache { inner: Arc<Field>, grid: Arc<FrameCache> },
@@ -343,6 +345,7 @@ impl Field {
             Field::Memo { inner, .. } => inner.reads(memo),
             Field::State(_) | Field::Grid { .. } => xy,
             Field::Grow { .. } => Reads { xy: true, t: true },
+            Field::Curve(_) => Reads { xy: false, t: true },
             Field::Retime { inner, time } => {
                 let (i, tm) = (inner.reads(memo), time.reads(memo));
                 // the inner field sees the time only through `time`
@@ -367,7 +370,7 @@ impl Field {
                 Field::Reseed { .. } => "reseed", Field::Raster { .. } => "raster", Field::Cache { .. } => "cache",
                 Field::Memo { .. } => "memo",
                 Field::State(_) => "state", Field::Grid { .. } => "grid", Field::Grow { .. } => "grow",
-                Field::Retime { .. } => "retime",
+                Field::Retime { .. } => "retime", Field::Curve(_) => "curve",
             };
             *n.entry(k).or_default() += 1;
             match f {
@@ -568,6 +571,7 @@ impl Field {
                 data[j * *res + i]
             }
             Field::Grow { data, k } => data.sample(*k, p),
+            Field::Curve(c) => curve_at(c, p[2]),
             Field::Retime { inner, time } => inner.eval([p[0], p[1], time.eval(p, seed)], seed),
             Field::Memo { inner, id } => {
                 let k = (*id as usize) % MEMO_SLOTS;
@@ -701,6 +705,21 @@ fn splitmix(mut z: u64) -> u64 {
 pub fn grain_value(dist: &Dist, id: u64, p: [f64; 3], seed: u64) -> f64 {
     let h = hash(&[seed, id, p[0].to_bits(), p[1].to_bits(), p[2].to_bits()]);
     dist.draw(&mut SplitMix(h))
+}
+
+/// A curve's value at time t (clamped to 0–1), between its samples.
+pub fn curve_at(c: &[f32], t: f64) -> f64 {
+    let n = c.len();
+    if n == 0 {
+        return 0.0;
+    }
+    let x = t.clamp(0.0, 1.0) * (n - 1) as f64;
+    let i = x as usize;
+    if i + 1 >= n {
+        return c[n - 1] as f64;
+    }
+    let f = x - i as f64;
+    c[i] as f64 * (1.0 - f) + c[i + 1] as f64 * f
 }
 
 pub fn hash(vals: &[u64]) -> u64 {
@@ -892,7 +911,8 @@ fn bind_state(f: &Field, cur: &[Arc<Vec<f64>>], res: usize, memo: &mut HashMap<*
     }
 }
 
-pub const MOTION: &[&str] = &["at", "ease", "keys", "progress", "sequence"];
+pub const MOTION: &[&str] = &["at", "ease", "keys", "progress", "sequence", "lfo", "orbit"];
+pub const LFO_SHAPES: &[&str] = &["sine", "triangle", "saw", "square", "pulse"];
 pub const FILTERS: &[&str] = &["blur", "pixelate", "edges", "relief", "posterize", "film", "vignette", "bloom", "chroma"];
 pub const EASINGS: &[&str] = &["linear", "in", "out", "in-out", "sine", "back", "elastic", "bounce"];
 
@@ -1178,6 +1198,12 @@ pub enum Val {
     Sound(Arc<crate::sound::Layer>),
     /// A field in colour, or paintings laid out: `paint`, `mosaic`, `place`, `overlay`.
     Paint(Arc<crate::paint::Paint>),
+    /// What came in: an image, a sound or a text (`input()`).
+    Input(Arc<crate::input::Input>),
+    /// `meter(tempo, bars)`: how long a piece is, in bars.
+    Meter(crate::harmony::Meter),
+    /// `chords(…)`: a progression of chords over the work.
+    Harmony(Arc<crate::harmony::Harmony>),
 }
 
 /// A function written in alea: its parameters, its body, and the names it
@@ -1201,6 +1227,9 @@ fn kind_of(v: &Val) -> &'static str {
         Val::Func(_) => "a function",
         Val::Sound(_) => "a sound",
         Val::Paint(_) => "a painting",
+        Val::Input(i) => i.kind_name(),
+        Val::Meter(_) => "a meter",
+        Val::Harmony(_) => "a progression",
     }
 }
 
@@ -1224,6 +1253,10 @@ pub struct Render {
     pub span: Span,
     pub positional: Vec<(Val, Span)>,
     pub named: HashMap<String, (Val, Span)>,
+    /// The size of the image input the work read, if any: the canvas's default.
+    pub canvas: Option<(usize, usize)>,
+    /// The duration of the sound input the work read, if any: a video's default.
+    pub length: Option<f64>,
 }
 
 /// An edition: the work once drawn. Nothing random remains in it except
@@ -1234,11 +1267,22 @@ pub struct Edition {
     pub seed: u64,
     pub attempts: u32,
     pub renders: Vec<Render>,
+    /// The inputs the work read (an edition is its seed and these).
+    pub inputs: Vec<Arc<crate::input::Input>>,
+}
+
+/// Draws an edition with values given to the work's parameters (by name),
+/// as another work calling it would; the others keep their defaults.
+pub fn resolve_with(module: &Module, seed: u64, given: &HashMap<String, Val>) -> Res<Edition> {
+    crate::input::reset_used();
+    let o = draw_work(module, seed, given, false, 0)?;
+    Ok(Edition { name: module.work.name.clone(), seed, attempts: o.attempts, renders: o.renders, inputs: crate::input::used() })
 }
 
 pub fn resolve(module: &Module, seed: u64) -> Res<Edition> {
+    crate::input::reset_used();
     let o = draw_work(module, seed, &HashMap::new(), false, 0)?;
-    Ok(Edition { name: module.work.name.clone(), seed, attempts: o.attempts, renders: o.renders })
+    Ok(Edition { name: module.work.name.clone(), seed, attempts: o.attempts, renders: o.renders, inputs: crate::input::used() })
 }
 
 struct Outcome {
@@ -1390,7 +1434,8 @@ impl Resolver<'_> {
                             }
                         }
                     }
-                    renders.push(Render { kind: kind.clone(), span: *span, positional, named });
+                    let (canvas, length) = crate::input::hints();
+                    renders.push(Render { kind: kind.clone(), span: *span, positional, named, canvas, length });
                 }
             }
         }
@@ -1666,16 +1711,16 @@ impl Resolver<'_> {
                 items[j as usize].clone()
             }
             ExprKind::Member(base, name) => {
-                let k = match name.as_str() {
-                    "x" => 0,
-                    "y" => 1,
-                    _ => return Err(Error::new(format!("`.{name}`: a point has `.x` and `.y` (for anything else, use [index])"), e.span)),
-                };
-                let items = self.list(base)?;
-                if items.len() < 2 {
-                    return Err(Error::new(format!("`.{name}` applies to a point, a list of two numbers [x, y]"), base.span));
+                let v = self.lower(base)?;
+                match (&v, name.as_str()) {
+                    (Val::List(items), "x" | "y") => {
+                        if items.len() < 2 {
+                            return Err(Error::new(format!("`.{name}` applies to a point, a list of two numbers [x, y]"), base.span));
+                        }
+                        items[if name == "x" { 0 } else { 1 }].clone()
+                    }
+                    _ => self.member(v, name, base.span, e.span)?,
                 }
-                items[k].clone()
             }
             ExprKind::Template(parts) => {
                 let mut text = String::new();
@@ -1745,6 +1790,16 @@ impl Resolver<'_> {
             )),
             Val::Func(f) => Err(Error::new(format!("`{}` is a function: call it, `{}(…)`", f.name, f.name), e.span)),
             Val::Sound(_) => Err(Error::new("a sound can't be used in a computation: give it to `render sound(…)` or a video's `sound:`", e.span)),
+            Val::Meter(_) => Err(Error::new("a meter is not a value: take `.length`, `.tempo`, `.bars`, `.bar` or `.beat`", e.span)),
+            Val::Harmony(_) => Err(Error::new("a progression is not a value: give it to `harmony:` or `arp(…)`, or take `.index`", e.span)),
+            Val::Input(i) => Err(Error::new(
+                match i.kind {
+                    crate::input::Kind::Image(_) => "an image can't be used in a computation as it is: take one of its channels, `photo.luma`, `photo.red`, `photo.hue`…",
+                    crate::input::Kind::Sound(_) => "a sound can't be used in a computation as it is: take a curve, `song.level`, `song.bass`, `band(song, 200, 800)`…",
+                    crate::input::Kind::Text(_) => "a text input can't be used in a computation: take `.words`, `.lines` or `.rows`",
+                },
+                e.span,
+            )),
             Val::Paint(_) => Err(Error::new(
                 "a painting is already in colour, so it can't be used in a computation: lay it out with `mosaic`, `place` or `overlay`, or render it",
                 e.span,
@@ -1776,7 +1831,7 @@ impl Resolver<'_> {
         if let Some(r) = self.list_builtin(name, args, span) {
             return r;
         }
-        if matches!(name, "drone" | "notes" | "texture") {
+        if matches!(name, "drone" | "notes" | "texture" | "cc") {
             return self.sound_layer(name, args, span);
         }
         if matches!(name, "paint" | "mosaic" | "place" | "overlay") {
@@ -1787,6 +1842,12 @@ impl Resolver<'_> {
         }
         if MOTION.contains(&name) || FILTERS.contains(&name) {
             return self.motion(name, args, span);
+        }
+        if matches!(name, "meter" | "euclid" | "steps" | "chords" | "arp") {
+            return self.music(name, args, span);
+        }
+        if matches!(name, "input" | "colours" | "colors" | "band") {
+            return self.input_fn(name, args, span);
         }
         if let Some(r) = self.primitive(name, args, span) {
             return r;
@@ -2129,6 +2190,9 @@ impl Resolver<'_> {
     /// `vignette`, `bloom`, `chroma`).
     fn motion(&mut self, name: &str, args: &[Arg], span: Span) -> Res<Val> {
         use crate::paint::{FilterKind, Paint};
+        if matches!(name, "lfo" | "orbit") {
+            return self.cycle(name, args, span);
+        }
         let names: &[&str] = match name {
             "at" => &["of", "time"],
             "ease" => &["value", "kind"],
@@ -2299,6 +2363,22 @@ impl Resolver<'_> {
                                 if r == 0.0 {
                                     return Ok(Val::Field(Field::Ref(f)));
                                 }
+                                // A picture held still: blur its pixels once, instead of
+                                // sampling it 40 times at every point and every frame.
+                                if let Field::Raster { img, cx, cy, width, angle } = f.as_ref() {
+                                    if let (Some(_), Some(_), Some(w), Some(_)) = (cx.constant(), cy.constant(), width.constant(), angle.constant()) {
+                                        if w > 0.0 {
+                                            let blurred = img.blurred(r / w * img.w as f64);
+                                            return Ok(share(Val::Field(Field::Raster {
+                                                img: blurred,
+                                                cx: cx.clone(),
+                                                cy: cy.clone(),
+                                                width: width.clone(),
+                                                angle: angle.clone(),
+                                            })));
+                                        }
+                                    }
+                                }
                                 // 40 taps on a sunflower spiral, out to twice the radius,
                                 // weighted like a Gaussian bell (the spiral leaves no rings)
                                 let n = 40;
@@ -2370,12 +2450,520 @@ impl Resolver<'_> {
         }
     }
 
+    /// `lfo(times, shape, phase, from, to)`: a value going round, a whole
+    /// number of times over the work; `orbit(radius, times, phase, x, y)`: a
+    /// point going round. Phases are in turns (0.25: a quarter later).
+    fn cycle(&mut self, name: &str, args: &[Arg], span: Span) -> Res<Val> {
+        let names: &[&str] = if name == "lfo" {
+            &["times", "shape", "phase", "from", "to", "time"]
+        } else {
+            &["radius", "times", "phase", "x", "y", "time"]
+        };
+        let slots = bind_slots(name, names, args)?;
+        let c = Field::Const;
+        let field = |r: &mut Self, k: usize, default: f64| -> Res<Field> {
+            match slots[k] {
+                None => Ok(c(default)),
+                Some(e) => r.field(e),
+            }
+        };
+        // a number, or a pair [for x, for y] (orbit only)
+        let pair = |r: &mut Self, k: usize, default: f64| -> Res<(Field, Field)> {
+            match slots[k] {
+                None => Ok((c(default), c(default))),
+                Some(e) => match r.lower(e)? {
+                    Val::Field(f) => Ok((f.clone(), f)),
+                    Val::List(l) if l.len() == 2 => match (&l[0], &l[1]) {
+                        (Val::Field(a), Val::Field(b)) => Ok((a.clone(), b.clone())),
+                        _ => Err(Error::new(format!("`{}` is a number or a pair of numbers [x, y]", names[k]), e.span)),
+                    },
+                    _ => Err(Error::new(format!("`{}` is a number or a pair of numbers [x, y]", names[k]), e.span)),
+                },
+            }
+        };
+        let time = share_field(field(self, 5, 0.0).map(|f| if slots[5].is_none() { Field::T } else { f })?);
+        // how far round: time × times + phase, in turns
+        let turns = |times: Field, phase: Field| add(mul(time.clone(), times), phase);
+        if name == "lfo" {
+            let times = field(self, 0, 1.0)?;
+            let shape = match slots[1] {
+                None => "sine".to_string(),
+                Some(e) => match self.lower(e)? {
+                    Val::Str(s) if LFO_SHAPES.contains(&s.as_str()) => s,
+                    _ => return Err(Error::new(format!("`shape` is one of: {}", LFO_SHAPES.join(", ")), e.span)),
+                },
+            };
+            let phase = field(self, 2, 0.0)?;
+            let (from, to) = (field(self, 3, 0.0)?, field(self, 4, 1.0)?);
+            let a = share_field(turns(times, phase));
+            let u = share_field(call(Builtin::Fract, vec![a.clone()]));
+            let tri = |u: Field| sub(c(1.0), call(Builtin::Abs, vec![sub(mul(c(2.0), u), c(1.0))]));
+            // sine and triangle start at `from`, reach `to` half way round and
+            // come back; saw climbs and falls back; square holds `from` then
+            // `to`; pulse hits `to` at the start of each turn, then fades
+            let v = match shape.as_str() {
+                "sine" => sub(c(0.5), mul(c(0.5), call(Builtin::Cos, vec![mul(c(TAU), a)]))),
+                "triangle" => tri(u),
+                "saw" => u,
+                "square" => call(Builtin::Step, vec![c(0.5), u]),
+                _ => {
+                    let d = share_field(sub(c(1.0), u));
+                    let d2 = share_field(mul(d.clone(), d));
+                    mul(d2.clone(), d2)
+                }
+            };
+            let from = share_field(from);
+            return Ok(share(Val::Field(add(from.clone(), mul(sub(to, from), v)))));
+        }
+        let (rx, ry) = pair(self, 0, 0.25)?;
+        let (tx, ty) = pair(self, 1, 1.0)?;
+        let phase = share_field(field(self, 2, 0.0)?);
+        let (cx, cy) = (field(self, 3, 0.5)?, field(self, 4, 0.5)?);
+        let ax = mul(c(TAU), turns(tx, phase.clone()));
+        let ay = mul(c(TAU), turns(ty, phase));
+        let px = add(cx, mul(rx, call(Builtin::Cos, vec![ax])));
+        let py = add(cy, mul(ry, call(Builtin::Sin, vec![ay])));
+        let _ = span;
+        Ok(share(Val::List(Arc::new(vec![Val::Field(px), Val::Field(py)]))))
+    }
+
+    /// A key: a frequency in Hz, or a note name ("A3", "C#4").
+    fn key_of(&mut self, e: Option<&Expr>, default: f64, lo: f64, hi: f64) -> Res<f64> {
+        let Some(e) = e else { return Ok(default) };
+        let hz = match self.lower(e)? {
+            Val::Str(s) => crate::harmony::note_hz(&s)
+                .ok_or_else(|| Error::new(format!("`{s}` is not a note name: a letter, maybe # or b, and an octave, like \"A3\" or \"C#4\""), e.span))?,
+            Val::Field(f) => f.constant().ok_or_else(|| Error::new("`key` must be a fixed value", e.span))?,
+            other => return Err(Error::new(format!("`key` is a note name or a frequency, not {}", kind_of(&other)), e.span)),
+        };
+        if !(lo..=hi).contains(&hz) {
+            return Err(Error::new(format!("`key` goes from {lo} to {hi} Hz"), e.span));
+        }
+        Ok(hz)
+    }
+
+    /// `meter`, `euclid`, `steps`, `chords`, `arp`: time in bars, rhythms,
+    /// progressions and arpeggios.
+    fn music(&mut self, name: &str, args: &[Arg], span: Span) -> Res<Val> {
+        use crate::harmony::{Arp, ArpMode, Harmony, Meter, ARP_MODES};
+        let names: &[&str] = match name {
+            "meter" => &["tempo", "bars", "beats"],
+            "euclid" => &["hits", "steps", "rotate", "bars", "y"],
+            "steps" => &["pattern", "bars", "y", "density"],
+            "chords" => &["progression", "key", "scale", "bars", "tension", "repeat"],
+            _ => &["harmony", "rhythm", "mode", "octaves", "gate", "instrument", "key", "gain", "tempo", "swing", "humanize"],
+        };
+        let slots = bind_slots(name, names, args)?;
+        let at = |k: usize| slots[k].map_or(span, |e| e.span);
+        let num = |r: &mut Self, k: usize, default: f64| -> Res<f64> {
+            match slots[k] {
+                None => Ok(default),
+                Some(e) => r.scalar(e, &format!("`{}`", names[k])),
+            }
+        };
+        let whole = |v: f64, k: usize, lo: f64, hi: f64| -> Res<usize> {
+            if v.fract() != 0.0 || !(lo..=hi).contains(&v) {
+                return Err(Error::new(format!("`{}` is a whole number from {lo} to {hi}", names[k]), at(k)));
+            }
+            Ok(v as usize)
+        };
+        // `bars:` a number, or a meter (which also gives a tempo)
+        let bars_of = |r: &mut Self, k: usize, default: f64| -> Res<(usize, Option<f64>)> {
+            match slots[k] {
+                None => Ok((default as usize, None)),
+                Some(e) => match r.lower(e)? {
+                    Val::Meter(m) => Ok((whole(m.bars, k, 1.0, 1024.0)?, Some(m.tempo))),
+                    Val::Field(f) => {
+                        let v = f.constant().ok_or_else(|| Error::new("`bars` must be a fixed number", e.span))?;
+                        Ok((whole(v, k, 1.0, 1024.0)?, None))
+                    }
+                    other => Err(Error::new(format!("`bars` is a number or a meter, not {}", kind_of(&other)), e.span)),
+                },
+            }
+        };
+        let event = |t: f64, y: f64, intensity: f64| Event { x: t, y, t, intensity, size: 0.012 };
+        match name {
+            "meter" => {
+                let tempo = num(self, 0, 120.0)?;
+                if !(20.0..=400.0).contains(&tempo) {
+                    return Err(Error::new("`tempo` goes from 20 to 400 beats per minute", at(0)));
+                }
+                let bars = whole(num(self, 1, 8.0)?, 1, 1.0, 1024.0)? as f64;
+                let beats = whole(num(self, 2, 4.0)?, 2, 1.0, 16.0)? as f64;
+                if bars * beats * 60.0 / tempo > 600.0 {
+                    return Err(Error::new("this meter lasts more than ten minutes, the longest a work can be", span));
+                }
+                Ok(Val::Meter(Meter { tempo, bars, beats }))
+            }
+            "euclid" => {
+                let (Some(_), Some(_)) = (slots[0], slots[1]) else {
+                    return Err(Error::new("`euclid(hits, steps)`: how many hits, spread over how many steps", span));
+                };
+                let steps = whole(num(self, 1, 16.0)?, 1, 1.0, 64.0)?;
+                let hits = whole(num(self, 0, 4.0)?.round(), 0, 0.0, steps as f64)?;
+                let rotate = num(self, 2, 0.0)?.round() as i64;
+                let (bars, _) = bars_of(self, 3, 1.0)?;
+                let y = num(self, 4, 0.5)?;
+                let mut events = Vec::new();
+                for b in 0..bars {
+                    for k in 0..steps {
+                        let kk = (k as i64 - rotate).rem_euclid(steps as i64) as usize;
+                        if (kk * hits) % steps < hits {
+                            let t = (b * steps + k) as f64 / (bars * steps) as f64;
+                            events.push(event(t, y, if kk == 0 { 1.0 } else { 0.8 }));
+                        }
+                    }
+                }
+                Ok(Val::Field(Field::Pattern(Arc::new(events))))
+            }
+            "steps" => {
+                let Some(first) = slots[0] else {
+                    return Err(Error::new("`steps(\"x..x..x.\")`, or `steps(16, density: field)`", span));
+                };
+                let (bars, _) = bars_of(self, 1, 1.0)?;
+                let y = num(self, 2, 0.5)?;
+                let mut events = Vec::new();
+                match self.lower(first)? {
+                    Val::Str(text) => {
+                        if slots[3].is_some() {
+                            return Err(Error::new("`density` goes with a number of steps, `steps(16, density: …)`, not with a written pattern", at(3)));
+                        }
+                        // one bar per group (split by `|`), the groups cycling over the bars
+                        let mut groups: Vec<Vec<f64>> = Vec::new();
+                        for g in text.split('|') {
+                            let mut cells = Vec::new();
+                            for ch in g.chars() {
+                                match ch {
+                                    'X' => cells.push(1.0),
+                                    'x' => cells.push(0.65),
+                                    'o' => cells.push(0.35),
+                                    '.' | '-' | '_' => cells.push(0.0),
+                                    c if c.is_whitespace() => {}
+                                    c => return Err(Error::new(format!("`{c}` is not a step: X (accent), x (hit), o (soft), . or - (rest), | (next bar)"), first.span)),
+                                }
+                            }
+                            if !cells.is_empty() {
+                                groups.push(cells);
+                            }
+                        }
+                        if groups.is_empty() {
+                            return Err(Error::new("this pattern has no steps", first.span));
+                        }
+                        for b in 0..bars {
+                            let g = &groups[b % groups.len()];
+                            for (k, v) in g.iter().enumerate() {
+                                if *v > 0.0 {
+                                    events.push(event((b as f64 + k as f64 / g.len() as f64) / bars as f64, y, *v));
+                                }
+                            }
+                        }
+                    }
+                    Val::Field(f) => {
+                        let n = whole(f.constant().ok_or_else(|| Error::new("the number of steps is a fixed number", first.span))?, 0, 1.0, 64.0)?;
+                        let density = match slots[3] {
+                            None => Field::Const(0.5),
+                            Some(e) => self.field(e)?,
+                        };
+                        self.next_id += 1;
+                        let id = self.next_id;
+                        for b in 0..bars {
+                            for k in 0..n {
+                                let t = (b * n + k) as f64 / (bars * n) as f64;
+                                // the field read along the middle row, left to right, as time runs
+                                let p = density.eval([t, 0.5, t], self.seed).clamp(0.0, 1.0);
+                                let u = (hash(&[self.seed, id, (b * n + k) as u64]) >> 11) as f64 / (1u64 << 53) as f64;
+                                if u < p {
+                                    events.push(event(t, y, 0.5 + 0.5 * p));
+                                }
+                            }
+                        }
+                    }
+                    other => return Err(Error::new(format!("`steps` takes a written pattern or a number of steps, not {}", kind_of(&other)), first.span)),
+                }
+                Ok(Val::Field(Field::Pattern(Arc::new(events))))
+            }
+            "chords" => {
+                let Some(first) = slots[0] else {
+                    return Err(Error::new("`chords(\"i iv V i\")`, `chords(\"Am F C G\")` or `chords(\"functional\")`", span));
+                };
+                let text = match self.lower(first)? {
+                    Val::Str(s) => s,
+                    other => return Err(Error::new(format!("a progression is written as a text, not {}", kind_of(&other)), first.span)),
+                };
+                let key = self.key_of(slots[1], 220.0, 20.0, 4000.0)?;
+                let scale_name = match slots[2] {
+                    None => "major".to_string(),
+                    Some(e) => match self.lower(e)? {
+                        Val::Str(s) if crate::sound::SCALES.contains(&s.as_str()) && s != "harmonics" => s,
+                        _ => return Err(Error::new("`scale` is one of the scales of semitones (major, minor, dorian, …)", e.span)),
+                    },
+                };
+                let crate::sound::Scale::Steps(steps) = crate::sound::Scale::parse(&scale_name).expect("checked") else { unreachable!() };
+                let (bars, tempo) = bars_of(self, 3, 4.0)?;
+                let tension = num(self, 4, 0.4)?.clamp(0.0, 1.0);
+                let chords = if text.trim() == "functional" {
+                    crate::harmony::functional(&mut *self.rng, &steps, bars, tension)
+                } else {
+                    let times = whole(num(self, 5, 1.0)?, 5, 1.0, 256.0)?;
+                    crate::harmony::written(&text, &steps, key, times).map_err(|e| Error::new(e, first.span))?
+                };
+                Ok(Val::Harmony(Arc::new(Harmony { key, chords, tempo })))
+            }
+            _ => {
+                let (Some(he), Some(re)) = (slots[0], slots[1]) else {
+                    return Err(Error::new("`arp(progression, rhythm)`: chords to play, and a pattern to play them on", span));
+                };
+                let harmony = match self.lower(he)? {
+                    Val::Harmony(h) => h,
+                    other => return Err(Error::new(format!("`arp` plays a progression, `chords(…)`, not {}", kind_of(&other)), he.span)),
+                };
+                let Some(events) = self.field(re)?.pattern().cloned() else {
+                    return Err(Error::new("the rhythm of `arp` is a pattern: `euclid(…)`, `steps(…)` or `pattern p = repeat …`", re.span));
+                };
+                let mode = match slots[2] {
+                    None => ArpMode::Up,
+                    Some(e) => match self.lower(e)? {
+                        Val::Str(s) if ArpMode::parse(&s).is_some() => ArpMode::parse(&s).unwrap(),
+                        _ => return Err(Error::new(format!("`mode` is one of: {}", ARP_MODES.join(", ")), e.span)),
+                    },
+                };
+                let octaves = whole(num(self, 3, 2.0)?, 3, 1.0, 5.0)?;
+                let gate = num(self, 4, 0.8)?.clamp(0.05, 1.0);
+                let strike = match slots[5] {
+                    None => crate::sound::Strike::Pluck,
+                    Some(e) => match self.lower(e)? {
+                        Val::Str(s) if crate::sound::Strike::parse(&s).is_some() => crate::sound::Strike::parse(&s).unwrap(),
+                        _ => return Err(Error::new(format!("`instrument` is one of: {}", crate::sound::NOTE_INSTRUMENTS.join(", ")), e.span)),
+                    },
+                };
+                let key = self.key_of(slots[6], harmony.key, 20.0, 4000.0)?;
+                let gain = num(self, 7, 1.0)?.clamp(0.0, 10.0);
+                let tempo = num(self, 8, harmony.tempo.unwrap_or(0.0))?.clamp(0.0, 400.0);
+                let swing = num(self, 9, 0.5)?.clamp(0.5, 0.75);
+                let humanize = num(self, 10, 0.0)?.clamp(0.0, 1.0);
+                let feel = crate::sound::Feel { swing, humanize, harmony: Some(harmony), arp: Some(Arp { mode, octaves, gate }) };
+                let scale = crate::sound::Scale::parse("chromatic").expect("built in");
+                Ok(Val::Sound(Arc::new(crate::sound::Layer::Notes { events, strike, scale, key, gain, tempo, seed: self.seed, feel })))
+            }
+        }
+    }
+
+    /// `input(name, or:)`, `colours(image, n)`, `band(sound, low, high)`.
+    fn input_fn(&mut self, name: &str, args: &[Arg], span: Span) -> Res<Val> {
+        use crate::input::Kind;
+        match name {
+            "input" => {
+                let slots = bind_slots("input", &["name", "or"], args)?;
+                let key = match slots[0] {
+                    None => String::new(),
+                    Some(e) => match self.lower(e)? {
+                        Val::Str(s) => s,
+                        _ => return Err(Error::new("the name of an input is a text: `input(\"face\")`", e.span)),
+                    },
+                };
+                // the default is always computed, so the work draws the same
+                // way with or without an input
+                let fallback = match slots[1] {
+                    None => None,
+                    Some(e) => Some((self.lower(e)?, e.span)),
+                };
+                if let Some(i) = crate::input::get(&key).map_err(|e| Error::new(e, span))? {
+                    crate::input::mark_used(&i);
+                    return Ok(Val::Input(i));
+                }
+                match fallback {
+                    Some((Val::Str(path), sp)) => {
+                        let full = self.module.dir.join(&path);
+                        let i = crate::input::from_file(&full, &path)
+                            .map_err(|e| Error::new(format!("cannot open `{path}`: {e}"), sp))?;
+                        crate::input::mark_used(&i);
+                        Ok(Val::Input(i))
+                    }
+                    Some((v, _)) => Ok(v),
+                    None if key.is_empty() => Err(Error::new(
+                        "this work reads an input, and none was given: pipe one in (`cat photo.png | alea work.alea`), \
+                         pass `--in photo.png`, or give a default, `input(or: \"photo.png\")`",
+                        span,
+                    )),
+                    None => Err(Error::new(
+                        format!("no input called `{key}`: pass it with `--in {key}=file`, or give a default, `input(\"{key}\", or: \"file\")`"),
+                        span,
+                    )),
+                }
+            }
+            "colours" | "colors" => {
+                let slots = bind_slots(name, &["image", "count"], args)?;
+                let Some(e) = slots[0] else { return Err(Error::new(format!("`{name}` needs an image"), span)) };
+                let n = match slots[1] {
+                    None => 5.0,
+                    Some(c) => self.scalar(c, "the number of colours")?,
+                };
+                if !(n >= 1.0 && n <= 32.0 && n.fract() == 0.0) {
+                    return Err(Error::new("the number of colours is a whole number from 1 to 32", slots[1].map_or(span, |c| c.span)));
+                }
+                match self.lower(e)? {
+                    Val::Input(i) => match &i.kind {
+                        Kind::Image(img) => Ok(Val::List(Arc::new(
+                            img.palette(n as usize)
+                                .iter()
+                                .map(|c| Val::Str(format!("#{:02x}{:02x}{:02x}", c[0], c[1], c[2])))
+                                .collect(),
+                        ))),
+                        _ => Err(Error::new(format!("`{name}` takes the colours of an image, not of {}", i.kind_name()), e.span)),
+                    },
+                    // a default given to `input(or: …)`: the colours of "ink"
+                    Val::Field(_) | Val::Paint(_) => {
+                        let ink = crate::media::Palette::named("ink").expect("built in");
+                        let n = n as usize;
+                        Ok(Val::List(Arc::new(
+                            (0..n)
+                                .map(|k| {
+                                    let c = ink.color(if n == 1 { 0.5 } else { k as f64 / (n - 1) as f64 });
+                                    Val::Str(format!("#{:02x}{:02x}{:02x}", c[0], c[1], c[2]))
+                                })
+                                .collect(),
+                        )))
+                    }
+                    other => Err(Error::new(format!("`{name}` takes the colours of an image input, not of {}", kind_of(&other)), e.span)),
+                }
+            }
+            _ => {
+                let slots = bind_slots("band", &["sound", "low", "high"], args)?;
+                let (Some(e), Some(lo), Some(hi)) = (slots[0], slots[1], slots[2]) else {
+                    return Err(Error::new("`band(sound, low, high)`: a sound and two frequencies in Hz", span));
+                };
+                let (lo, hi) = (self.scalar(lo, "the low frequency")?, self.scalar(hi, "the high frequency")?);
+                if !(lo >= 0.0 && hi > lo && hi <= 24000.0) {
+                    return Err(Error::new("`band`: the frequencies go from 0 to 24000 Hz, the low one first", span));
+                }
+                match self.lower(e)? {
+                    Val::Input(i) => match &i.kind {
+                        Kind::Sound(c) => Ok(Val::Field(Field::Curve(c.curve("band", lo, hi)))),
+                        _ => Err(Error::new(format!("`band` listens to a sound, not to {}", i.kind_name()), e.span)),
+                    },
+                    // a field given as a default stands for the sound
+                    Val::Field(f) => Ok(Val::Field(f)),
+                    other => Err(Error::new(format!("`band` listens to a sound input, not to {}", kind_of(&other)), e.span)),
+                }
+            }
+        }
+    }
+
+    /// `photo.luma`, `song.level`, `poem.words`, `point.x`…
+    fn member(&mut self, v: Val, name: &str, base: Span, span: Span) -> Res<Val> {
+        use crate::input::{Kind, CHANNELS};
+        const SOUND: &[&str] = &["level", "bass", "mid", "treble", "pulse", "beats", "duration"];
+        let name = if name == "luminance" { "luma" } else { name };
+        let input = match v {
+            Val::Input(i) => i,
+            Val::Meter(m) => {
+                return Ok(Val::Field(Field::Const(match name {
+                    "length" => m.length(),
+                    "tempo" => m.tempo,
+                    "bars" => m.bars,
+                    "beats" => m.beats,
+                    "bar" => m.bar(),
+                    "beat" => m.beat(),
+                    _ => return Err(Error::new(format!("a meter has no `.{name}` — it has: length, tempo, bars, beats, bar, beat"), span)),
+                })));
+            }
+            Val::Harmony(h) => {
+                return Ok(match name {
+                    "names" => Val::List(Arc::new(h.chords.iter().map(|c| Val::Str(c.name.clone())).collect())),
+                    "count" => Val::Field(Field::Const(h.chords.len() as f64)),
+                    "key" => Val::Field(Field::Const(h.key)),
+                    "index" => {
+                        // which chord is playing, along the work: 0, 1, 2…
+                        let n = 2000;
+                        let v: Vec<f32> = (0..n)
+                            .map(|k| {
+                                let t = k as f64 / (n - 1) as f64;
+                                h.chords.iter().position(|c| t < c.end).unwrap_or(h.chords.len() - 1) as f32
+                            })
+                            .collect();
+                        Val::Field(Field::Curve(Arc::new(v)))
+                    }
+                    _ => return Err(Error::new(format!("a progression has no `.{name}` — it has: names, count, key, index"), span)),
+                });
+            }
+            Val::List(_) => return Err(Error::new(format!("`.{name}`: a point has `.x` and `.y` (for anything else, use [index])"), span)),
+            // A default given to `input(or: …)` stands for the input: its
+            // channels and curves are itself.
+            Val::Field(f) if CHANNELS.contains(&name) || SOUND.contains(&name) => {
+                return Ok(Val::Field(if name == "alpha" { Field::Const(1.0) } else { f }));
+            }
+            Val::Field(f) if name == "painting" => return Ok(Val::Paint(self.as_paint(Val::Field(f), base)?)),
+            Val::Paint(p) if name == "painting" => return Ok(Val::Paint(p)),
+            other => return Err(Error::new(format!("{} has no `.{name}`", kind_of(&other)), span)),
+        };
+        let unknown = |list: &[&str]| Error::new(format!("{} has no `.{name}` — it has: {}", input.kind_name(), list.join(", ")), span);
+        Ok(match &input.kind {
+            Kind::Image(img) => match name {
+                "width" => Val::Field(Field::Const(img.w as f64)),
+                "height" => Val::Field(Field::Const(img.h as f64)),
+                "aspect" => Val::Field(Field::Const(img.aspect())),
+                "painting" => Val::Paint(Arc::new(crate::paint::Paint::Picture { input: input.clone(), width: img.cover_width() })),
+                c if CHANNELS.contains(&c) => share(Val::Field(Field::Raster {
+                    img: img.channel(c),
+                    cx: Box::new(Field::Const(0.5)),
+                    cy: Box::new(Field::Const(0.5)),
+                    width: Box::new(Field::Const(img.cover_width())),
+                    angle: Box::new(Field::Const(0.0)),
+                })),
+                _ => return Err(unknown(&[CHANNELS, &["painting", "width", "height", "aspect"]].concat())),
+            },
+            Kind::Sound(clip) => match name {
+                "duration" => Val::Field(Field::Const(clip.duration())),
+                "level" | "pulse" => Val::Field(Field::Curve(clip.curve(name, 0.0, 0.0))),
+                "bass" => Val::Field(Field::Curve(clip.curve("band", 20.0, 200.0))),
+                "mid" => Val::Field(Field::Curve(clip.curve("band", 200.0, 2000.0))),
+                "treble" => Val::Field(Field::Curve(clip.curve("band", 2000.0, 16000.0))),
+                "beats" => {
+                    let d = clip.duration().max(1e-9);
+                    let events = clip
+                        .beats()
+                        .iter()
+                        .enumerate()
+                        .map(|(k, &(time, strength))| {
+                            let u = |salt: u64| (hash(&[self.seed, 0xbea7, k as u64, salt]) >> 11) as f64 / (1u64 << 53) as f64;
+                            Event { x: 0.1 + 0.8 * u(0), y: 0.1 + 0.8 * u(1), t: time / d, intensity: strength, size: 0.006 + 0.012 * strength }
+                        })
+                        .collect();
+                    Val::Field(Field::Pattern(Arc::new(events)))
+                }
+                _ => return Err(unknown(SOUND)),
+            },
+            Kind::Text(text) => match name {
+                "text" => Val::Str(text.clone()),
+                "words" => Val::List(Arc::new(text.split_whitespace().map(|w| Val::Str(w.to_string())).collect())),
+                "lines" => Val::List(Arc::new(text.lines().filter(|l| !l.trim().is_empty()).map(|l| Val::Str(l.trim().to_string())).collect())),
+                "rows" => Val::List(Arc::new(
+                    crate::input::rows(text)
+                        .into_iter()
+                        .map(|row| {
+                            Val::List(Arc::new(
+                                row.into_iter()
+                                    .map(|c| match c {
+                                        Ok(n) => Val::Field(Field::Const(n)),
+                                        Err(s) => Val::Str(s),
+                                    })
+                                    .collect(),
+                            ))
+                        })
+                        .collect(),
+                )),
+                _ => return Err(unknown(&["text", "words", "lines", "rows"])),
+            },
+        })
+    }
+
     /// `drone(field, …)`, `notes(pattern, …)`, `texture(field, …)`: layers of sound.
     fn sound_layer(&mut self, name: &str, args: &[Arg], span: Span) -> Res<Val> {
         use crate::sound::*;
         let names: &[&str] = match name {
-            "drone" => &["field", "voices", "instrument", "scale", "key", "gain"],
-            "notes" => &["pattern", "instrument", "scale", "key", "gain", "tempo"],
+            "drone" => &["field", "voices", "instrument", "scale", "key", "gain", "harmony"],
+            "notes" => &["pattern", "instrument", "scale", "key", "gain", "tempo", "harmony", "swing", "humanize"],
+            "cc" => &["field", "number", "channel"],
             _ => &["field", "kind", "gain"],
         };
         let mut slots: Vec<Option<&Expr>> = vec![None; names.len()];
@@ -2421,15 +3009,26 @@ impl Resolver<'_> {
             }
         };
         let scale_of = |s: String| Scale::parse(&s).expect("checked");
+        let harmony_of = |r: &mut Self, k: usize| -> Res<Option<Arc<crate::harmony::Harmony>>> {
+            match slots.get(k).copied().flatten() {
+                None => Ok(None),
+                Some(e) => match r.lower(e)? {
+                    Val::Harmony(h) => Ok(Some(h)),
+                    other => Err(Error::new(format!("`harmony` is a progression, `chords(…)`, not {}", kind_of(&other)), e.span)),
+                },
+            }
+        };
         let layer = match name {
             "drone" => {
                 let field = self.field(first)?;
                 let voices = number(self, 1, 6.0, 1.0, 24.0)?.round() as usize;
                 let voice = Voice::parse(&text(self, 2, "sine", DRONE_INSTRUMENTS)?).expect("checked");
                 let scale = scale_of(text(self, 3, "pentatonic", SCALES)?);
-                let key = number(self, 4, 110.0, 20.0, 2000.0)?;
+                let harmony = harmony_of(self, 6)?;
+                let default_key = harmony.as_ref().map_or(110.0, |h| h.key / 2.0);
+                let key = self.key_of(slots[4], default_key, 20.0, 2000.0)?;
                 let gain = number(self, 5, 1.0, 0.0, 10.0)?;
-                Layer::Drone { field, seed: self.seed, voices, voice, scale, key, gain }
+                Layer::Drone { field, seed: self.seed, voices, voice, scale, key, gain, harmony }
             }
             "notes" => {
                 let f = self.field(first)?;
@@ -2438,10 +3037,23 @@ impl Resolver<'_> {
                 };
                 let strike = Strike::parse(&text(self, 1, "bell", NOTE_INSTRUMENTS)?).expect("checked");
                 let scale = scale_of(text(self, 2, "pentatonic", SCALES)?);
-                let key = number(self, 3, 220.0, 20.0, 4000.0)?;
+                let harmony = harmony_of(self, 6)?;
+                let key = self.key_of(slots[3], harmony.as_ref().map_or(220.0, |h| h.key), 20.0, 4000.0)?;
                 let gain = number(self, 4, 1.0, 0.0, 10.0)?;
-                let tempo = number(self, 5, 0.0, 0.0, 400.0)?;
-                Layer::Notes { events, strike, scale, key, gain, tempo, seed: self.seed }
+                let tempo = number(self, 5, harmony.as_ref().and_then(|h| h.tempo).unwrap_or(0.0), 0.0, 400.0)?;
+                let swing = number(self, 7, 0.5, 0.5, 0.75)?;
+                let humanize = number(self, 8, 0.0, 0.0, 1.0)?;
+                let feel = crate::sound::Feel { swing, humanize, harmony, arp: None };
+                Layer::Notes { events, strike, scale, key, gain, tempo, seed: self.seed, feel }
+            }
+            "cc" => {
+                let field = self.field(first)?;
+                let controller = number(self, 1, 74.0, 0.0, 127.0)?;
+                let channel = number(self, 2, 1.0, 1.0, 16.0)?;
+                if controller.fract() != 0.0 || channel.fract() != 0.0 {
+                    return Err(Error::new("`cc`: the controller number (0–127) and the channel (1–16) are whole numbers", span));
+                }
+                Layer::Control { field, seed: self.seed, number: controller as u8, channel: channel as u8 - 1 }
             }
             _ => {
                 let field = self.field(first)?;

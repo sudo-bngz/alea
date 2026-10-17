@@ -1,0 +1,36 @@
+[package]
+name = "alea_plugin"
+version = "0.4.2"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "alea as a VST3 / CLAP plugin: a work's music, generated in time with the host"
+repository = "https://github.com/sudo-bngz/alea"
+homepage = "https://alea.bngz.io"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+# A standalone app of the plugin, for trying it without a host:
+# `cargo run --release --features standalone --bin alea_standalone -- --help`
+standalone = ["nih_plug/standalone"]
+
+[[bin]]
+name = "alea_standalone"
+path = "src/main.rs"
+required-features = ["standalone"]
+
+[dependencies]
+alea = { package = "alea-lang", path = "..", default-features = false, features = ["native"] }
+nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", rev = "de421011f41a6d10fc8c7a6084e4f4dee0143683" }
+nih_plug_egui = { git = "https://github.com/robbert-vdh/nih-plug.git", rev = "de421011f41a6d10fc8c7a6084e4f4dee0143683" }
+
+# the plugin's own MIDI port (a virtual port: CoreMIDI on macOS, ALSA on Linux)
+[target.'cfg(unix)'.dependencies]
+midir = "0.9"
+
+# On macOS, each message carries the time it is sent: by default midir stamps
+# them 0 ("when the Mac started"), and Live drops them as long past.
+[target.'cfg(target_os = "macos")'.dependencies]
+midir = { version = "0.9", features = ["coremidi_send_timestamped"] }

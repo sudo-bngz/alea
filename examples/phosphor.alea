@@ -1,0 +1,75 @@
+// Phosphor — Choreographed keyframes, elastic easing & CRT lens optics
+// Run: ./target/release/alea examples/phosphor.alea
+
+work Phosphor {
+  // 1. Keyframed [x, y] target that snaps between 4 waypoints with overshoot ("back")
+  let focus = keys([
+    [0.00, [0.28, 0.32]],
+    [0.25, [0.72, 0.30]],
+    [0.50, [0.68, 0.72]],
+    [0.75, [0.30, 0.68]],
+    [1.00, [0.28, 0.32]]
+  ], ease: "back")
+
+  // 2. Staggered ring deployments using `progress()` + `"elastic"` and `"back"`
+  let open_1 = ease(progress(0.05, 0.30), "elastic")
+  let open_2 = ease(progress(0.25, 0.55), "back")
+  let open_3 = ease(progress(0.50, 0.80), "elastic")
+
+  // Fast 8-beat rhythmic bounce using `fract(t * 8)`
+  let beat = ease(fract(t * 8), "bounce")
+
+  // 3. Engraved background topography using `relief()` and `edges()`
+  let raw_plate = warp(circle(x: 0.5, y: 0.5, size: 0.72), amount: 0.08)
+  field engraved = relief(raw_plate, angle: 135, depth: 12) * 0.35 + edges(raw_plate) * 0.8
+
+  // 4. Choreographed geometric rig following `focus.x` and `focus.y`
+  let reticle = merge(
+    ring(x: focus.x, y: focus.y, size: 0.12 * open_1 + 0.02 * beat, width: 0.004),
+    ring(x: focus.x, y: focus.y, size: 0.24 * open_2, width: 0.0025),
+    square(x: focus.x, y: focus.y, size: 0.34 * open_3, angle: t * 180),
+    path([[0.5, 0.5], focus], 0.003, 0.001),
+    circle(x: focus.x, y: focus.y, size: 0.025)
+  )
+
+  // Outline of a central rotating monolith via `edges()`
+  let monolith = edges(
+    rotate(square(x: 0.5, y: 0.5, size: 0.28), angle: -t * 90)
+  )
+
+  field scene = engraved * 0.45 + monolith * 0.75 + reticle
+
+  // 5. Paint in phosphor palette, then run post-processing filters (Ch. 22)
+  let raw_paint = paint(scene, palette: ["#040608", "#0c2e2c", "#1cd4a7", "#d8fff4"])
+  let crt_output = vignette(
+    film(
+      chroma(
+        bloom(raw_paint, 1.8),
+        0.55
+      ),
+      0.05
+    ),
+    0.55
+  )
+
+  // 6. Synced audio triggers
+  pattern pings = repeat 32 event(
+    x: choose { 0.28 | 0.72 },
+    y: choose { 0.30 | 0.50 | 0.70 },
+    t: i / n,
+    intensity: 0.5 + 0.45 * (i % 4 == 0),
+    size: 0.015
+  )
+
+  render image(crt_output, at: 0.6)
+  render video(
+    crt_output,
+    duration: 16,
+    sound: [
+      drone(scene, instrument: "glass", scale: "dorian", key: 98, gain: 0.55),
+      notes(pings, instrument: "bell", scale: "dorian", key: 196, tempo: 120)
+    ],
+    room: 0.6,
+    echo: 0.25
+  )
+}

@@ -67,7 +67,7 @@
         },
         {
           "comment": "render <kind>",
-          "match": "\\b(render)\\s+(image|sound|video|sculpture)\\b",
+          "match": "\\b(render)\\s+(image|sound|video|sculpture|midi)\\b",
           "captures": {
             "1": {
               "name": "keyword.control.render.alea"
@@ -177,7 +177,7 @@
         },
         {
           "name": "support.function.neighbourhood.alea",
-          "match": "\\b(neighbours|neighbors|spread|nearby|range|join|slice|reverse|sum|path|along|length|drone|notes|texture|paint|mosaic|place|overlay|at|ease|keys|progress|sequence|blur|pixelate|edges|relief|posterize|film|vignette|bloom|chroma)(?=\\s*\\()"
+          "match": "\\b(neighbours|neighbors|spread|nearby|range|join|slice|reverse|sum|path|along|length|drone|notes|texture|paint|mosaic|place|overlay|at|ease|keys|progress|sequence|blur|pixelate|edges|relief|posterize|film|vignette|bloom|chroma|input|colours|colors|band|cc|lfo|orbit|meter|euclid|steps|chords|arp)(?=\\s*\\()"
         },
         {
           "name": "keyword.control.grow.alea",
@@ -193,7 +193,7 @@
         },
         {
           "name": "support.class.render-kind.alea",
-          "match": "\\b(image|sound|video|sculpture)(?=\\s*\\()"
+          "match": "\\b(image|sound|video|sculpture|midi)(?=\\s*\\()"
         },
         {
           "name": "entity.name.type.work-call.alea",

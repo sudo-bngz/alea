@@ -18,6 +18,7 @@ use std::f64::consts::{PI, TAU};
 use std::sync::Arc;
 
 use crate::eval::{Event, Field};
+use crate::harmony::{Arp, Harmony};
 
 pub const SR: f64 = 44_100.0;
 
@@ -137,7 +138,7 @@ impl Scale {
         Some(Scale::Steps(steps.to_vec()))
     }
 
-    fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         match self {
             Scale::Steps(s) => s.len(),
             Scale::Harmonics => 8,
@@ -160,12 +161,40 @@ impl Scale {
     }
 }
 
+/// How a `notes` layer plays its events, beyond the scale: a progression
+/// to follow, an arpeggio, swing and human looseness.
+#[derive(Clone, Debug)]
+pub struct Feel {
+    /// 0.5: straight; up to 0.75: every second sixteenth comes later.
+    pub swing: f64,
+    /// 0: exact; 1: moments up to 30 ms off, velocities ±40 %.
+    pub humanize: f64,
+    pub harmony: Option<Arc<Harmony>>,
+    pub arp: Option<Arp>,
+}
+
+impl Default for Feel {
+    fn default() -> Self {
+        Feel { swing: 0.5, humanize: 0.0, harmony: None, arp: None }
+    }
+}
+
+impl Feel {
+    fn plain(&self) -> bool {
+        self.swing == 0.5 && self.humanize == 0.0 && self.harmony.is_none() && self.arp.is_none()
+    }
+}
+
 /// One layer of a soundtrack.
 #[derive(Debug)]
 pub enum Layer {
-    Drone { field: Field, seed: u64, voices: usize, voice: Voice, scale: Scale, key: f64, gain: f64 },
-    Notes { events: Arc<Vec<Event>>, strike: Strike, scale: Scale, key: f64, gain: f64, tempo: f64, seed: u64 },
+    Drone { field: Field, seed: u64, voices: usize, voice: Voice, scale: Scale, key: f64, gain: f64, harmony: Option<Arc<Harmony>> },
+    Notes { events: Arc<Vec<Event>>, strike: Strike, scale: Scale, key: f64, gain: f64, tempo: f64, seed: u64, feel: Feel },
     Texture { field: Field, seed: u64, kind: Ambience, gain: f64 },
+    /// A sound that came in (`input()`), played as it is, dry.
+    Clip { input: Arc<crate::input::Input>, gain: f64 },
+    /// `cc(field, number)`: a MIDI controller, silent in alea's own sound.
+    Control { field: Field, seed: u64, number: u8, channel: u8 },
 }
 
 pub struct Mix {
@@ -248,7 +277,9 @@ fn vowel(f: f64, open: f64) -> f64 {
     formants.iter().map(|(c, a, w)| a * libm::exp(-((f - c) / w).powi(2))).sum::<f64>() + 0.02
 }
 
-fn drone(field: &Field, seed: u64, voices: usize, voice: Voice, scale: &Scale, key: f64, n: usize, duration: f64) -> [Vec<f64>; 2] {
+/// How loud each voice of a drone is along the sound, on the left and on the
+/// right: 200 values per second, from 0 to 1 (the field, normalized, squared).
+pub fn drone_envelopes(field: &Field, seed: u64, voices: usize, duration: f64) -> Vec<[Vec<f64>; 2]> {
     // Envelopes at control rate: each voice listens on the left and on the right.
     let nk = (duration * 200.0) as usize + 2;
     let raw: Vec<[Vec<f64>; 2]> = crate::media::par_map(voices, |v| {
@@ -262,12 +293,21 @@ fn drone(field: &Field, seed: u64, voices: usize, voice: Voice, scale: &Scale, k
         .iter()
         .map(|s| [0, 1].map(|c| s[c].iter().map(|x| crate::media::normalize(*x, b).powi(2)).collect()))
         .collect();
+    env
+}
 
-    // Chords rather than runs: every other degree for scales of six notes or more.
+/// The degree of the scale a drone's voice `v` holds: chords rather than
+/// runs, every other degree for scales of six notes or more.
+pub fn drone_degree(scale: &Scale, v: usize) -> usize {
     let step = if scale.len() >= 6 { 2 } else { 1 };
+    v * step
+}
+
+fn drone(field: &Field, seed: u64, voices: usize, voice: Voice, scale: &Scale, key: f64, n: usize, duration: f64) -> [Vec<f64>; 2] {
+    let env = drone_envelopes(field, seed, voices, duration);
     let parts = partials(voice);
     let out: Vec<[Vec<f64>; 2]> = crate::media::par_map(voices, |v| {
-        let freq = scale.freq(key, v * step);
+        let freq = scale.freq(key, drone_degree(scale, v));
         let mut noise = Noise(seed ^ (v as u64 + 1).wrapping_mul(0x51ED_270B));
         let (mut fl, mut fr) = (Svf::default(), Svf::default());
         let vib_phase = v as f64 * 1.7;
@@ -352,6 +392,98 @@ fn drone(field: &Field, seed: u64, voices: usize, voice: Voice, scale: &Scale, k
     mix
 }
 
+/// A drone whose voices follow a progression: each glides to its next chord
+/// tone at each change. The same voices as `drone`, with their phase carried
+/// from sample to sample so the pitch can move.
+#[allow(clippy::too_many_arguments)]
+fn drone_moving(field: &Field, seed: u64, voices: usize, voice: Voice, key: f64, harmony: &Harmony, n: usize, duration: f64) -> [Vec<f64>; 2] {
+    let env = drone_envelopes(field, seed, voices, duration);
+    let parts = partials(voice);
+    let plan = harmony.voicing(voices, key);
+    let glide = 1.0 - libm::exp(-1.0 / (0.06 * SR));
+    let out: Vec<[Vec<f64>; 2]> = crate::media::par_map(voices, |v| {
+        let target = |pos: f64| key * libm::pow(2.0, crate::harmony::pitch_at(&plan[v], pos) / 12.0);
+        let mut freq = target(0.0);
+        let mut ph = 0.0f64; // the fundamental's phase, in turns
+        let mut noise = Noise(seed ^ (v as u64 + 1).wrapping_mul(0x51ED_270B));
+        let (mut fl, mut fr) = (Svf::default(), Svf::default());
+        let vib_phase = v as f64 * 1.7;
+        let mut weights = [0.0f64; 24];
+        let mut l = vec![0.0; n];
+        let mut r = vec![0.0; n];
+        for s in 0..n {
+            let tt = s as f64 / SR;
+            let pos = s as f64 / n as f64;
+            freq += (target(pos) - freq) * glide;
+            ph += freq / SR;
+            let (nl, nr) = (at(&env[v][0], pos), at(&env[v][1], pos));
+            let e = 0.5 * (nl + nr);
+            let (gl, gr) = pan(0.5 + 0.35 * (nr - nl));
+            let (el, er) = (e * gl * std::f64::consts::SQRT_2, e * gr * std::f64::consts::SQRT_2);
+            let bright = 0.3 + 0.7 * e;
+            let sample = match voice {
+                Voice::Wind => {
+                    let (_, bl) = fl.tick(noise.next(), freq, 14.0);
+                    let (_, br) = fr.tick(noise.next(), freq * 1.004, 14.0);
+                    l[s] = bl * el * 3.0;
+                    r[s] = br * er * 3.0;
+                    continue;
+                }
+                Voice::Choir => {
+                    if s % 64 == 0 {
+                        for (h, w) in weights.iter_mut().enumerate() {
+                            let fh = freq * (h + 1) as f64;
+                            *w = if fh > 5000.0 { 0.0 } else { vowel(fh, e) };
+                        }
+                    }
+                    let wobble = 0.003 * freq / 5.0 * libm::sin(TAU * 5.0 * tt + vib_phase);
+                    let mut acc = 0.0;
+                    for (h, w) in weights.iter().enumerate() {
+                        if *w > 0.0 {
+                            let k = (h + 1) as f64;
+                            acc += w * libm::sin(TAU * ph * k + k * wobble + h as f64);
+                        }
+                    }
+                    acc * 0.5
+                }
+                Voice::Strings => {
+                    let mut acc = 0.0;
+                    for (d, phd) in [(1.0, 0.0), (1.004, 2.1), (0.9965, 4.2)] {
+                        let wobble = 0.004 * freq * d / 5.2 * libm::sin(TAU * 5.2 * tt + vib_phase + phd);
+                        let mut g = 1.0;
+                        for (ratio, amp) in &parts {
+                            acc += amp * g * libm::sin(TAU * ph * d * ratio + ratio * (wobble + phd));
+                            g *= bright;
+                        }
+                    }
+                    acc / 3.0
+                }
+                _ => {
+                    let mut acc = 0.0;
+                    let mut g = 1.0;
+                    for (ratio, amp) in &parts {
+                        acc += amp * g * libm::sin(TAU * ph * ratio);
+                        g *= bright;
+                    }
+                    acc
+                }
+            };
+            l[s] = sample * el;
+            r[s] = sample * er;
+        }
+        [l, r]
+    });
+    let mut mix = [vec![0.0; n], vec![0.0; n]];
+    for o in out {
+        for c in 0..2 {
+            for (m, x) in mix[c].iter_mut().zip(&o[c]) {
+                *m += x;
+            }
+        }
+    }
+    mix
+}
+
 /// One struck note, in mono: `freq` Hz, ringing about `d` seconds.
 fn strike(kind: Strike, freq: f64, d: f64, noise: &mut Noise) -> Vec<f64> {
     let len = ((d * SR) as usize).max(16);
@@ -413,34 +545,120 @@ fn strike(kind: Strike, freq: f64, d: f64, noise: &mut Noise) -> Vec<f64> {
     out
 }
 
-fn notes(events: &[Event], kind: Strike, scale: &Scale, key: f64, tempo: f64, seed: u64, n: usize, duration: f64) -> [Vec<f64>; 2] {
-    let mut l = vec![0.0; n];
-    let mut r = vec![0.0; n];
+/// Where an event of a `notes` layer falls: when (seconds), which degree of
+/// the scale, at what frequency, ringing how long.
+pub struct Placed {
+    pub when: f64,
+    pub degree: usize,
+    pub freq: f64,
+    pub ring: f64,
+    /// Which event of the pattern it is.
+    pub index: usize,
+    /// Its loudness, relative to the event's intensity.
+    pub vel: f64,
+    /// For an arpeggio: how long it is held (seconds), from its gate.
+    pub hold: Option<f64>,
+}
+
+pub fn place_note(e: &Event, kind: Strike, scale: &Scale, key: f64, tempo: f64, duration: f64) -> Placed {
     // Three octaves of the scale, from the bottom of the canvas to the top.
     let degrees = 3 * scale.len();
-    for (i, e) in events.iter().enumerate() {
-        let mut when = e.t.clamp(0.0, 1.0) * duration;
-        if tempo > 0.0 {
-            // on the grid: sixteenth notes of the tempo
-            let grid = 60.0 / tempo / 4.0;
-            when = (when / grid).round() * grid;
+    let mut when = e.t.clamp(0.0, 1.0) * duration;
+    if tempo > 0.0 {
+        // on the grid: sixteenth notes of the tempo
+        let grid = 60.0 / tempo / 4.0;
+        when = (when / grid).round() * grid;
+    }
+    let d = (1.0 - e.y.clamp(0.0, 1.0)) * degrees as f64;
+    let degree = (d as usize).min(degrees - 1);
+    let freq = scale.freq(key, degree) * if kind == Strike::Drum { 0.25 } else { 1.0 };
+    let ring = (0.08 + e.size * 20.0).min(3.0) * match kind {
+        Strike::Tick => 0.15,
+        Strike::Wood => 0.4,
+        Strike::Drum => 0.8,
+        Strike::Glass | Strike::Bell => 1.6,
+        _ => 1.0,
+    };
+    Placed { when, degree, freq, ring, index: 0, vel: 1.0, hold: None }
+}
+
+/// Every event of a `notes` layer, placed: on the scale (by height), or on
+/// the chord of the moment (`harmony`), in an arpeggio (`arp`), swung and
+/// loosened. Without any of these, exactly `place_note` for each event.
+pub fn placements(events: &[Event], kind: Strike, scale: &Scale, key: f64, tempo: f64, duration: f64, feel: &Feel, seed: u64) -> Vec<Placed> {
+    let mut out: Vec<Placed> = events
+        .iter()
+        .enumerate()
+        .map(|(i, e)| {
+            let mut p = place_note(e, kind, scale, key, tempo, duration);
+            p.index = i;
+            p
+        })
+        .collect();
+    if feel.plain() {
+        return out;
+    }
+    // the events in time order (an arpeggio counts its notes that way)
+    let mut order: Vec<usize> = (0..events.len()).collect();
+    order.sort_by(|a, b| events[*a].t.total_cmp(&events[*b].t).then(a.cmp(b)));
+    let mut rank = vec![0usize; events.len()];
+    for (r, i) in order.iter().enumerate() {
+        rank[*i] = r;
+    }
+    if let Some(h) = &feel.harmony {
+        let octaves = feel.arp.map_or(3, |a| a.octaves);
+        for p in out.iter_mut() {
+            let e = &events[p.index];
+            let ladder = h.ladder(e.t.clamp(0.0, 1.0), key, octaves);
+            let k = match feel.arp {
+                Some(a) => a.mode.index(rank[p.index], ladder.len(), seed),
+                None => (((1.0 - e.y.clamp(0.0, 1.0)) * ladder.len() as f64) as usize).min(ladder.len() - 1),
+            };
+            p.degree = k;
+            p.freq = key * libm::pow(2.0, ladder[k] / 12.0) * if kind == Strike::Drum { 0.25 } else { 1.0 };
         }
-        let onset = (when * SR) as usize;
+    }
+    if tempo > 0.0 && feel.swing != 0.5 {
+        let grid = 60.0 / tempo / 4.0;
+        for p in out.iter_mut() {
+            let n = (p.when / grid).round() as i64;
+            if n % 2 == 1 {
+                p.when += (feel.swing - 0.5) * 2.0 * grid;
+            }
+        }
+    }
+    if feel.humanize > 0.0 {
+        for p in out.iter_mut() {
+            let u = |salt: u64| (crate::eval::hash(&[seed, 0x4D4E, p.index as u64, salt]) >> 11) as f64 / (1u64 << 53) as f64 * 2.0 - 1.0;
+            p.when = (p.when + u(0) * feel.humanize * 0.03).max(0.0);
+            p.vel = (1.0 + u(1) * feel.humanize * 0.4).max(0.05);
+        }
+    }
+    if let Some(a) = feel.arp {
+        for (r, i) in order.iter().enumerate() {
+            let next = order.get(r + 1).map(|j| out[*j].when);
+            let p = &mut out[*i];
+            let gap = next.map_or(p.ring, |w| (w - p.when).max(0.02));
+            p.hold = Some((gap * a.gate).max(0.02));
+        }
+    }
+    out
+}
+
+#[allow(clippy::too_many_arguments)]
+fn notes(events: &[Event], kind: Strike, scale: &Scale, key: f64, tempo: f64, seed: u64, n: usize, duration: f64, feel: &Feel) -> [Vec<f64>; 2] {
+    let mut l = vec![0.0; n];
+    let mut r = vec![0.0; n];
+    for p in placements(events, kind, scale, key, tempo, duration, feel, seed) {
+        let (i, e) = (p.index, &events[p.index]);
+        let onset = (p.when * SR) as usize;
         if onset >= n {
             continue;
         }
-        let d = (1.0 - e.y.clamp(0.0, 1.0)) * degrees as f64;
-        let freq = scale.freq(key, (d as usize).min(degrees - 1)) * if kind == Strike::Drum { 0.25 } else { 1.0 };
-        let ring = (0.08 + e.size * 20.0).min(3.0) * match kind {
-            Strike::Tick => 0.15,
-            Strike::Wood => 0.4,
-            Strike::Drum => 0.8,
-            Strike::Glass | Strike::Bell => 1.6,
-            _ => 1.0,
-        };
+        let (freq, ring) = (p.freq, p.ring);
         let mut noise = Noise(seed ^ (i as u64 + 1).wrapping_mul(0x9E37_79B9));
         let tone = strike(kind, freq, ring, &mut noise);
-        let amp = e.intensity.clamp(0.0, 4.0) * 0.25;
+        let amp = if p.vel == 1.0 { e.intensity.clamp(0.0, 4.0) * 0.25 } else { e.intensity.clamp(0.0, 4.0) * 0.25 * p.vel };
         let (gl, gr) = pan(e.x);
         for (k, s) in tone.iter().enumerate() {
             let j = onset + k;
@@ -600,18 +818,39 @@ pub fn render(layers: &[Arc<Layer>], mix: &Mix) -> [Vec<f64>; 2] {
     let n = (mix.duration * SR) as usize;
     let mut out = [vec![0.0; n], vec![0.0; n]];
     let mut tempo: f64 = 0.0;
+    let mut dry = [vec![0.0; n], vec![0.0; n]];
     for layer in layers {
-        let (buf, gain) = match layer.as_ref() {
-            Layer::Drone { field, seed, voices, voice, scale, key, gain } => {
-                (drone(field, *seed, *voices, *voice, scale, *key, n, mix.duration), *gain)
+        if matches!(layer.as_ref(), Layer::Control { .. }) {
+            continue;
+        }
+        if let Layer::Clip { input, gain } = layer.as_ref() {
+            if let crate::input::Kind::Sound(clip) = &input.kind {
+                // the original sound: not through the room nor the echo, at a
+                // level comparable to the other layers
+                let buf = clip.stereo(SR, n);
+                let rms = (buf.iter().flat_map(|c| c.iter()).map(|x| x * x).sum::<f64>() / (2 * n).max(1) as f64).sqrt();
+                let g = if rms > 1e-12 { 0.08 / rms * gain } else { 0.0 };
+                for c in 0..2 {
+                    for (o, x) in dry[c].iter_mut().zip(&buf[c]) {
+                        *o += x * g;
+                    }
+                }
             }
-            Layer::Notes { events, strike, scale, key, gain, tempo: t, seed } => {
+            continue;
+        }
+        let (buf, gain) = match layer.as_ref() {
+            Layer::Drone { field, seed, voices, voice, scale, key, gain, harmony } => match harmony {
+                Some(h) => (drone_moving(field, *seed, *voices, *voice, *key, h, n, mix.duration), *gain),
+                None => (drone(field, *seed, *voices, *voice, scale, *key, n, mix.duration), *gain),
+            },
+            Layer::Notes { events, strike, scale, key, gain, tempo: t, seed, feel } => {
                 if *t > 0.0 {
                     tempo = *t;
                 }
-                (notes(events, *strike, scale, *key, *t, *seed, n, mix.duration), *gain)
+                (notes(events, *strike, scale, *key, *t, *seed, n, mix.duration, feel), *gain)
             }
             Layer::Texture { field, seed, kind, gain } => (texture(field, *seed, *kind, n, mix.duration), *gain),
+            Layer::Clip { .. } | Layer::Control { .. } => unreachable!("handled above"),
         };
         // Each layer at a comparable level, then its own gain.
         let rms = (buf.iter().flat_map(|c| c.iter()).map(|x| x * x).sum::<f64>() / (2 * n).max(1) as f64).sqrt();
@@ -625,6 +864,11 @@ pub fn render(layers: &[Arc<Layer>], mix: &Mix) -> [Vec<f64>; 2] {
     let delay = if tempo > 0.0 { 60.0 / tempo * 0.75 } else { 0.375 };
     echo(&mut out, mix.echo, delay);
     room(&mut out, mix.room);
+    for c in 0..2 {
+        for (o, x) in out[c].iter_mut().zip(&dry[c]) {
+            *o += x;
+        }
+    }
 
     // Master: one level for both sides, gently limited, faded in and out.
     let peak = out.iter().flat_map(|c| c.iter()).fold(0.0f64, |m, x| m.max(x.abs())).max(1e-9);

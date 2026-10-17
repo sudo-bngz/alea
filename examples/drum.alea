@@ -1,0 +1,46 @@
+// DrumMachine — Generative step sequencer, Euclidean polyrhythms & field-driven fills
+// Run: ./target/release/alea examples/drums.alea
+
+work DrumMachine {
+  let bpm = choose { 116 | 124 | 132 }
+  let sw  = ~between(0.54, 0.62)
+  let m   = meter(bpm, bars: 8)
+
+  // 1. Kick (y = 0.10): alea chooses between 4-on-the-floor, broken electro, or syncopated 2-bar loops
+  let kick = choose {
+      steps("X...X...X...X...|X...X...X..oX..x", bars: m, y: 0.10)
+    | steps("X..x..X...x.X...|X..x..X.o.x.X.o.", bars: m, y: 0.10)
+    | steps("X.....x.X.....o.|X..o..x...X...x.", bars: m, y: 0.10)
+  }
+
+  // 2. Snare (y = 0.35): backbeat on 2 & 4 with ghost notes (`o`) and a 2nd-bar turnaround fill
+  let snare = steps("....X..o....X...|....X..o..o.X.xo", bars: m, y: 0.35)
+
+  // 3. Polyrhythmic percussion (y = 0.52): Euclidean rhythm drawn per edition
+  let hits = choose { 5 | 7 | 9 }
+  let rot  = choose { 0 | 1 | 2 | 3 }
+  let perc = euclid(hits, 16, bars: m, rotate: rot, y: 0.52)
+
+  // 4. Closed hats (y = 0.72): 16th-note groove with accented off-beats (`X`)
+  let hats = steps("o.x.o.X.o.x.o.X.|o.x.o.X.o.x.X.xo", bars: m, y: 0.72)
+
+  // 5. Cymbals / Open Hats (y = 0.90): visual field drives hit probability (builds up across the canvas)
+  field fill_density = (x > 0.65) * 0.75 + waves() * 0.25
+  let cymbals = steps(16, density: fill_density, bars: m, y: 0.90)
+
+  let kit = [
+    notes(kick,    instrument: "drum", tempo: m.tempo, swing: sw, humanize: 0.05, gain: 1.0),
+    notes(snare,   instrument: "drum", tempo: m.tempo, swing: sw, humanize: 0.18, gain: 0.9),
+    notes(perc,    instrument: "drum", tempo: m.tempo, swing: sw, humanize: 0.22, gain: 0.7),
+    notes(hats,    instrument: "drum", tempo: m.tempo, swing: sw, humanize: 0.25, gain: 0.65),
+    notes(cymbals, instrument: "drum", tempo: m.tempo, swing: sw, humanize: 0.30, gain: 0.5)
+  ]
+
+  // Optional visual score: shows the 5 drum lanes + a playhead sweeping across
+  field playhead = smoothstep(0.015, 0.002, abs(x - fract(t * 8)))
+  field score    = kick + snare + perc + hats + cymbals + playhead * 0.35
+
+  render sound(kit, duration: m.length, room: 0.25, echo: 0.1)
+  render midi(kit, duration: m.length, tempo: m.tempo)
+  render video(score, duration: m.length, palette: "ember", sound: kit, room: 0.25, echo: 0.1)
+}

@@ -1,0 +1,54 @@
+# The site, alea.bngz.io: site/ plus the playground and the handbook, rebuilt
+# on every push to main. In the repository's Settings › Pages, set the source
+# to "GitHub Actions"; the domain comes from site/CNAME.
+name: Site
+
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", "web/**", "src/**", "docs/**", "examples/**", "exhibition/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build the playground and the handbook
+        run: |
+          web/build.sh
+          pip install markdown Pillow
+          cargo build --release
+          python3 web/handbook.py
+      - name: Assemble the site
+        run: python3 site/build.py
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

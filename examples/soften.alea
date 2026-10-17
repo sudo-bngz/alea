@@ -1,0 +1,8 @@
+// Soften: a photograph, softened like an old print. Made for pipes:
+//   cat photo.png | alea soften.alea > soft.png
+//   cat photo.png | alea soften.alea | alea riso.alea > print.png
+work Soften {
+  let photo = input(or: "assets/astronaut.png")
+  let glow  = ~between(0.6, 1.4)
+  render image(film(vignette(bloom(blur(photo.painting, 0.003), glow), 0.5), 0.04))
+}

@@ -359,14 +359,15 @@ When an edition needed several tries, it says so:
 sound, it goes from 0 at the start to 1 at the end.
 
 ```alea
-let beat  = 0.5 + 0.5 * sin(t * tau)          // 0 → 1 → 0 over the video
+let beat  = lfo()                             // 0 → 1 → 0 over the video
 let heart = circle(x: 0.5, y: 0.5, size: 0.15 + 0.2 * beat)
 let spin  = rotate(stripes(), angle: t * 180)
 ```
 
-Any parameter can use `t`. `sin(t * tau)` goes once up, down and back to
-where it started (`tau` is a full turn, 2π), so motion built on it loops
-without a jump.
+Any parameter can use `t`. `lfo()` goes from 0 up to 1 and back to where it
+started, so motion built on it loops without a jump; `lfo(3)` does it three
+times. It is `0.5 - 0.5 * cos(t * tau)` (`tau` is a full turn, 2π), which
+you can still write yourself. Chapter 21 has more ways to move.
 
 `render video(piece, duration: 4)` writes an MP4 (with a soundtrack: see
 the next chapter) using ffmpeg; `format: "gif"` writes a silent loop.
@@ -712,6 +713,27 @@ render video(sequence([paint(calm), paint(storm), paint(still)], fade: 0.15), du
 All of these take `time:` to follow another clock than `t`: `fract(t * 4)`
 repeats four times, `progress(…, time: other)` follows anything.
 
+**Going round.** Most motion repeats, and two helpers say so:
+
+- **`lfo(times, shape, phase, from, to)`**: a value that cycles, the
+  "low-frequency oscillator" of synthesizers. `lfo()` goes from 0 to 1 and
+  back once over the work; `lfo(4)` four times (keep it a whole number and
+  the video loops). `shape` is `"sine"` (the default), `"triangle"`,
+  `"saw"` (a ramp), `"square"` or `"pulse"` (a hit at the start of each
+  turn, fading). `from` and `to` set the range, and `phase` shifts it, in
+  turns: `[lfo(phase: k / 9) for k in range(9)]` is nine values each a ninth
+  out of step. `cc(lfo(8), 74)` sweeps a synth's filter.
+- **`orbit(radius, times, phase, x, y)`**: a point `[x, y]` going round
+  (0.5, 0.5) by default. `times: [2, 3]` turns twice across and three times
+  down: a Lissajous figure. `radius: [0.4, 0.2]` makes an ellipse.
+
+```alea
+let p     = orbit(0.3, times: [2, 3])
+let comet = circle(p.x, p.y, 0.04)
+let ring  = [orbit(0.28, phase: k / 9) for k in range(9)]   // nine points, evenly round
+let flash = lfo(16, shape: "pulse")                        // sixteen hits
+```
+
 ---
 
 ## 22. Filters
@@ -749,6 +771,224 @@ render image(vignette(film(chroma(bloom(night, 2.5), 0.8), 0.06), 0.6))
 A field blur samples the field 40 times around each point, so it costs 40
 times the field; a painting blur works on pixels and costs the same whatever
 is underneath. For a large blur on a heavy work, paint it first.
+
+---
+
+## 23. Input: works in a pipe
+
+> Tour: `23-input.alea`
+
+A work can read what you give it, and give back what it makes, so works
+chain like any command:
+
+```sh
+cat portrait.png | alea contours.alea > map.png
+cat photo.jpg | alea soften.alea | alea poster.alea > print.png
+alea contours.alea --in portrait.png -o .      # the same with files
+```
+
+In the work, **`input()`** is what came in: through the pipe, or with
+`--in file`. Give it a default, so the work also runs on its own:
+
+```alea
+let photo = input(or: "portrait.png")    // a file next to the work
+let photo = input(or: clouds())          // or any value
+```
+
+An image becomes fields, which is how everything in alea is made:
+
+- **`photo.luma`**, and `.red`, `.green`, `.blue`, `.alpha`, `.hue`,
+  `.saturation`, `.lightness`: one channel each, from 0 to 1. The image
+  covers the canvas, and the canvas takes the image's size (or its
+  proportions, if you give a width), so what comes out lines up with what
+  went in.
+- **`photo.painting`**: the image in its own colours, for `overlay`,
+  `mosaic` and the filters.
+- **`colours(photo, 6)`**: its six main colours, darkest first. That's a
+  palette, so a work can draw something new in someone else's colours.
+- `photo.width`, `photo.height`: its size in pixels.
+
+Everything you know applies. `blur(photo.luma, 0.01)` softens it (a still
+picture is blurred once, on its pixels, so it costs nothing per frame),
+`edges` finds its outlines, `posterize` cuts it into levels, `relief`
+engraves it, `warp` and `kaleidoscope` bend it, and `t` animates it.
+
+**Piped out.** When the output of alea isn't a terminal and no `-o` is
+given, the work's first render goes to it (and the edition's line to the
+error output). `-o -` asks for it explicitly.
+
+**Which edition.** An edition is now its seed *and* its input: the line
+alea prints shows both (`edition 0x… · input 9ea63049`, a fingerprint of
+the input). `--seed-from-input` makes the input decide the seed, so the
+same picture always gives the same edition.
+
+Inputs can also have names, for works that take several:
+`alea duet.alea --in face=me.png --in voice=me.wav`, read with
+`input("face")`. A text input gives `.text`, `.words`, `.lines`, and
+`.rows` (each line split on commas or spaces, numbers as numbers): data to
+draw with.
+
+---
+
+## 24. Listening: a sound as input
+
+> Tour: `24-listening.alea`
+
+A sound (a WAV file; anything else through ffmpeg) becomes time:
+
+```sh
+ffmpeg -i song.mp3 -f wav - | alea equaliser.alea -o .
+```
+
+- **`song.level`**: how loud, from 0 to 1, along the sound. It's a field of
+  `t`, like `sin(t * tau)`, so it goes anywhere a number goes:
+  `circle(0.5, 0.5, 0.1 + 0.3 * song.level)`.
+- **`song.bass`**, **`song.mid`**, **`song.treble`**, and
+  **`band(song, 200, 800)`** for any band of frequencies (in Hz).
+- **`song.pulse`**: 1 on each beat, fading within a fifth of a second. The
+  simplest way to make something hit with the music.
+- **`song.beats`**: the beats as a pattern, one event per beat with its
+  strength as intensity. Patterns can be drawn (a long exposure of every
+  beat at once) and played: `notes(song.beats, instrument: "glass")` echoes
+  the rhythm.
+- `song.duration`, in seconds.
+
+A video that reads a sound lasts as long as the sound, and
+**`sound: [song]`** puts the sound itself in the soundtrack, as it is,
+alongside drones and notes. In other words: a music video, a different one
+for every seed.
+
+---
+
+## 25. MIDI: the music, for other instruments
+
+> Tour: `25-midi.alea`
+
+The layers of a soundtrack already decide notes: a `notes` layer strikes a
+note of the scale for each event, a `drone` holds notes that swell and fade.
+**`render midi`** writes those decisions as a MIDI file, for a DAW, a
+synthesizer, a score editor:
+
+```alea
+let music = [drone(tide, voices: 4, scale: "dorian"), notes(melody, instrument: "marimba", tempo: 96),
+             cc(0.5 + 0.5 * sin(t * tau), 74)]
+render sound(music, duration: 20)              // what alea plays
+render midi(music, duration: 20, tempo: 96)    // the same music, note for note
+```
+
+- Each layer is a **track** on its own **channel**, with a General MIDI
+  instrument (strings, marimba, choir…), so the file sounds right anywhere.
+- `notes`: one note per event, at the same moment and pitch as in the
+  sound, its strength as **velocity**. Drums go to channel 10: low on the
+  canvas a kick, then snare, hats, cymbals at the top.
+- `drone`: each voice a held note, struck when it rises and released when it
+  fades, and the loudness of the layer as **expression** (controller 11).
+- **`cc(field, number)`** turns a field (from 0 to 1) into a **controller**:
+  a knob that moves on its own. 74 is often a synth's filter, 1 its
+  modulation wheel; `channel:` (1–16) says which instrument hears it. A
+  `cc` is silent in alea's own sound.
+- The tempo (`tempo:`, or the first `notes` layer's) sets the file's grid,
+  so the bars line up in a DAW.
+
+**Live.** The same music can be played as it is computed, to any MIDI
+instrument:
+
+```sh
+alea modes.alea --midi                 # on a new MIDI port called "alea"
+alea modes.alea --midi-port "Minilogue" # to an existing one (alea --midi-ports lists them)
+alea modes.alea --midi --loop          # a new edition every time one ends, until Ctrl-C
+alea modes.alea --midi --sync          # following a DAW's MIDI clock: its tempo, start and stop
+alea modes.alea --midi-port print      # the messages as text, to see them
+```
+
+What is played is the work's `render midi`, or, if it has none, the layers
+of its first `render sound` or video `sound:`. With `--sync`, the music's
+beats follow the DAW's tempo, a stop silences it and a start begins again;
+with `--loop`, each new edition starts on the next bar. Ctrl-C silences
+every note. Live MIDI needs alea built with `cargo build --release
+--features midi` (on Linux, after `sudo apt install libasound2-dev`).
+
+In the playground, a `render midi` shows its notes as a piano roll, plays a
+rough preview in the page, plays to a MIDI device with Web MIDI (Chrome,
+Edge), and saves the `.mid` file.
+
+---
+
+## 26. Harmony and rhythm: a generative track
+
+> Tour: `26-harmony.alea`
+
+Music lives in bars, so the first thing is a **meter**:
+
+```alea
+let m = meter(100, bars: 8)          // 100 beats per minute, 8 bars of 4 beats
+render sound(music, duration: m.length)
+render midi(music, duration: m.length, tempo: m.tempo)
+```
+
+`m.length` is the duration in seconds, `m.bar` and `m.beat` the length of
+one bar and one beat. Keys can now be written as **note names** everywhere:
+`key: "D3"`, `"F#2"`, `"Bb4"` (A4 is 440 Hz).
+
+**Rhythms** are patterns, so they go wherever patterns go (`notes`, `arp`,
+pictures, MIDI). Each spans the work, bar after bar (`bars:` a number or a
+meter), and `y:` sets the height of its events (for drums: low is a kick,
+then snare, hats, cymbals):
+
+- **`euclid(hits, steps)`**: hits spread as evenly as possible over the
+  steps of a bar. A small rule behind many of the world's rhythms:
+  `euclid(3, 8)` is the tresillo, `euclid(5, 8)` the cinquillo, `euclid(7, 16)`
+  a samba line. `rotate:` shifts it.
+- **`steps("X...x...X...x..o")`**: a step sequencer. `X` an accent, `x` a
+  hit, `o` a soft hit, `.` a rest; `|` starts the next bar, and the bars
+  written repeat.
+- **`steps(16, density: field)`**: a random hit on each of 16 steps, more
+  likely where the field is high (read left to right along the middle of the
+  canvas as time runs): a visual decides the groove.
+
+On `notes`, **`swing: 0.6`** delays every second sixteenth (0.5 is straight,
+0.66 a triplet feel) and **`humanize: 0.3`** loosens moments and velocities.
+Both need the layer's `tempo`.
+
+**Harmony.** `chords` makes a progression that spans the work:
+
+```alea
+let prog = chords("i iv V7 i", key: "A3", scale: "minor", bars: m)
+let prog = chords("Am F C G7", bars: m)                       // chord names work too
+let prog = chords("functional", key: "D3", scale: "dorian", bars: m, tension: 0.5)
+```
+
+- **Roman numerals** count on the scale: upper case for major, lower case
+  for minor, `°` diminished, `+` augmented, `7`, `maj7`, `9`, `6`, `sus2`,
+  `sus4`, and `b` or `#` in front for borrowed chords (`bVII`). `"i:2 iv V"`
+  gives the first chord twice the time.
+- **`"functional"`** draws the progression, one chord per bar, the way
+  tonal music moves: home (tonic: I, vi, iii), away (subdominant: IV, ii),
+  tension (dominant: V, vii°), and home again, with a cadence at the end of
+  each phrase of four bars and V–I at the end. `tension` (0–1) asks for more
+  dominants and sevenths; in a minor mode the dominant is often made major.
+  Each edition gets a new progression that still sounds right.
+- `prog.names` lists its chords ("i", "IV", "V7"…), and `prog.index` is a
+  field of time, 0 for the first chord, 1 for the second…: pictures can
+  follow the harmony.
+
+Layers follow it with **`harmony: prog`**: a `drone`'s voices move to the
+nearest note of each new chord (voice leading, gliding), and `notes` play
+the notes of the chord of the moment (the height of an event picks among
+them, over three octaves). The layer's `key` keeps its register: `key:
+prog.key / 4` is two octaves down, a bass.
+
+**The arpeggiator** plays the chord one note at a time, on a rhythm:
+
+```alea
+arp(prog, euclid(7, 16, bars: m), mode: "updown", octaves: 2, gate: 0.6, instrument: "marimba")
+```
+
+`mode` is `"up"`, `"down"`, `"updown"`, `"random"` or `"converge"` (from the
+outside in); `octaves` how far it climbs; `gate` how long each note is held
+before the next (in MIDI). It's a layer like `notes`: heard in alea's sound,
+written in `render midi`, played live with `--midi`, following a DAW with
+`--sync`. Its tempo comes from the meter of the progression.
 
 ---
 

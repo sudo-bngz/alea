@@ -1,0 +1,77 @@
+// Track — Full multi-layer generative track (Drums + Bass + Pad + Arp + Lead)
+// Run: ./target/release/alea examples/track.alea
+
+work Track {
+  // 1. Master clock, groove, key & shared functional harmony
+  let bpm  = choose { 114 | 120 | 126 }
+  let sw   = ~between(0.54, 0.61)
+  let root = choose { "C3" | "D3" | "F3" | "A2" }
+  let mode = choose { "dorian" | "minor" }
+  let m    = meter(bpm, bars: 8)
+
+  let prog = chords("functional", key: root, scale: mode, bars: m, tension: ~between(0.4, 0.7))
+
+  // 2. Drums (no `harmony:` so `y` selects Kick / Snare / Perc / Hats)
+  let kick  = choose {
+      steps("X...X...X...X...|X...X...X..oX...", bars: m, y: 0.10)
+    | steps("X..x..X...x.X...|X..x..X.o.x.X.o.", bars: m, y: 0.10)
+  }
+  let snare = steps("....X..o....X...|....X..o..o.X.xo", bars: m, y: 0.35)
+  let perc  = euclid(choose { 5 | 7 }, 16, bars: m, rotate: choose { 1 | 3 }, y: 0.52)
+  let hats  = steps("o.x.o.X.o.x.o.X.|o.x.o.X.o.x.X.xo", bars: m, y: 0.75)
+
+  // 3. Bassline: locked to chord root (`y: 0.1`) two octaves down (`prog.key / 4`)
+  let bass_steps = choose {
+      steps("X..x..X...x.X.o.|X..x..X.o.x.X.x.", bars: m, y: 0.10)
+    | steps("..X...x...X..o.x|..X...x.o.X..x.o", bars: m, y: 0.10)
+  }
+
+  // 4. Chord Pad: breathing field that shifts with each chord (`prog.index`)
+  field pad_field = (0.4 + 0.6 * lfo(8, shape: "sine"))
+    * (0.5 + 0.5 * sin(y * (6 + prog.index * 2) + x * 4 - t * tau * 2))
+
+  // 5. Arpeggiator: Euclidean rhythm walking 2 octaves of the current chord
+  let arp_rhythm = euclid(choose { 7 | 9 | 11 }, 16, bars: m, rotate: choose { 0 | 2 })
+  let arp_mode   = choose { "updown" | "converge" | "up" }
+
+  // 6. Lead Melody: sparse notes picking chord tones across octaves via `y`
+  pattern lead_notes = repeat 32 event(
+    x: ~between(0.25, 0.75),
+    y: ~beta(2, 2),
+    t: i / n,
+    intensity: ~between(0.45, 0.9) * (i % 3 != 0),
+    size: ~between(0.01, 0.03)
+  )
+
+  // 7. Full multi-track mix & MIDI output
+  let mix_layers = [
+    // Rhythm section
+    notes(kick,  instrument: "drum", tempo: m.tempo, swing: sw, gain: 0.95),
+    notes(snare, instrument: "drum", tempo: m.tempo, swing: sw, humanize: 0.12, gain: 0.85),
+    notes(perc,  instrument: "drum", tempo: m.tempo, swing: sw, humanize: 0.20, gain: 0.55),
+    notes(hats,  instrument: "drum", tempo: m.tempo, swing: sw, humanize: 0.22, gain: 0.55),
+
+    // Harmonic layers (all locked to `prog`)
+    notes(bass_steps, harmony: prog, key: prog.key / 4, instrument: "pluck", tempo: m.tempo, swing: sw, humanize: 0.06, gain: 0.95),
+    drone(pad_field,  harmony: prog, key: prog.key / 2, voices: 4, instrument: choose { "strings" | "choir" | "organ" }, gain: 0.55),
+    arp(prog, arp_rhythm, mode: arp_mode, octaves: 2, gate: 0.55, key: prog.key, instrument: choose { "kalimba" | "marimba" }, gain: 0.70),
+    notes(lead_notes, harmony: prog, key: prog.key * 2, instrument: choose { "bell" | "glass" }, tempo: m.tempo, swing: sw, humanize: 0.15, gain: 0.50),
+
+    // Subtle vinyl crackle + MIDI filter automation
+    texture(pad_field, kind: "crackle", gain: 0.12),
+    cc(lfo(4, shape: "sine", from: 0.25, to: 0.9), 74, channel: 6)
+  ]
+
+  // 8. Visuals: Lissajous `orbit()` + chord rings synced to the arrangement
+  let satellites = merge([
+    circle(x: p.x, y: p.y, size: 0.025 + 0.02 * lfo(8, shape: "pulse"), softness: 0.4)
+    for k in range(8)
+    for p in [orbit(0.28, times: [2, 3], phase: k / 8)]
+  ])
+  field stage = pad_field * 0.45 + satellites + arp_rhythm * 0.6 + lead_notes * 0.8
+  let video_out = vignette(bloom(paint(stage, palette: choose { "night" | "ember" | "sea" }), 1.5), 0.5)
+
+  render sound(mix_layers, duration: m.length, room: 0.45, echo: 0.2)
+  render midi(mix_layers, duration: m.length, tempo: m.tempo)
+  render video(video_out, duration: m.length, sound: mix_layers, room: 0.45, echo: 0.2)
+}

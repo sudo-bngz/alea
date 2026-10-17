@@ -1,0 +1,31 @@
+// CVJ — Warm analog tape & sun-bleached visualizer for Casino Versus Japan
+work CVJ {
+  let song   = input()
+  let cos(a) = sin(a + tau * 0.25)
+
+  // Warm drifting horizon & sea swells driven by `song.level` and `song.bass`
+  field sea = 0.5 + 0.5 * sin(y * 22 + 3 * noise(x * 3, y * 3, t * 2) - t * tau * 2)
+  let sun   = warp(
+    circle(x: 0.5, y: 0.42, size: 0.28 + 0.22 * song.bass + 0.08 * song.pulse, softness: 0.45),
+    amount: 0.03 + 0.05 * song.mid
+  )
+
+  // Floating bokeh rings reacting to treble & mid melodies
+  let rings = merge([
+    ring(
+      x: 0.2 + 0.6 * ((k * 0.37) % 1) + 0.04 * cos(t * tau + k),
+      y: 0.2 + 0.6 * ((k * 0.61) % 1) + 0.04 * sin(t * tau + k),
+      size: 0.05 + 0.14 * band(song, 120 + k * 220, 340 + k * 220),
+      width: 0.003
+    )
+    for k in range(8)
+  ])
+
+  field scene = sea * (y > 0.48) * 0.55 + sun + rings * (0.4 + 0.8 * song.treble)
+  let tape    = paint(scene, palette: ["#120d16", "#4a2538", "#d95d39", "#f4a259", "#fff3d6"])
+
+  render video(
+    vignette(film(chroma(bloom(tape, 1.6), 0.45), 0.06), 0.55),
+    sound: [song]
+  )
+}

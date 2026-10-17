@@ -1,0 +1,80 @@
+// SynthPatch — Modular VCO + LFO + ADSR Envelope synthesis
+// Run: ./target/release/alea examples/synth-patch.alea
+
+work SynthPatch {
+  let cos(a) = sin(a + tau * 0.25)
+
+  // 1. LFOs (Control Voltage generators over time `t`)
+  // Slow 0.25 Hz LFO for harmonic sweep + faster 2 Hz LFO for vibrato/tremolo
+  let lfo_sweep   = 0.5 + 0.5 * sin(t * tau * 3)
+  let lfo_vibrato = sin(t * tau * 24)
+  let lfo_pan     = 0.5 + 0.38 * cos(t * tau * 4)
+
+  // 2. Repeating 8-step clock (`phase` goes 0 -> 1 eight times over the clip)
+  let phase = (t * 8) % 1
+
+  // 3. ADSR Envelope Generator function (built with smoothstep slopes)
+  // a = attack end, d = decay end, s = sustain level, r = release start
+  let adsr(p, a, d, s, r) = (
+    smoothstep(0, a, p)
+    * (1 - (1 - s) * smoothstep(a, d, p))
+    * (1 - smoothstep(r, 1.0, p))
+  )
+
+  let env = adsr(phase, 0.06, 0.32, 0.45, 0.82)
+
+  // 4. Oscillator (VCO): Horizontal excitation band whose `y` pitch is swept by the LFO
+  // When `env` opens, the band also widens to excite upper harmonics (like opening a VCF)
+  let vco_y      = 0.25 + 0.55 * lfo_sweep + 0.025 * lfo_vibrato
+  let filter_bw  = 0.04 + 0.16 * env
+  field vco_band = smoothstep(filter_bw, 0, abs(y - vco_y))
+
+  // Apply stereo auto-panning along `x` and oscillator waveform ripple
+  field stereo_pan = smoothstep(0.45, 0, abs(x - lfo_pan))
+  field waveform   = 0.65 + 0.35 * sin(x * 40 + lfo_vibrato * 4 - t * tau * 16)
+
+  // 5. Final patched synth signal: VCO * VCF/VCA Envelope * Stereo Pan
+  field synth_voice = vco_band * stereo_pan * waveform * env
+
+  //Sub-bass anchor at the top of the canvas (y = 0.08 is the lowest voice)
+  let sub_env  = adsr((t * 4) % 1, 0.04, 0.4, 0.6, 0.85)
+  field sub_osc = smoothstep(0.08, 0, abs(y - 0.08)) * sub_env * 0.7
+
+  // 6. Visual Oscilloscope trace so you see the exact CV envelope + LFO on screen
+  field scope_line = smoothstep(0.008, 0.002, abs(y - (0.88 - 0.18 * adsr((x * 4) % 1, 0.06, 0.32, 0.45, 0.82))))
+  field master = synth_voice + sub_osc + scope_line * 0.5 + ~~uniform(0, 1) * 0.015
+
+  // Sequenced percussive pluck transient on each envelope trigger
+  pattern triggers = repeat 32 event(
+    x: 0.5 + 0.35 * cos((i / n) * tau * 4),
+    y: 0.25 + 0.55 * (0.5 + 0.5 * sin((i / n) * tau * 3)),
+    t: i / n,
+    intensity: 0.45 + 0.45 * (i % 4 == 0),
+    size: 0.006 + 0.018 * (i % 2 == 0)
+  )
+
+  let scope_palette = ["#050807", "#0d2b22", "#187a57", "#39ff9f", "#eafff5"]
+  let root_key = choose { 55 | 65.4 | 73.4 } // A1, C2, or D2
+
+  render sound(
+    drone(synth_voice + sub_osc, instrument: "organ", scale: "dorian", key: root_key, gain: 0.85),
+    notes(triggers, instrument: "pluck", scale: "dorian", key: root_key * 2, tempo: 120),
+    texture(synth_voice, kind: "crackle", gain: 0.15),
+    duration: 16,
+    room: 0.55,
+    echo: 0.3
+  )
+
+  render video(
+    master,
+    duration: 16,
+    palette: scope_palette,
+    sound: [
+      drone(synth_voice + sub_osc, instrument: "organ", scale: "dorian", key: root_key, gain: 0.85),
+      notes(triggers, instrument: "pluck", scale: "dorian", key: root_key * 2, tempo: 120),
+      texture(synth_voice, kind: "crackle", gain: 0.15)
+    ],
+    room: 0.55,
+    echo: 0.3
+  )
+}

@@ -4,14 +4,21 @@
 
 function aleaWorkerMain() {
   let x = null, wasmBytes = null;
-  const files = new Map(), enc = new TextEncoder(), dec = new TextDecoder();
+  const files = new Map(), inputs = new Map(), enc = new TextEncoder(), dec = new TextDecoder();
 
   async function boot() {
     const { instance } = await WebAssembly.instantiate(wasmBytes, {});
     x = instance.exports;
     x.alea_init();
     for (const [p, d] of files) putFile(p, d);
+    for (const [n, d] of inputs) putInput(n, d);
   }
+  const putInput = (name, data) => {
+    const [np, nl] = put(enc.encode(name));
+    const [dp, dl] = put(data);
+    const rc = x.alea_input_put(np, nl, dp, dl);
+    return JSON.parse(dec.decode(out())) || { ok: rc === 0 };
+  };
   const put = (bytes) => {
     const p = x.alea_alloc(bytes.length);
     new Uint8Array(x.memory.buffer, p, bytes.length).set(bytes);
@@ -47,6 +54,7 @@ function aleaWorkerMain() {
       if (m.type === 'init') {
         wasmBytes = m.wasm;
         for (const f of m.files) files.set(f.path, f.data);
+        for (const i of m.inputs || []) inputs.set(i.name, i.data);
         await boot();
         return reply({ ok: true });
       }
@@ -55,6 +63,18 @@ function aleaWorkerMain() {
         files.set(m.path, m.data);
         putFile(m.path, m.data);
         return reply({ ok: true });
+      }
+      if (m.type === 'input') {
+        // null data: no input of that name any more
+        if (m.data) inputs.set(m.name, m.data); else inputs.delete(m.name);
+        x.alea_input_clear();
+        let res = { ok: true };
+        for (const [n, d] of inputs) {
+          const r = putInput(n, d);
+          if (n === m.name) res = r;
+          if (!r.ok) inputs.delete(n);
+        }
+        return reply({ json: res });
       }
       if (m.type === 'run') {
         const src = enc.encode(m.source);
@@ -71,6 +91,8 @@ function aleaWorkerMain() {
         sound: () => x.alea_sound(m.index),
         stl: () => x.alea_stl(m.index),
         png: () => x.alea_png(m.index),
+        midi: () => x.alea_midi(m.index),
+        score: () => x.alea_score(m.index),
       };
       const r = call(fns[m.type]);
       if (r.crash) return reply({ crash: r.crash });
@@ -86,6 +108,7 @@ class AleaEngine {
   constructor(wasmBytes, files) {
     this.wasm = wasmBytes;           // Uint8Array
     this.files = files;              // [{path, data: Uint8Array}]
+    this.inputs = [];                // [{name, data: Uint8Array}]: what a pipe brings
     this.start();
   }
   start() {
@@ -107,6 +130,7 @@ class AleaEngine {
       type: 'init',
       wasm: this.wasm.slice(),
       files: this.files.map((f) => ({ path: f.path, data: f.data.slice() })),
+      inputs: this.inputs.map((i) => ({ name: i.name, data: i.data.slice() })),
     });
   }
   /** Cancels whatever is running by starting a fresh worker. */
@@ -122,6 +146,13 @@ class AleaEngine {
       this.worker.postMessage({ id, ...msg });
     });
   }
+  /** Gives the work an input ("" is the default one), or removes it (data null). */
+  async setInput(name, data) {
+    const r = await this.request({ type: 'input', name, data: data ? data.slice() : null });
+    this.inputs = this.inputs.filter((i) => i.name !== name);
+    if (data && r.json && r.json.ok) this.inputs.push({ name, data });
+    return r.json || { ok: false, message: r.crash || 'the engine stopped' };
+  }
   addFile(path, data) {
     this.files = this.files.filter((f) => f.path !== path).concat([{ path, data }]);
     return this.request({ type: 'put', path, data: data.slice() });
@@ -129,6 +160,29 @@ class AleaEngine {
 }
 
 // ───────────── helpers shared by the pages ─────────────
+
+/** A score from the engine: { duration, msgs: [{ at, bytes }] }. */
+function aleaScore(bytes) {
+  const v = new DataView(bytes instanceof ArrayBuffer ? bytes : bytes.buffer);
+  const duration = v.getFloat32(0, true), msgs = [];
+  for (let o = 4; o + 8 <= v.byteLength; o += 8) {
+    const n = v.getUint8(o + 4);
+    msgs.push({ at: v.getFloat32(o, true), bytes: [v.getUint8(o + 5), v.getUint8(o + 6), v.getUint8(o + 7)].slice(0, n) });
+  }
+  return { duration, msgs };
+}
+
+/** The notes of a score, paired: [{ ch, note, vel, start, end }]. */
+function aleaNotes(score) {
+  const open = new Map(), out = [];
+  for (const m of score.msgs) {
+    const [st, n, v] = m.bytes, kind = st & 0xf0, ch = st & 0x0f, key = ch * 128 + n;
+    if (kind === 0x90 && v > 0) { open.set(key, { ch, note: n, vel: v, start: m.at }); }
+    else if (kind === 0x80 || kind === 0x90) { const o = open.get(key); if (o) { o.end = m.at; out.push(o); open.delete(key); } }
+  }
+  for (const o of open.values()) { o.end = score.duration; out.push(o); }
+  return out;
+}
 
 function aleaRandomSeed() {
   const a = new Uint32Array(2);

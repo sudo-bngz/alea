@@ -9,8 +9,8 @@
 // They are mixed in stereo, with an echo and a room around them.
 
 work Sound {
-  let swell = 0.5 + 0.5 * sin(y * 8 + t * tau * 3)
-  let mist = clouds(scale: 3) * (0.5 + 0.5 * sin(t * tau))
+  let swell = lfo(3, phase: y * 1.3)
+  let mist = clouds(scale: 3) * lfo()
 
   pattern bells = repeat 32 event(
       t: i / n,                                 // evenly spaced in time

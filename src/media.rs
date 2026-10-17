@@ -109,6 +109,11 @@ impl Render {
         }
     }
 
+    /// A sound input's duration if the work read one (at most 10 minutes), or `fallback`.
+    fn default_length(&self, fallback: f64) -> f64 {
+        self.length.map_or(fallback, |d| d.clamp(0.5, 600.0))
+    }
+
     fn duration(&self, default: f64) -> Res<f64> {
         let d = self.number("duration", default)?;
         if !(0.5..=600.0).contains(&d) {
@@ -200,13 +205,15 @@ pub struct SculptureSpec {
 pub fn image_spec(r: &Render) -> Res<ImageSpec> {
     r.check(1, &["width", "height", "at", "palette", "bands", "range"])?;
     r.visual("the field to paint")?;
-    let w = r.integer("width", 1024.0, 16, 8192)?;
+    // an image input: its own size by default, or its proportions
+    let (w_default, ratio) = r.canvas.map_or((1024.0, 1.0), |(iw, ih)| (iw as f64, ih as f64 / iw as f64));
+    let w = r.integer("width", w_default.max(16.0), 16, 8192)?;
     if matches!(r.visual("the field to paint")?, Visual::Paint(_)) && (r.named.contains_key("bands") || r.named.contains_key("range")) {
         return Err(Error::new("a painting has its own colours: give `bands` and `range` to `paint(…)` instead", r.span));
     }
     Ok(ImageSpec {
         w,
-        h: r.integer("height", w as f64, 16, 8192)?,
+        h: r.integer("height", (w as f64 * ratio).round().max(16.0), 16, 8192)?,
         at: r.number("at", 0.0)?,
         stops: r.palette()?,
         range: r.range()?,
@@ -226,6 +233,9 @@ fn sound_params(r: &Render, duration: f64) -> Res<SoundSpec> {
 fn collect_layers(v: &Val, span: crate::error::Span, out: &mut Vec<std::sync::Arc<crate::sound::Layer>>) -> Res<()> {
     match v {
         Val::Sound(l) => out.push(l.clone()),
+        Val::Input(i) if matches!(i.kind, crate::input::Kind::Sound(_)) => {
+            out.push(std::sync::Arc::new(crate::sound::Layer::Clip { input: i.clone(), gain: 1.0 }))
+        }
         Val::List(items) => {
             for i in items.iter() {
                 collect_layers(i, span, out)?;
@@ -233,7 +243,7 @@ fn collect_layers(v: &Val, span: crate::error::Span, out: &mut Vec<std::sync::Ar
         }
         _ => {
             return Err(Error::new(
-                "expected sounds: `drone(field)`, `notes(pattern)` or `texture(field)`, or a list of them",
+                "expected sounds: `drone(field)`, `notes(pattern)`, `texture(field)` or a sound input, or a list of them",
                 span,
             ))
         }
@@ -251,6 +261,7 @@ fn mix_of(r: &Render, duration: f64) -> Res<crate::sound::Mix> {
 
 fn layered(r: &Render) -> bool {
     matches!(r.positional.first(), Some((Val::Sound(_) | Val::List(_), _)))
+        || matches!(r.positional.first(), Some((Val::Input(i), _)) if matches!(i.kind, crate::input::Kind::Sound(_)))
 }
 
 /// Checks a `render sound` (layered or original) and gives its duration.
@@ -262,7 +273,7 @@ pub fn sound_duration(r: &Render) -> Res<f64> {
             collect_layers(v, *span, &mut layers)?;
         }
         mix_of(r, 0.0)?;
-        return r.duration(20.0);
+        return r.duration(r.default_length(20.0));
     }
     Ok(sound_spec(r)?.duration)
 }
@@ -284,7 +295,7 @@ pub fn sound_channels(r: &Render, seed: u64) -> Res<Vec<Vec<f64>>> {
         for (v, span) in &r.positional {
             collect_layers(v, *span, &mut layers)?;
         }
-        let [l, rr] = crate::sound::render(&layers, &mix_of(r, r.duration(20.0)?)?);
+        let [l, rr] = crate::sound::render(&layers, &mix_of(r, r.duration(r.default_length(20.0))?)?);
         return Ok(vec![l, rr]);
     }
     let s = sound_spec(r)?;
@@ -305,11 +316,77 @@ pub fn video_channels(r: &Render, spec: &VideoSpec, seed: u64) -> Res<Vec<Vec<f6
     Ok(vec![master(&synth(f, r.pattern_arg()?, &spec.sound, seed))])
 }
 
+pub struct MidiSpec {
+    pub duration: f64,
+    pub tempo: Option<f64>,
+    pub layers: Vec<std::sync::Arc<crate::sound::Layer>>,
+}
+
+/// `render midi(layers…, duration, tempo)`: the same layers as a sound.
+pub fn midi_spec(r: &Render) -> Res<MidiSpec> {
+    r.check(16, &["duration", "tempo"])?;
+    let mut layers = Vec::new();
+    for (v, span) in &r.positional {
+        collect_layers(v, *span, &mut layers)?;
+    }
+    if layers.is_empty() {
+        return Err(Error::new("`render midi` plays layers: `render midi(drone(field), notes(pattern), cc(field, 74))`", r.span));
+    }
+    let tempo = r.number("tempo", 0.0)?;
+    if !(0.0..=400.0).contains(&tempo) {
+        return Err(Error::new("`tempo` goes from 0 to 400 beats per minute", r.span_of("tempo")));
+    }
+    Ok(MidiSpec { duration: r.duration(r.default_length(20.0))?, tempo: (tempo > 0.0).then_some(tempo), layers })
+}
+
+/// The score of a `render midi`.
+pub fn midi_score(r: &Render, title: &str) -> Res<crate::midi::Score> {
+    let s = midi_spec(r)?;
+    Ok(crate::midi::score(&s.layers, s.duration, s.tempo, title))
+}
+
+/// What an edition plays live: its first `render midi`, otherwise the layers
+/// of its first layered sound or video soundtrack. None: it has no music.
+pub fn live_score(ed: &Edition) -> Option<Res<crate::midi::Score>> {
+    if let Some(r) = ed.renders.iter().find(|r| r.kind == "midi") {
+        return Some(midi_score(r, &ed.name));
+    }
+    for r in &ed.renders {
+        let found = (|| -> Res<Option<crate::midi::Score>> {
+            let (layers, duration) = match r.kind.as_str() {
+                "sound" if layered(r) => {
+                    let mut l = Vec::new();
+                    for (v, span) in &r.positional {
+                        collect_layers(v, *span, &mut l)?;
+                    }
+                    (l, sound_duration(r)?)
+                }
+                "video" => match r.named.get("sound") {
+                    Some((v, span)) => {
+                        let mut l = Vec::new();
+                        collect_layers(v, *span, &mut l)?;
+                        (l, video_spec(r)?.duration)
+                    }
+                    None => return Ok(None),
+                },
+                _ => return Ok(None),
+            };
+            Ok(Some(crate::midi::score(&layers, duration, None, &ed.name)))
+        })();
+        match found {
+            Ok(Some(s)) => return Some(Ok(s)),
+            Ok(None) => {}
+            Err(e) => return Some(Err(e)),
+        }
+    }
+    None
+}
+
 pub fn sound_spec(r: &Render) -> Res<SoundSpec> {
     r.check(2, &["duration", "fundamental", "voices"])?;
     r.required_field(0, "a field (the drone)")?;
     r.pattern_arg()?;
-    sound_params(r, r.duration(20.0)?)
+    sound_params(r, r.duration(r.default_length(20.0))?)
 }
 
 pub fn video_spec(r: &Render) -> Res<VideoSpec> {
@@ -318,11 +395,13 @@ pub fn video_spec(r: &Render) -> Res<VideoSpec> {
     if !painting {
         r.pattern_arg()?;
     }
-    let duration = r.duration(10.0)?;
+    let duration = r.duration(r.default_length(10.0))?;
     let fps = r.integer("fps", 30.0, 1, 120)?;
     // Even sizes: required by the yuv420p encoding most players expect.
     let w = r.integer("width", 720.0, 16, 3840)? & !1;
-    let h = r.integer("height", w as f64, 16, 3840)? & !1;
+    // an image input: the same proportions
+    let h_default = r.canvas.map_or(w as f64, |(iw, ih)| (w as f64 * ih as f64 / iw as f64).round().max(16.0));
+    let h = r.integer("height", h_default, 16, 3840)? & !1;
     let format = r.string("format", "mp4")?;
     if !matches!(format.as_str(), "mp4" | "gif") {
         return Err(Error::new("`format` must be \"mp4\" or \"gif\"", r.span_of("format")));
@@ -378,6 +457,7 @@ pub fn validate(ed: &Edition) -> Res<()> {
                 video_spec(r)?;
                 check_video_sound(r)?;
             }
+            "midi" => drop(midi_spec(r)?),
             _ => drop(sculpture_spec(r)?),
         }
     }

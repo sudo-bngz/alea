@@ -1,0 +1,86 @@
+// Collider — 2D elastic ball physics, pairwise deflections & impact shockwaves
+// Run: ./target/release/alea examples/collision.alea
+
+work Collider {
+  // 1. Triangle-wave wall reflection inside the [0.16 .. 0.84] arena
+  let bounce(u) = 0.16 + 0.68 * (1 - abs(fract(u) * 2 - 1))
+
+  // Initial positions and integer speeds (loops seamlessly)
+  let px = [~uniform(0, 1) for k in range(7)]
+  let py = [~uniform(0, 1) for k in range(7)]
+  let vx = [choose { 2 | 3 | 4 } for k in range(7)]
+  let vy = [choose { 2 | 3 | 4 } for k in range(7)]
+
+  let raw = [[bounce(px[k] + t * vx[k]), bounce(py[k] + t * vy[k])] for k in range(7)]
+
+  // 2. Pairwise elastic deflection (self-terms cancel automatically since a.x - a.x == 0)
+  let dist(a, b)   = distance(a.x, a.y, b.x, b.y)
+  let push_x(a, b) = ((a.x - b.x) / (dist(a, b) + 0.01)) * smoothstep(0.14, 0.02, dist(a, b)) * 0.065
+  let push_y(a, b) = ((a.y - b.y) / (dist(a, b) + 0.01)) * smoothstep(0.14, 0.02, dist(a, b)) * 0.065
+
+  let balls_pos = [
+    [a.x + sum([push_x(a, b) for b in raw]), a.y + sum([push_y(a, b) for b in raw])]
+    for a in raw
+  ]
+
+  // 3. Render spheres with 3D `relief` shading + `at()` velocity motion trails
+  field spheres = merge([circle(x: p.x, y: p.y, size: 0.075, softness: 0.08) for p in balls_pos])
+  field shaded  = spheres * 0.65 + relief(spheres, angle: 135, depth: 8) * 0.55
+  field trails  = at(spheres, (t + 0.988) % 1) * 0.30 + at(spheres, (t + 0.975) % 1) * 0.15
+
+  // 4. Collision shockwaves & flashes at the exact contact midpoint between any pair (a < b)
+  let hit(p1, p2) = smoothstep(0.135, 0.075, dist(p1, p2))
+  field sparks = merge([
+    (a < b) * hit(raw[a], raw[b]) * merge(
+      ring(
+        x: (balls_pos[a].x + balls_pos[b].x) * 0.5,
+        y: (balls_pos[a].y + balls_pos[b].y) * 0.5,
+        size: 0.18 - dist(raw[a], raw[b]),
+        width: 0.005
+      ),
+      circle(
+        x: (balls_pos[a].x + balls_pos[b].x) * 0.5,
+        y: (balls_pos[a].y + balls_pos[b].y) * 0.5,
+        size: 0.04,
+        softness: 0.7
+      )
+    )
+    for a in range(7) for b in range(7)
+  ])
+
+  // Arena boundary box
+  let arena = cut(
+    square(x: 0.5, y: 0.5, size: 0.76, angle: 0),
+    square(x: 0.5, y: 0.5, size: 0.752, angle: 0)
+  )
+
+  // 5. Two-layer painting with `bloom` and `chroma` for glowing impacts
+  field base_layer = arena * 0.5 + trails + shaded
+  let body_paint   = paint(base_layer, palette: ["#07090e", "#1a283b", "#5c82a6", "#e4f0fb"])
+  let spark_paint  = paint(sparks, palette: ["#07090e", "#ff6b35", "#ffd166", "#ffffff"], alpha: sparks)
+
+  let comp   = overlay(body_paint, spark_paint, blend: "screen", opacity: 1.0)
+  let final  = vignette(film(chroma(bloom(comp, 1.5), 0.35), 0.03), 0.45)
+
+  // 6. Percussive collision audio
+  pattern ricochet = repeat 48 event(
+    x: ~between(0.2, 0.8),
+    y: ~between(0.2, 0.8),
+    t: i / n,
+    intensity: ~between(0.5, 0.95),
+    size: 0.008
+  )
+
+  render image(final, at: 0.35)
+  render video(
+    final,
+    duration: 15,
+    sound: [
+      drone(spheres, instrument: "glass", scale: "pentatonic", key: 110, gain: 0.4),
+      notes(ricochet, instrument: "marimba", scale: "pentatonic", key: 220, tempo: 128),
+      texture(sparks, kind: "crackle", gain: 0.5)
+    ],
+    room: 0.5,
+    echo: 0.2
+  )
+}

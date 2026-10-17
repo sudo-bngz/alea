@@ -24,6 +24,39 @@ impl Raster {
         self.h as f64 / self.w as f64
     }
 
+    /// A Gaussian blur of the bitmap, `sigma` pixels wide (edges repeated).
+    pub fn blurred(&self, sigma: f64) -> Arc<Raster> {
+        let (w, h) = (self.w, self.h);
+        if sigma < 0.3 {
+            return Arc::new(Raster { w, h, data: self.data.clone() });
+        }
+        let r = ((sigma * 3.0).ceil() as usize).min(512);
+        let k: Vec<f64> = (0..=2 * r).map(|i| (-((i as f64 - r as f64) / sigma).powi(2) / 2.0).exp()).collect();
+        let sum: f64 = k.iter().sum();
+        let k: Vec<f32> = k.iter().map(|v| (v / sum) as f32).collect();
+        let pass = |src: &[f32], horizontal: bool| -> Vec<f32> {
+            let mut out = vec![0.0f32; w * h];
+            for j in 0..h {
+                for i in 0..w {
+                    let mut acc = 0.0f32;
+                    for (n, wt) in k.iter().enumerate() {
+                        let o = n as i64 - r as i64;
+                        let (x, y) = if horizontal {
+                            ((i as i64 + o).clamp(0, w as i64 - 1) as usize, j)
+                        } else {
+                            (i, (j as i64 + o).clamp(0, h as i64 - 1) as usize)
+                        };
+                        acc += src[y * w + x] * wt;
+                    }
+                    out[j * w + i] = acc;
+                }
+            }
+            out
+        };
+        let data = pass(&pass(&self.data, true), false);
+        Arc::new(Raster { w, h, data })
+    }
+
     /// Bilinear sample at (u, v) ∈ [0, 1]²; 0 outside.
     pub fn sample(&self, u: f64, v: f64) -> f64 {
         if !(0.0..=1.0).contains(&u) || !(0.0..=1.0).contains(&v) {

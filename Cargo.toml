@@ -1,9 +1,28 @@
+[workspace]
+members = [".", "plugin", "plugin/xtask"]
+# `cargo build` at the top builds alea itself; the plugin is built with
+# `cargo xtask bundle alea_plugin --release` (see plugin/README.md)
+default-members = ["."]
+
 [package]
-name = "alea"
+# "alea" is taken on crates.io: the package is alea-lang, the library and
+# the command are alea.
+name = "alea-lang"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+description = "A non-deterministic language for generative art: a program is a work, every run draws a new edition (image, sound, video, MIDI)"
+repository = "https://github.com/sudo-bngz/alea"
+homepage = "https://alea.bngz.io"
+documentation = "https://alea.bngz.io/handbook.html"
+readme = "README.md"
+keywords = ["generative-art", "creative-coding", "language", "procedural", "music"]
+categories = ["multimedia::images", "multimedia::audio", "command-line-utilities", "compilers"]
+# what goes to crates.io: the sources, the fonts, the examples and the web engine
+include = ["src/**", "fonts/**", "examples/**", "web/engine.js", "web/viewer.html", "build.rs", "README.md", "LICENSE"]
 
 [lib]
+name = "alea"
 crate-type = ["rlib", "cdylib"]
 
 [[bin]]
@@ -14,18 +33,30 @@ required-features = ["native"]
 [features]
 default = ["native"]
 # The command line: parallel rendering, WAV/MP4 output and OS randomness.
-native = ["dep:rayon", "dep:hound", "rand/thread_rng"]
+native = ["dep:rayon", "dep:hound", "dep:libc", "rand/thread_rng"]
+# Live MIDI (`alea work.alea --midi`): needs ALSA's headers on Linux (libasound2-dev).
+midi = ["native", "dep:midir"]
 
 [dependencies]
 ab_glyph = "0.2"
 hound = { version = "3.5", optional = true }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 libm = "0.2"
+libc = { version = "0.2", optional = true }
 rand = { version = "0.9", default-features = false, features = ["std"] }
 rand_chacha = { version = "0.9", default-features = false, features = ["std"] }
 rayon = { version = "1", optional = true }
+midir = { version = "0.9", optional = true }
 
 [profile.release]
 panic = "abort"
 lto = true
 codegen-units = 1
+
+# The plugin is built with this profile (`cargo xtask bundle alea_plugin --profile plugin`):
+# a panic in alea's engine must stop the work, not the DAW around it.
+[profile.plugin]
+inherits = "release"
+panic = "unwind"
+lto = "thin"
+codegen-units = 16

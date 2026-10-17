@@ -23,7 +23,7 @@ renders = os.environ.get("ALEA_RENDERS")
 if not renders:
     renders = tempfile.mkdtemp(prefix="alea-tour-")
     for f in sorted(tour.glob("*.alea")):
-        subprocess.run([str(root / "target/release/alea"), str(f), "--seed", "0x2a", "-o", f"{renders}/{f.stem}"],
+        subprocess.run([str(root / "target/release/alea"), str(f), "--seed", "0x2a", "-o", f"{renders}/{f.stem}"], stdin=subprocess.DEVNULL,
                        check=True, stdout=subprocess.DEVNULL)
 renders = pathlib.Path(renders)
 

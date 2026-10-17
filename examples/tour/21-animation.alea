@@ -8,6 +8,9 @@
 // sequence([a, b, c], fade: 0.1)
 //                             one thing after another, crossfading
 // at(work, time)              a work at another moment: slowed, frozen, reversed
+// lfo(times, shape)           a value going round: 0 → 1 → 0, a whole number of times
+//                             (shapes: sine, triangle, saw, square, pulse)
+// orbit(radius, times)        a point going round; times: [2, 3] draws a Lissajous figure
 //
 // `t` still runs from 0 to 1 over the video; all of these take `time:` to follow
 // another clock.
@@ -25,7 +28,9 @@ work Animation {
   let fall = ease(fract(t * 4), "bounce")
   let ball = circle(0.12, 0.1 + 0.8 * fall, 0.05, 0.005)
 
-  let scene = merge(dot, halo, ball)
+  // a moon circling the scene, out of step with it
+  let moon  = orbit(0.4, times: [1, 2], phase: 0.25)
+  let scene = merge(dot, halo, ball, circle(moon.x, moon.y, 0.03, 0.005))
 
   // three moods, one after the other
   let calm  = stripes(count: 8, angle: 0) * 0.3

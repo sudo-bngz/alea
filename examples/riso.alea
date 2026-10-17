@@ -1,0 +1,17 @@
+// Riso: a photograph printed in three inks, each edition a different
+// registration. Made for pipes:
+//   cat photo.png | alea riso.alea > print.png
+work Riso {
+  let photo  = input(or: "assets/astronaut.png")
+  let ink    = colours(photo, 3)
+  let paper  = "#f3eee3"
+  // each ink a flat layer where the photo is between two levels, printed a little off
+  let mask(lo, hi, dx, dy) = move(threshold(photo.luma, level: lo, softness: 0.01) * (1 - threshold(photo.luma, level: hi, softness: 0.01)), x: dx, y: dy)
+  let layer(c, lo, hi, dx, dy) = paint(mask(lo, hi, dx, dy), palette: [paper, c], range: [0, 1], alpha: mask(lo, hi, dx, dy))
+  let off = [~around(0, 0.004) for k in range(6)]
+  let print = overlay(paint(0, palette: [paper, paper]),
+                      layer(ink[0], -1, 0.3, off[0], off[1]),
+                      layer(ink[1], 0.3, 0.55, off[2], off[3]),
+                      layer(ink[2], 0.55, 0.8, off[4], off[5]), blend: "multiply")
+  render image(film(print, 0.05))
+}

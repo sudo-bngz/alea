@@ -147,6 +147,7 @@ impl Culler {
                 }
             }
             Field::Cache { .. } | Field::State(_) | Field::Grid { .. } | Field::Grow { .. } => ANY,
+            Field::Curve(c) => Iv::point(crate::eval::curve_at(c, tile.t)),
             Field::Retime { inner, time } => match self.bound(time, tile, seed).single() {
                 Some(c) => self.bound(inner, Tile { t: c, ..tile }, seed),
                 None => ANY,

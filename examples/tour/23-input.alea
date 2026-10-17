@@ -1,0 +1,32 @@
+// 23 · Input: a work that reads what you give it.
+//
+//   cat portrait.png | alea 23-input.alea > map.png      (piped in, piped out)
+//   alea 23-input.alea --in portrait.png -o .            (the same, with files)
+//
+// input(or: "file")     what came in (the pipe, or --in), otherwise this file
+// photo.luma            the image as a field (also .red .green .blue .alpha
+//                       .hue .saturation .lightness); it covers the canvas,
+//                       which takes the image's size
+// photo.painting        the image in its own colours
+// colours(photo, 6)     its six main colours, darkest first: a palette
+//
+// Here a face becomes a contour map, drawn in the face's own colours.
+
+work Contours {
+  let photo  = input(or: "../assets/astronaut.png")
+  let height = blur(photo.luma, 0.008)
+  let ink    = colours(photo, 6)
+
+  // the land in flat layers, and a line wherever it crosses a level;
+  // in the video the levels rise slowly, like water
+  let level(h) = posterize(fract(h + t / 10), 10)
+  let land  = level(height)
+  let lines = edges(land, step: 0.0012) > 0.01
+
+  let map = overlay(paint(land, palette: ink, range: [0, 1]),
+                    paint(lines, palette: ["#111111", "#111111"], alpha: lines * 0.85))
+
+  render image(map)
+  render image(mosaic([photo.painting, paint(relief(height, depth: 25), palette: ink)], columns: 2), width: 1024, height: 512)
+  render video(map, duration: 10, width: 480)
+}

@@ -2,8 +2,8 @@
   "name": "alea-lang",
   "displayName": "alea",
   "description": "Syntax highlighting for alea, a non-deterministic language for generative artworks.",
-  "version": "0.10.0",
-  "publisher": "alea",
+  "version": "0.14.0",
+  "publisher": "sudo-bngz",
   "license": "MIT",
   "engines": {
     "vscode": "^1.75.0"
@@ -38,5 +38,13 @@
         "path": "./snippets.json"
       }
     ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sudo-bngz/alea"
+  },
+  "homepage": "https://alea.bngz.io",
+  "bugs": {
+    "url": "https://github.com/sudo-bngz/alea/issues"
   }
 }

@@ -1,0 +1,44 @@
+// 25 · MIDI: the music, for other instruments.
+//
+//   alea 25-midi.alea -o .               a .mid file, to open in any DAW
+//   alea 25-midi.alea --midi             played live on a new MIDI port, "alea"
+//   alea 25-midi.alea --midi --loop      a new edition each time one ends, until Ctrl-C
+//   alea 25-midi.alea --midi --sync      following your DAW's tempo, start and stop
+//
+// render midi(layers…, tempo)   the same layers as a sound, each a track on its channel:
+//   drone → held notes, struck when a voice rises, and its loudness as expression (cc 11)
+//   notes → a note per event, its strength as velocity; drums on channel 10
+// cc(field, 74)                 a field (0 to 1) as a controller: a knob that moves
+//                               (74 is often a filter; `channel:` picks the channel)
+// The sound and the score are the same music, note for note.
+
+work Modes {
+  let mode  = choose { "dorian" | "phrygian" | "lydian" | "minor-pentatonic" }
+  let key   = choose { 110 | 98 | 123.47 }
+  let tempo = floor(~between(84, 112))
+  let bars  = 8
+  let length = bars * 4 * 60 / tempo
+
+  // a tide for the drone, swelling twice
+  let tide = clouds(scale: 2) * lfo(2, from: 0.1, to: 1)
+
+  // a melody on the sixteenth notes, and a plain beat
+  pattern melody = repeat 40 event(t: floor(~between(0, bars * 16)) / (bars * 16), y: ~between(0.2, 0.7),
+                                   intensity: ~between(0.35, 1), size: 0.012)
+  pattern kick  = repeat bars * 4 event(t: i / (bars * 4), y: 0.97, intensity: 0.9)
+  pattern snare = repeat bars * 2 event(t: (2 * i + 1) / (bars * 4), y: 0.75, intensity: 0.7)
+  pattern hats  = repeat bars * 8 event(t: i / (bars * 8), y: 0.42, intensity: 0.25 + 0.3 * (fract(i / 2) == 0))
+
+  let music = [
+    drone(tide, voices: 4, instrument: "strings", scale: mode, key: key / 2),
+    notes(melody, instrument: "marimba", scale: mode, key: key * 2, tempo: tempo),
+    notes(kick, instrument: "drum", tempo: tempo),
+    notes(snare, instrument: "drum", tempo: tempo),
+    notes(hats, instrument: "drum", gain: 0.5, tempo: tempo),
+    cc(lfo(bars / 4), 74),
+  ]
+
+  render image(merge(tide * 0.4, melody), width: 600, palette: "night")
+  render sound(music, duration: length, room: 0.3)
+  render midi(music, duration: length, tempo: tempo)
+}

@@ -1,57 +1,50 @@
-// Alchemy — Multi-layer paintings, blend modes & spatial sound
+// Alchemist — 3-act sequence with time-reversal `at()` and filter stages
 // Run: ./target/release/alea examples/alchemy.alea
 
-work Alchemy {
-  let breath = 0.5 + 0.5 * sin(t * tau * 2)
-  let orbit  = t * tau
+work Alchemist {
+  // Base animated geometry: a kaleidoscopic mandala
+  let rise  = ease(t, "in-out")
+  let pulse = ease(fract(t * 6), "bounce")
 
-  // Layer 1: Deep oceanic background waves ("sea" palette)
-  field currents = 0.5 + 0.5 * sin(y * 18 + 4 * noise(x * 3, y * 3, t * 2) - orbit)
-  let bg_paint   = paint(currents, palette: "sea")
-
-  // Layer 2: Posterized golden solar core ("ember" palette with bands: 6)
-  let sun_x = 0.5 + 0.08 * sin(orbit + tau * 0.25)
-  let sun_y = 0.5 + 0.08 * sin(orbit)
-  let halo  = warp(circle(x: sun_x, y: sun_y, size: 0.48 + 0.05 * breath, softness: 0.6), amount: 0.07)
-  let core_paint = paint(halo, palette: "ember", bands: 6, alpha: halo)
-
-  // Layer 3: Sharp custom-colour geometric astrolabe floating on top
-  let cos(a) = sin(a + tau * 0.25)
-  let ring_pts = [
-    [0.5 + 0.32 * cos((k / 6) * tau - orbit), 0.5 + 0.32 * sin((k / 6) * tau - orbit)]
-    for k in range(7)
-  ]
-  field sigil = merge(
-    path(ring_pts, 0.004, 0.002),
-    ring(x: 0.5, y: 0.5, size: 0.64, width: 0.003),
-    ring(x: sun_x, y: sun_y, size: 0.22, width: 0.004)
+  let seed_shape = warp(
+    cut(
+      blob(x: 0.62, y: 0.5, size: 0.35 + 0.12 * rise),
+      circle(x: 0.58, y: 0.5, size: 0.16)
+    ),
+    amount: 0.06
   )
-  let ivory_gold = ["#1a1829", "#e8d8b9", "#ffbe55"]
-  let sigil_paint = paint(sigil, palette: ivory_gold, alpha: sigil)
-
-  // Composite the three paintings together with blend modes
-  let stage_1 = overlay(bg_paint, core_paint, blend: "screen", opacity: 0.85)
-  let final_painting = overlay(stage_1, sigil_paint, blend: "normal", opacity: 0.95)
-
-  // Sound pattern following the ring vertices
-  pattern chimes = repeat 48 event(
-    x: ~beta(2, 2),
-    y: ~beta(2, 2),
-    t: i / n,
-    intensity: ~between(0.4, 0.95),
-    size: ~between(0.01, 0.03)
+  let mandala = rotate(
+    kaleidoscope(seed_shape, sides: 6, x: 0.5, y: 0.5),
+    angle: rise * 180
   )
 
-  render image(final_painting, at: 0.25)
+  // Act 1: Carved stone engraving (`relief` + `edges`)
+  field f_stone = relief(mandala, angle: 125, depth: 10) * 0.75 + edges(mandala) * 0.5
+  let act_stone = paint(f_stone, palette: "lichen")
+
+  // Act 2: Glitch quantization (mix between fine and coarse fixed `pixelate` grids)
+  let pix_fine   = pixelate(mandala, 0.008)
+  let pix_coarse = pixelate(mandala, 0.025)
+  field f_glitch = posterize(mix(pix_fine, pix_coarse, pulse), 5) + edges(mandala) * 0.6
+  let act_glitch = paint(f_glitch, palette: "ember", bands: 5)
+
+  // Act 3: Time-reversed echo (`at(..., 1 - t)`) with glowing edge outlines
+  field f_rewind = at(edges(mandala), 1 - t) + at(f_stone, 1 - t) * 0.4
+  let act_rewind = paint(f_rewind, palette: "sea")
+
+  // Crossfade through all three acts, then apply lens bloom, chromatic aberration & grain
+  let timeline = sequence([act_stone, act_glitch, act_rewind], fade: 0.15)
+  let cinema   = vignette(film(chroma(bloom(timeline, 1.4), 0.45), 0.04), 0.5)
+
+  render image(cinema, at: 0.5)
   render video(
-    final_painting,
-    duration: 24,
+    cinema,
+    duration: 18,
     sound: [
-      drone(currents, instrument: "strings", scale: "dorian", key: 110),
-      notes(chimes, instrument: "kalimba", scale: "dorian", key: 220, tempo: 90),
-      texture(halo, kind: "wind", gain: 0.35)
+      drone(mandala, instrument: "choir", scale: "minor", key: 110, gain: 0.65),
+      texture(f_stone, kind: "wind", gain: 0.25)
     ],
-    room: 0.65,
-    echo: 0.25
+    room: 0.7,
+    echo: 0.3
   )
 }
