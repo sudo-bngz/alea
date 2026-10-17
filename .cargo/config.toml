@@ -1,0 +1,3 @@
+[alias]
+# `cargo xtask bundle alea_plugin --release` builds the plugin bundles (.vst3, .clap)
+xtask = "run --package xtask --release --"
