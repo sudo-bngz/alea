@@ -113,9 +113,10 @@ pub fn score(layers: &[Arc<Layer>], duration: f64, tempo: Option<f64>, name: &st
         let track = tracks.len();
         let mut push = |at: f64, bytes: Vec<u8>| msgs.push(Msg { at, track, bytes });
         match layer.as_ref() {
-            Layer::Drone { field, seed, voices, voice, scale, key, harmony, .. } => {
+            Layer::Drone { field, seed, voices, voice, scale, key, harmony, synth, .. } => {
                 let ch = free.next().unwrap();
-                tracks.push(format!("drone - {}", crate::sound::DRONE_INSTRUMENTS[*voice as usize]));
+                let instrument = synth.as_ref().map_or(crate::sound::DRONE_INSTRUMENTS[*voice as usize], |s| s.name.as_str());
+                tracks.push(format!("drone - {instrument}"));
                 push(0.0, vec![0xC0 | ch, program_of_voice(*voice)]);
                 let bend = key_bend(scale, *key);
                 if let Some(b) = bend {
@@ -167,11 +168,12 @@ pub fn score(layers: &[Arc<Layer>], duration: f64, tempo: Option<f64>, name: &st
                     }
                 }
             }
-            Layer::Notes { events, strike, scale, key, tempo: t, feel, seed, .. } => {
-                let drums = matches!(strike, Strike::Drum | Strike::Tick);
+            Layer::Notes { events, strike, scale, key, tempo: t, feel, seed, synth, .. } => {
+                let drums = synth.is_none() && matches!(strike, Strike::Drum | Strike::Tick);
                 let ch = if drums { 9 } else { free.next().unwrap() };
                 let kind = if feel.arp.is_some() { "arp" } else { "notes" };
-                tracks.push(format!("{kind} - {}", crate::sound::NOTE_INSTRUMENTS[*strike as usize]));
+                let instrument = synth.as_ref().map_or(crate::sound::NOTE_INSTRUMENTS[*strike as usize], |s| s.name.as_str());
+                tracks.push(format!("{kind} - {instrument}"));
                 let bend = if drums { None } else { key_bend(scale, *key) };
                 if !drums {
                     push(0.0, vec![0xC0 | ch, program_of_strike(*strike)]);

@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 use crate::eval::{Event, Field};
 use crate::harmony::{Arp, Harmony};
+use crate::synth::{NoteCtx, Synth};
 
 pub const SR: f64 = 44_100.0;
 
@@ -188,8 +189,20 @@ impl Feel {
 /// One layer of a soundtrack.
 #[derive(Debug)]
 pub enum Layer {
-    Drone { field: Field, seed: u64, voices: usize, voice: Voice, scale: Scale, key: f64, gain: f64, harmony: Option<Arc<Harmony>> },
-    Notes { events: Arc<Vec<Event>>, strike: Strike, scale: Scale, key: f64, gain: f64, tempo: f64, seed: u64, feel: Feel },
+    /// `synth`: a synth written in alea plays the voices instead of `voice`.
+    Drone {
+        field: Field,
+        seed: u64,
+        voices: usize,
+        voice: Voice,
+        scale: Scale,
+        key: f64,
+        gain: f64,
+        harmony: Option<Arc<Harmony>>,
+        synth: Option<Arc<Synth>>,
+    },
+    /// `synth`: a synth written in alea plays the notes instead of `strike`.
+    Notes { events: Arc<Vec<Event>>, strike: Strike, scale: Scale, key: f64, gain: f64, tempo: f64, seed: u64, feel: Feel, synth: Option<Arc<Synth>> },
     Texture { field: Field, seed: u64, kind: Ambience, gain: f64 },
     /// A sound that came in (`input()`), played as it is, dry.
     Clip { input: Arc<crate::input::Input>, gain: f64 },
@@ -484,6 +497,50 @@ fn drone_moving(field: &Field, seed: u64, voices: usize, voice: Voice, key: f64,
     mix
 }
 
+/// A drone played by a synth: each voice is one long note of the synth,
+/// held the whole piece, gliding to its next chord tone with a progression.
+/// Its loudness follows the field as for any drone; the patch also sees it
+/// as `note.level`, to open a filter with it, say.
+#[allow(clippy::too_many_arguments)]
+fn drone_synth(field: &Field, seed: u64, voices: usize, synth: &Synth, scale: &Scale, key: f64, harmony: Option<&Harmony>, n: usize, duration: f64) -> [Vec<f64>; 2] {
+    let env = drone_envelopes(field, seed, voices, duration);
+    let plan = harmony.map(|h| h.voicing(voices, key));
+    let glide = 1.0 - libm::exp(-1.0 / (0.06 * SR));
+    let out: Vec<[Vec<f64>; 2]> = crate::media::par_map(voices, |v| {
+        let target = |pos: f64| match &plan {
+            Some(plan) => key * libm::pow(2.0, crate::harmony::pitch_at(&plan[v], pos) / 12.0),
+            None => scale.freq(key, drone_degree(scale, v)),
+        };
+        let mut freq = target(0.0);
+        let mut voice = synth.voice(seed ^ (v as u64 + 1).wrapping_mul(0x51ED_270B));
+        let mut l = vec![0.0; n];
+        let mut r = vec![0.0; n];
+        for s in 0..n {
+            let pos = s as f64 / n as f64;
+            freq += (target(pos) - freq) * glide;
+            let (nl, nr) = (at(&env[v][0], pos), at(&env[v][1], pos));
+            let e = 0.5 * (nl + nr);
+            let (gl, gr) = pan(0.5 + 0.35 * (nr - nl));
+            let ctx = NoteCtx { freq, velocity: 1.0, gate: true, time: s as f64 / SR, level: e };
+            let sample = voice.tick(&ctx);
+            l[s] = sample * e * gl * std::f64::consts::SQRT_2;
+            r[s] = sample * e * gr * std::f64::consts::SQRT_2;
+        }
+        crate::synth::declick(&mut l);
+        crate::synth::declick(&mut r);
+        [l, r]
+    });
+    let mut mix = [vec![0.0; n], vec![0.0; n]];
+    for o in out {
+        for c in 0..2 {
+            for (m, x) in mix[c].iter_mut().zip(&o[c]) {
+                *m += x;
+            }
+        }
+    }
+    mix
+}
+
 /// One struck note, in mono: `freq` Hz, ringing about `d` seconds.
 fn strike(kind: Strike, freq: f64, d: f64, noise: &mut Noise) -> Vec<f64> {
     let len = ((d * SR) as usize).max(16);
@@ -646,7 +703,7 @@ pub fn placements(events: &[Event], kind: Strike, scale: &Scale, key: f64, tempo
 }
 
 #[allow(clippy::too_many_arguments)]
-fn notes(events: &[Event], kind: Strike, scale: &Scale, key: f64, tempo: f64, seed: u64, n: usize, duration: f64, feel: &Feel) -> [Vec<f64>; 2] {
+fn notes(events: &[Event], kind: Strike, scale: &Scale, key: f64, tempo: f64, seed: u64, n: usize, duration: f64, feel: &Feel, synth: Option<&Synth>) -> [Vec<f64>; 2] {
     let mut l = vec![0.0; n];
     let mut r = vec![0.0; n];
     for p in placements(events, kind, scale, key, tempo, duration, feel, seed) {
@@ -656,8 +713,13 @@ fn notes(events: &[Event], kind: Strike, scale: &Scale, key: f64, tempo: f64, se
             continue;
         }
         let (freq, ring) = (p.freq, p.ring);
-        let mut noise = Noise(seed ^ (i as u64 + 1).wrapping_mul(0x9E37_79B9));
-        let tone = strike(kind, freq, ring, &mut noise);
+        let note_seed = seed ^ (i as u64 + 1).wrapping_mul(0x9E37_79B9);
+        let tone = match synth {
+            // held for its arpeggio gate, or as long as the event rings; its
+            // velocity (for the patch to use) from the event's intensity
+            Some(sy) => sy.note(freq, (e.intensity * p.vel).clamp(0.0, 1.0), p.hold.unwrap_or(ring), note_seed),
+            None => strike(kind, freq, ring, &mut Noise(note_seed)),
+        };
         let amp = if p.vel == 1.0 { e.intensity.clamp(0.0, 4.0) * 0.25 } else { e.intensity.clamp(0.0, 4.0) * 0.25 * p.vel };
         let (gl, gr) = pan(e.x);
         for (k, s) in tone.iter().enumerate() {
@@ -839,15 +901,18 @@ pub fn render(layers: &[Arc<Layer>], mix: &Mix) -> [Vec<f64>; 2] {
             continue;
         }
         let (buf, gain) = match layer.as_ref() {
-            Layer::Drone { field, seed, voices, voice, scale, key, gain, harmony } => match harmony {
+            Layer::Drone { field, seed, voices, scale, key, gain, harmony, synth: Some(sy), .. } => {
+                (drone_synth(field, *seed, *voices, sy, scale, *key, harmony.as_deref(), n, mix.duration), *gain)
+            }
+            Layer::Drone { field, seed, voices, voice, scale, key, gain, harmony, synth: None } => match harmony {
                 Some(h) => (drone_moving(field, *seed, *voices, *voice, *key, h, n, mix.duration), *gain),
                 None => (drone(field, *seed, *voices, *voice, scale, *key, n, mix.duration), *gain),
             },
-            Layer::Notes { events, strike, scale, key, gain, tempo: t, seed, feel } => {
+            Layer::Notes { events, strike, scale, key, gain, tempo: t, seed, feel, synth } => {
                 if *t > 0.0 {
                     tempo = *t;
                 }
-                (notes(events, *strike, scale, *key, *t, *seed, n, mix.duration, feel), *gain)
+                (notes(events, *strike, scale, *key, *t, *seed, n, mix.duration, feel, synth.as_deref()), *gain)
             }
             Layer::Texture { field, seed, kind, gain } => (texture(field, *seed, *kind, n, mix.duration), *gain),
             Layer::Clip { .. } | Layer::Control { .. } => unreachable!("handled above"),
