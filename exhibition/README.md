@@ -13,7 +13,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | *Opening card* | `exhibition.alea` | A triptych of the three works, each called as a component. |
 | **Culture** | `culture.alea` | A petri dish: colonies seeded at random grow by reaction–diffusion, two kinds of life side by side. Also a Reel: 72 hours of incubation in 20 seconds. |
 | **Correspondances** | `correspondances.alea` (+ `correspondances/`) | The plan of a metro for a Paris that was never built: the real city's grammar, a new geometry every edition, and a Reel of one day of service. |
-| **Kikai** (機械図) | `kikai.alea` (+ `fonts/`) | The technical drawing of an analog machine that never existed: a cassette deck, a radio-cassette, a portable radio or a rhythm machine, in off-white line on washed charcoal, labelled in Japanese like a service manual. Each edition draws another machine. |
+| **Kikai** (機械図) | `kikai.alea` (+ `fonts/`) | The technical drawing of an analog machine that never existed: a cassette deck, a radio-cassette, a portable radio or a rhythm machine, in off-white line on washed charcoal, labelled in Japanese like a service manual. Each edition draws another machine. Also a Reel: the machine plays a techno track in the spirit of Detroit, with its acid line written below. |
 
 ## Replaying the editions
 
@@ -23,6 +23,7 @@ alea nocturne.alea  --seed 0xa1ea06          # the image, and the 1080×1920 Ree
 alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
+alea kikai.alea --seed 0xa1ea05              # the drawing, and the 1080×1920 Reel of the machine playing (about 10 minutes)
 ```
 
 The posted editions:
@@ -351,6 +352,42 @@ screen is a program running at the same moment.
 **FR** — ALEA, le mur : quatre œuvres, quatre écrans, une édition chacune.
 Chaque écran est un programme qui tourne au même instant.
 
+## Fourth room: Kikai
+
+| # | Post | Files |
+|---|---|---|
+| 12 | Kikai, Reel (15 s, eight bars at 128 BPM) | `12-kikai-reel.mp4` (cover: `12-kikai-reel-cover.jpg`) |
+
+**How it is made.** The drawing is the still, and every motion is zero at
+`t = 0`, so the print is the Reel's first frame. `t` is eight bars of four
+beats: the kick is a pulse that rises in a frame and fades, and the speakers
+swell with it, the VU needle swings with a slower one, the reels turn at two
+speeds, the step lamp runs over the sixteen pads. The track is written in alea
+too, as synths: a drum machine (a sine that falls in pitch for the kick,
+filtered noise for the claps and hats) and a bass synthesizer, a saw through a
+resonant filter, the acid line. That line is one bar drawn for each edition,
+and it is drawn under the machine, step by step, as it plays. In the last four
+bars come the stabs of Detroit, a minor ninth and a major ninth; in the last two
+beats the kick stops and the picture turns to negative, once.
+
+### 12 · Kikai (Reel)
+
+**EN**
+
+KIKAI, in motion. A rhythm machine that never existed plays a track that
+never existed either: four on the floor at 128 BPM, an acid line drawn
+by chance (the one written under the machine is the one you hear), and in the
+second half the minor chords of Detroit. Drawn, composed and synthesized by
+the same program. Edition 0xa1ea05.
+
+**FR**
+
+KIKAI, en mouvement. Une boîte à rythmes qui n'a jamais existé joue un
+morceau qui n'a jamais existé non plus : quatre temps à 128 BPM, une ligne
+acid tirée au hasard (celle qui est écrite sous la machine est celle qu'on
+entend) et, dans la seconde moitié, les accords mineurs de Detroit. Dessiné,
+composé et synthétisé par le même programme. Édition 0xa1ea05.
+
 ### Hashtags
 
 ```
@@ -358,4 +395,5 @@ Chaque écran est un programme qui tourne au même instant.
 #genart #newmediaart #digitalart #topography #nocturne #stainedglass #rustlang
 #paris #metro #transitmap #cartography
 #reactiondiffusion #gameoflife #emergence #biology #petridish
+#detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
 ```

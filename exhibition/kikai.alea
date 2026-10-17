@@ -2,12 +2,28 @@
 // existed. Each edition draws another one: a cassette deck, a radio-cassette,
 // a portable radio or a rhythm machine, with its own proportions, keys,
 // knobs and speakers, labelled in Japanese like a service manual.
+//
+// The Reel plays it: a techno track at 128 BPM, in the spirit of
+// Detroit, drawn with the machine. The reels turn, the needles and speakers
+// jump with the kick, the steps light up, and the acid line written below
+// is the one you hear. Every motion is still at t = 0, so the print is
+// the first frame.
 
 work Kikai {
   let jp    = "fonts/noto-sans-jp-regular.ttf"
   let bold  = "fonts/noto-sans-jp-black.ttf"
   let lw    = 0.0018                         // the pen
   let kind  = choose { 0 | 1 | 2 | 3 }
+
+  // ── motion: eight bars of four beats, whatever the tempo ──
+  let beat  = t * 32
+  let ph    = fract(beat)
+  let drop  = beat < 30                              // the kick stops for the last two beats
+  let thump = ph * 10 * exp(1 - ph * 10) * drop      // each kick: up in a frame or two, then away
+  let sway  = ph * 4 * exp(1 - ph * 4) * drop        // slower, like a needle
+  let spin(shape, u, v, turns) = rotate(shape, angle: t * 360 * turns, x: u, y: v)
+  let pump(shape, u, v, by) = zoom(shape, by: 1 + by * thump, x: u, y: v)
+  let wobble = 0.35 * sin(t * tau * 2)               // knobs, turned by an invisible hand
 
   // ── drawing tools ──
   let frame(u, v, w, h) = cut(rect(u, v, w, h, 0, 0.0008), rect(u, v, w - 2 * lw, h - 2 * lw, 0, 0.0008))
@@ -41,13 +57,15 @@ work Kikai {
   let deckart = merge(
       frame(cx, cy, dw, dh),
       frame(cx - dw * 0.18, cy - dh * 0.12, dw * 0.48, dh * 0.46),
-      reel(cx - dw * 0.29, cy - dh * 0.12, dh * 0.24), reel(cx - dw * 0.07, cy - dh * 0.12, dh * 0.24),
+      spin(reel(cx - dw * 0.29, cy - dh * 0.12, dh * 0.24), cx - dw * 0.29, cy - dh * 0.12, 10),
+      spin(reel(cx - dw * 0.07, cy - dh * 0.12, dh * 0.24), cx - dw * 0.07, cy - dh * 0.12, 7),
       pen(cx - dw * 0.29, cy + dh * 0.0, cx - dw * 0.07, cy + dh * 0.0),
       frame(cx + dw * 0.27, cy - dh * 0.2, dw * 0.3, dh * 0.24),
       ticks(cx + dw * 0.27, cy - dh * 0.14, dw * 0.24, 10),
-      pen(cx + dw * 0.27, cy - dh * 0.1, cx + dw * 0.27 + dw * 0.09, cy - dh * 0.27),
+      rotate(pen(cx + dw * 0.27, cy - dh * 0.1, cx + dw * 0.27 + dw * 0.09, cy - dh * 0.27),
+             angle: 36 * sway - 12 * (1 - drop), x: cx + dw * 0.27, y: cy - dh * 0.1),
       keys(cx - dw * 0.18, cy + dh * 0.3, dw * 0.48, dh * 0.14, nkeys),
-      knob(cx + dw * 0.18, cy + dh * 0.17, dh * 0.2, ~between(0, 6)), knob(cx + dw * 0.36, cy + dh * 0.17, dh * 0.2, ~between(0, 6)),
+      knob(cx + dw * 0.18, cy + dh * 0.17, dh * 0.2, ~between(0, 6) + wobble), knob(cx + dw * 0.36, cy + dh * 0.17, dh * 0.2, ~between(0, 6) - wobble),
       callout(cx - dw * 0.29, cy - dh * 0.12, 0.12, cy - dh * 0.62, "カセット入れ"),
       callout(cx - dw * 0.18, cy + dh * 0.3, 0.12, cy + dh * 0.62, choose { "操作ボタン" | "再生・停止・録音" }),
       callout(cx + dw * 0.27, cy - dh * 0.2, 0.83, cy - dh * 0.62, choose { "レベルメーター" | "録音レベル計" }),
@@ -64,10 +82,12 @@ work Kikai {
       frame(cx, cy - bh * 0.62, bw * 0.5, bh * 0.08),
       pen(cx - bw * 0.22, cy - bh * 0.58, cx - bw * 0.22, cy - bh * 0.5), pen(cx + bw * 0.22, cy - bh * 0.58, cx + bw * 0.22, cy - bh * 0.5),
       pen(cx + bw * 0.45, cy - bh * 0.5, cx + bw * 0.56, cy - bh * 0.9),
-      speaker(cx - bw * 0.3, cy + bh * 0.05, sp), speaker(cx + bw * 0.3, cy + bh * 0.05, sp),
+      pump(speaker(cx - bw * 0.3, cy + bh * 0.05, sp), cx - bw * 0.3, cy + bh * 0.05, 0.07),
+      pump(speaker(cx + bw * 0.3, cy + bh * 0.05, sp), cx + bw * 0.3, cy + bh * 0.05, 0.07),
       frame(cx, cy - bh * 0.32, bw * 0.3, bh * 0.12), ticks(cx, cy - bh * 0.3, bw * 0.26, 20),
       frame(cx, cy + bh * 0.02, bw * 0.24, bh * 0.3),
-      reel(cx - bw * 0.055, cy + bh * 0.0, bh * 0.13), reel(cx + bw * 0.055, cy + bh * 0.0, bh * 0.13),
+      spin(reel(cx - bw * 0.055, cy + bh * 0.0, bh * 0.13), cx - bw * 0.055, cy, 10),
+      spin(reel(cx + bw * 0.055, cy + bh * 0.0, bh * 0.13), cx + bw * 0.055, cy, 7),
       keys(cx, cy + bh * 0.33, bw * 0.26, bh * 0.1, 6),
       callout(cx - bw * 0.3, cy + bh * 0.05, 0.12, cy + bh * 0.85, "スピーカー"),
       callout(cx, cy - bh * 0.32, 0.12, 0.2, choose { "チューニング" | "周波数目盛り" }),
@@ -81,10 +101,11 @@ work Kikai {
   let rh = ~between(0.35, 0.4)
   let radioart = merge(
       frame(cx, cy, rw, rh),
-      grille(cx - rw * 0.22, cy + rh * 0.02, rh * 0.7),
+      pump(grille(cx - rw * 0.22, cy + rh * 0.02, rh * 0.7), cx - rw * 0.22, cy + rh * 0.02, 0.05),
       frame(cx + rw * 0.24, cy - rh * 0.18, rw * 0.36, rh * 0.26), ticks(cx + rw * 0.24, cy - rh * 0.12, rw * 0.3, 15),
-      pen(cx + rw * 0.24 + rw * ~between(-0.12, 0.12), cy - rh * 0.28, cx + rw * 0.24 + rw * ~between(-0.12, 0.12), cy - rh * 0.08),
-      knob(cx + rw * 0.15, cy + rh * 0.2, rh * 0.22, ~between(0, 6)), knob(cx + rw * 0.33, cy + rh * 0.2, rh * 0.22, ~between(0, 6)),
+      pen(cx + rw * 0.24 + rw * ~between(-0.12, 0.12) + rw * 0.04 * sin(t * tau), cy - rh * 0.28,
+          cx + rw * 0.24 + rw * ~between(-0.12, 0.12) + rw * 0.04 * sin(t * tau), cy - rh * 0.08),
+      knob(cx + rw * 0.15, cy + rh * 0.2, rh * 0.22, ~between(0, 6) + wobble), knob(cx + rw * 0.33, cy + rh * 0.2, rh * 0.22, ~between(0, 6) - wobble),
       pen(cx - rw * 0.4, cy - rh * 0.5, cx - rw * 0.56, cy - rh * 0.82),
       callout(cx - rw * 0.22, cy + rh * 0.02, 0.12, cy + rh * 0.75, "スピーカー"),
       callout(cx + rw * 0.24, cy - rh * 0.18, 0.83, 0.2, choose { "チューニング" | "AM・FM 目盛り" }),
@@ -99,9 +120,9 @@ work Kikai {
   let machart = merge(
       frame(cx, cy, mw, mh),
       merge([frame(cx - mw * 0.42 + (k % 8 + 0.5) * mw * 0.105, cy + mh * 0.12 + floor(k / 8) * mh * 0.2, mw * 0.08, mh * 0.15) for k in range(16)]),
-      merge([knob(cx - mw * 0.36 + k * mw * 0.44 / (nk - 1), cy - mh * 0.25, mh * 0.13, ~between(0, 6)) for k in range(nk)]),
+      merge([knob(cx - mw * 0.36 + k * mw * 0.44 / (nk - 1), cy - mh * 0.25, mh * 0.13, ~between(0, 6) + wobble * (k % 2 * 2 - 1)) for k in range(nk)]),
       frame(cx + mw * 0.3, cy - mh * 0.25, mw * 0.22, mh * 0.2),
-      text("120", cx + mw * 0.3, cy - mh * 0.25, mh * 0.12, 0, "mono"),
+      text("128", cx + mw * 0.3, cy - mh * 0.25, mh * 0.12, 0, "mono"),
       callout(cx - mw * 0.36, cy - mh * 0.25, 0.12, 0.2, choose { "音色つまみ" | "チューン・ディケイ" }),
       callout(cx + mw * 0.3, cy - mh * 0.25, 0.83, 0.2, "テンポ表示"),
       callout(cx - mw * 0.36, cy + mh * 0.32, 0.12, cy + mh * 0.85, "ステップボタン"),
@@ -136,5 +157,102 @@ work Kikai {
   // ── the print: off-white ink on washed charcoal ──
   let ink = merge(art, title, sub, rules, block)
   let wash = clouds(scale: 3, detail: 5) * 0.07 + grain(0.035)
-  render image(wash + ink * (0.82 + grain(0.18)), width: 1080, height: 1350, palette: ["#232323", "#efeadf"])
+  let print = wash + ink * (0.82 + grain(0.18))
+  render image(print, width: 1080, height: 1350, palette: ["#232323", "#efeadf"])
+
+  // ── the Reel: a techno track, played by the machine ──
+  let m     = meter(128, bars: 8)                   // the tempo on the rhythm machine's display
+  let semi(s) = 1 - (s + 0.5) / 36                   // s semitones above the key, as a height (chromatic, three octaves)
+  let now   = floor(fract(t * 8) * 16)               // the sixteenth of the bar that plays, 0 to 15
+
+  // the instruments, written as synths: a drum machine and a bass synthesizer
+  let kick = synth {
+    let pitch = note.freq * (1 + 5 * perc(attack: 0.0005, release: 0.035))
+    drive(sine(pitch) * perc(attack: 0.001, release: 0.42) + noise() * perc(attack: 0.0005, release: 0.004) * 0.3, amount: 0.35)
+  }
+  let clap = synth {
+    let hands = perc(attack: 0.0005, release: 0.012) + perc(attack: 0.011, release: 0.012) + perc(attack: 0.022, release: 0.2) * 0.8
+    bandpass(noise(), cutoff: 1300, resonance: 0.35) * hands * note.velocity
+  }
+  let hat  = synth { highpass(noise(), cutoff: 8000, resonance: 0.2) * perc(release: 0.035) * note.velocity }
+  let open = synth { highpass(noise(), cutoff: 7000, resonance: 0.3) * perc(release: 0.28) * note.velocity }
+  let acid = synth {
+    let v = note.velocity
+    let env = adsr(attack: 0.003, decay: 0.12, sustain: 0.6, release: 0.05)
+    drive(lowpass(saw(), cutoff: 140 + 500 * v + 4200 * v * v * perc(attack: 0.002, release: 0.22), resonance: 0.82) * env, amount: 0.6)
+  }
+  let stab = synth {
+    let env = adsr(attack: 0.004, decay: 0.18, sustain: 0.25, release: 0.25)
+    let osc = saw() + saw(note.freq * 1.006) + square(note.freq * 0.5) * 0.4
+    delay(chorus(lowpass(osc, cutoff: 500 + 3500 * perc(release: 0.25), resonance: 0.3) * env, depth: 0.5),
+          time: 60 / m.tempo * 0.75, feedback: 0.45, mix: 0.4)
+  }
+
+  // the groove: four on the floor, claps on two and four, hats between
+  pattern kicks = repeat 32 event(t: i / n, x: 0.5, y: semi(5), intensity: i < 30)
+  pattern claps = repeat 16 event(t: (i * 8 + 4) / 128, x: 0.5, y: 0.5, intensity: 0.8 * (i > 1))
+  pattern hats  = repeat 128 event(t: i / n, x: 0.5 + 0.25 * sin(i * 1.7), y: 0.5,
+                                   intensity: (i % 4 == 2) * 0.9 + (i % 4 != 2) * (0.25 + 0.2 * (i % 2)))
+  pattern opens = repeat 32 event(t: (i * 4 + 2) / 128, x: 0.62, y: 0.5, intensity: 0.5 * (i > 3))
+
+  // the acid line: one bar drawn for each edition, from the third bar on, opening as it goes
+  let riff = [choose { 5: 12 | 2: 24 | 1: 15 | 1: 19 | 1: 22 | 1: 17 | 1: 0 } for k in range(16)]
+  let gate = [~between(0, 1) < 0.7 for k in range(16)]
+  let acc  = [~between(0, 1) < 0.3 for k in range(16)]
+  pattern line = repeat 128 event(t: i / n, x: 0.5, y: semi(riff[i % 16]), size: 0.006,
+      intensity: gate[i % 16] * (i >= 32) * (0.35 + 0.35 * (i - 32) / 96 + 0.3 * acc[i % 16]))
+
+  // the stabs of Detroit: a minor ninth, then a major ninth a third below, for the last four bars
+  let hits   = choose { [3, 6, 10] | [2, 7, 10, 14] | [0, 3, 6, 11] }
+  let nh     = count(hits)
+  let chords = [[5, 8, 12, 15, 19], [1, 5, 8, 12, 15]]
+  pattern stabs = repeat 20 * nh event(
+      t: ((floor(i / (5 * nh)) + 4) * 16 + hits[floor(i / 5) % nh]) / 128,
+      x: 0.3 + 0.1 * (i % 5), y: semi(chords[floor(i / (10 * nh)) % 2][i % 5]), size: 0.01, intensity: 0.6)
+
+  let music = [
+    notes(kicks, instrument: kick, scale: "chromatic", key: 43.65, tempo: m.tempo, gain: 2),
+    notes(claps, instrument: clap, tempo: m.tempo, gain: 0.6),
+    notes(hats,  instrument: hat, tempo: m.tempo, swing: 0.54, gain: 0.35),
+    notes(opens, instrument: open, tempo: m.tempo, gain: 0.3),
+    notes(line,  instrument: acid, scale: "chromatic", key: 43.65, tempo: m.tempo, swing: 0.54, gain: 1.1),
+    notes(stabs, instrument: stab, scale: "chromatic", key: 130.8, tempo: m.tempo, gain: 0.5),
+    drone(0.5 + 0.5 * lfo(2), voices: 3, instrument: "strings", scale: "minor", key: 87.3, gain: 0.25),
+  ]
+
+  // above the machine: the tape counter, bar and beat, and the tempo
+  let counter = sequence([text("{floor(k / 4) + 1}.{k % 4 + 1}", 0.92, -0.24, 0.07, 0, "mono", "right") for k in range(32)], fade: 0)
+  let head = merge(
+      text("A面", 0.08, -0.24, 0.07, 0, bold, "left"),
+      text("再生中  {m.tempo} BPM", 0.08, -0.16, 0.027, 0, bold, "left"),
+      counter, pen(0.08, -0.12, 0.92, -0.12))
+
+  // below: the sequencer, sixteen steps, and the acid line drawn as it is played
+  let sx(k) = 0.08 + (k + 0.5) * 0.84 / 16
+  let roll(k) = rect(sx(k), 1.205 - (0.02 + riff[k] / 24 * 0.1) / 2, 0.016, 0.02 + riff[k] / 24 * 0.1, 0, 0.001) * gate[k]
+  let seq = merge(
+      merge([frame(sx(k), 1.26, 0.84 / 16 * 0.82, 0.05) for k in range(16)]),
+      merge([cut(roll(k), zoom(roll(k), by: 0.8, x: sx(k), y: 1.205 - (0.02 + riff[k] / 24 * 0.1) / 2)) for k in range(16)]),
+      pen(0.08, 1.215, 0.92, 1.215),
+      text("アシッド・ベースライン", 0.08, 1.04, 0.024, 0, jp, "left"),
+      text("16 ステップ", 0.92, 1.04, 0.024, 0, jp, "right"))
+
+  // the lamps, in vermilion: the step that plays, the play lamp, the red of the meter
+  let lit(u, v, w, h) = rect(u, v, w, h, 0, 0.002)
+  let lamp = [lit(cx - dw * 0.18 - dw * 0.24 + 1.5 * dw * 0.48 / nkeys, cy + dh * 0.3 - dh * 0.1, dw * 0.03, dh * 0.03),
+              circle(cx + bw * 0.2, cy - bh * 0.32, 0.012, 0.002),
+              glow(cx + rw * 0.24, cy - rh * 0.18, rw * 0.3) * 0.5,
+              lit(cx - mw * 0.42 + (now % 8 + 0.5) * mw * 0.105, cy + mh * 0.12 + floor(now / 8) * mh * 0.2, mw * 0.06, mh * 0.11)][kind]
+  let lamps = merge(
+      lit(sx(now), 1.26, 0.84 / 16 * 0.6, 0.032), merge([roll(k) * (now == k) for k in range(16)]),
+      circle(0.045, -0.265, 0.016, 0.002) * (ph < 0.5) * drop,
+      lamp,
+      circle(cx + dw * 0.27 + dw * 0.1, cy - dh * 0.27, 0.012, 0.002) * (kind == 0) * (sway > 0.85))
+
+  // a kick lifts the light; in the fill, one beat in negative
+  let sheet = wash + 0.04 * thump + merge(ink, head, seq) * (0.82 + grain(0.18) + 0.12 * thump)
+  let negative = (beat >= 30) * (beat < 31)
+  let reelcut = overlay(paint(mix(sheet, 1 - sheet, negative), palette: ["#232323", "#efeadf"], range: [0, 1]),
+                        paint(lamps, palette: ["#e8452c", "#ff6a3d"], range: [0, 1], alpha: lamps))
+  render video(reelcut, duration: m.length, fps: 30, width: 1080, height: 1920, sound: music, room: 0.25)
 }
