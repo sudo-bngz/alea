@@ -1,0 +1,218 @@
+// Kairo — 回路: the technical drawing of a modular synthesizer that never
+// existed, after Kikai. Each edition racks other modules in another order and
+// patches them with other cables, labelled in Japanese like a service manual.
+//
+// The Reel plays it, without drums: a slow waltz on a piano, in the manner of
+// a gymnopédie, over a deep drone and a long room, with the small clicks and
+// one stutter of a machine thinking. The cables sway, the sequencer steps,
+// the scope traces what sounds, and the melody is written below as it plays.
+// Every motion is still at t = 0, so the print is the first frame.
+
+work Kairo {
+  let jp    = "fonts/noto-sans-jp-regular.ttf"
+  let bold  = "fonts/noto-sans-jp-black.ttf"
+  let lw    = 0.0018                                 // the pen
+
+  // ── drawing tools ──
+  let frame(u, v, w, h) = cut(rect(u, v, w, h, 0, 0.0008), rect(u, v, w - 2 * lw, h - 2 * lw, 0, 0.0008))
+  let pen(x1, y1, x2, y2) = line(x1, y1, x2, y2, lw, 0.0008)
+  let hoop(u, v, d) = ring(u, v, d, lw, 0.0008)
+  let knob(u, v, d, a) = merge(hoop(u, v, d), hoop(u, v, d * 0.7), pen(u, v, u + 0.35 * d * cos(a), v + 0.35 * d * sin(a)))
+  let jack(u, v) = merge(hoop(u, v, 0.016), circle(u, v, 0.006, 0.001))
+  let slider(u, v, l, p) = merge(pen(u, v - l / 2, u, v + l / 2), rect(u, v + l / 2 - p * l, 0.012, 0.006, 0, 0.001))
+  let tag(words, u, v) = text(words, u, v, 0.014, 0, "mono")
+  let callout(px, py, lx, ly, words) = merge(
+      circle(px, py, 0.007, 0.001),
+      pen(px, py, lx + 0.075 * ((px > lx) * 2 - 1), ly),
+      pen(lx - 0.075, ly, lx + 0.075, ly),
+      text(words, lx, ly - 0.017, 0.025, 0, jp))
+
+  // ── motion ──
+  let wobble = 0.3 * sin(t * tau * 2)                // knobs, turned by an invisible hand
+
+  // ── the rack: two rows of five modules between rails ──
+  let left  = 0.16
+  let span  = 0.68
+  let mh    = 0.2
+  let rows  = [0.33, 0.56]
+  // the kinds: 0 VCO, 1 VCF, 2 EG, 3 SEQ, 4 LFO, 5 VCA, 6 MIX, 7 REV, 8 OUT, 9 SCOPE
+  let kinds = [choose { [3, 0, 0, 1, 2] | [0, 3, 1, 4, 2] | [3, 0, 1, 2, 4] | [0, 0, 3, 1, 5] },
+               choose { [9, 6, 7, 5, 8] | [4, 9, 6, 7, 8] | [6, 7, 9, 2, 8] | [2, 9, 5, 7, 8] }]
+  let hp     = [0.1, 0.085, 0.095, 0.16, 0.07, 0.065, 0.08, 0.085, 0.065, 0.14]
+  let widths = [[hp[k] * span / sum([hp[j] for j in kinds[r]]) for k in kinds[r]] for r in range(2)]
+  let centre(r, k) = left + sum(slice(widths[r], 0, k)) + widths[r][k] / 2
+  let names   = ["VCO", "VCF", "EG", "SEQ", "LFO", "VCA", "MIX", "REV", "OUT", "SCOPE"]
+  let jpnames = ["発振器", "フィルター", "エンベロープ", "シーケンサー", "低周波発振器", "増幅器", "ミキサー", "残響", "出力", "オシロスコープ"]
+
+  // each kind's face, centred on u, v, w wide
+  let face(kind, u, v, w) = [
+      merge(knob(u, v - 0.035, min(w * 0.55, 0.05), ~between(0, 6) + wobble),
+            knob(u - w * 0.22, v + 0.025, 0.022, ~between(0, 6)), knob(u + w * 0.22, v + 0.025, 0.022, ~between(0, 6) - wobble)),
+      merge(knob(u, v - 0.045, 0.04, ~between(0, 6) - wobble), knob(u, v + 0.012, 0.03, ~between(0, 6))),
+      merge([slider(u - w * 0.33 + k * w * 0.22, v - 0.01, 0.075, ~between(0.1, 0.9)) for k in range(4)]),
+      merge([knob(u - w * 0.36 + (k % 4) * w * 0.24, v - 0.05 + floor(k / 4) * 0.045, 0.022, ~between(0, 6)) for k in range(8)]),
+      merge(knob(u, v - 0.035, 0.036, ~between(0, 6) + wobble), hoop(u, v + 0.015, 0.01)),
+      merge(knob(u, v - 0.045, 0.026, ~between(0, 6)), jack(u, v - 0.005), jack(u, v + 0.025)),
+      merge([knob(u, v - 0.06 + k * 0.026, 0.018, ~between(0, 6)) for k in range(4)]),
+      merge(knob(u, v - 0.035, min(w * 0.55, 0.048), ~between(0, 6) - wobble), knob(u, v + 0.022, 0.022, ~between(0, 6))),
+      merge([frame(u, v - 0.06 + k * 0.016, 0.014, 0.009) for k in range(5)]),
+      merge(frame(u, v - 0.02, w * 0.8, 0.08), merge([pen(u - w * 0.4 + w * 0.8 * k / 6, v - 0.055, u - w * 0.4 + w * 0.8 * k / 6, v + 0.015) * 0.35 for k in range(1, 6)])),
+  ][kind]
+  let module(r, k) = merge(
+      frame(centre(r, k), rows[r], widths[r][k] - 0.004, mh),
+      hoop(centre(r, k) - widths[r][k] / 2 + 0.009, rows[r] - mh / 2 + 0.009, 0.006),
+      hoop(centre(r, k) + widths[r][k] / 2 - 0.009, rows[r] + mh / 2 - 0.009, 0.006),
+      tag(names[kinds[r][k]], centre(r, k), rows[r] - mh / 2 + 0.02),
+      face(kinds[r][k], centre(r, k), rows[r], widths[r][k]),
+      jack(centre(r, k) - widths[r][k] * 0.24, rows[r] + 0.072), jack(centre(r, k) + widths[r][k] * 0.24, rows[r] + 0.072))
+  let rack = merge(
+      frame(0.5, 0.445, span + 0.03, 0.49),
+      merge([module(r, k) for r in range(2) for k in range(5)]))
+
+  // ── the cables: an output to an input, hanging, each swaying at its pace ──
+  let outj(r, k) = [centre(r, k) + widths[r][k] * 0.24, rows[r] + 0.072]
+  let inj(r, k)  = [centre(r, k) - widths[r][k] * 0.24, rows[r] + 0.072]
+  let cable(a, b, sag, turns) = merge(
+      path([[a.x + (b.x - a.x) * s / 12, a.y + (b.y - a.y) * s / 12 + sag * (1 + 0.15 * sin(t * tau * turns)) * 4 * s / 12 * (1 - s / 12)]
+            for s in range(13)], 0.004, 0.001),
+      circle(a.x, a.y, 0.012, 0.001), circle(b.x, b.y, 0.012, 0.001))
+  let a1 = floor(~between(0, 2))
+  let a2 = floor(~between(2, 4))
+  let x1 = floor(~between(0, 5))
+  let x2 = floor(~between(0, 4))
+  let cables = merge(
+      cable(outj(0, a1), inj(0, a1 + 1), ~between(0.05, 0.09), 1),
+      cable(outj(0, a2), inj(0, a2 + 1), ~between(0.05, 0.09), 2),
+      cable(outj(0, x1), inj(1, x2), ~between(0.04, 0.08), 1),
+      cable(outj(0, 4 - x1 * (x1 < 4)), inj(1, 3 - x2 * (x2 < 3)), ~between(0.06, 0.12), 3),
+      cable(outj(1, 3), inj(1, 4), ~between(0.04, 0.07), 2))
+
+  // ── labels: the first and last module of each row, and a cable ──
+  let labels = merge(
+      callout(centre(0, 0), rows[0] - 0.06, 0.12, 0.17, jpnames[kinds[0][0]]),
+      callout(centre(0, 4), rows[0] - 0.06, 0.83, 0.17, jpnames[kinds[0][4]]),
+      callout(centre(1, 0), rows[1] + 0.03, 0.12, 0.78, jpnames[kinds[1][0]]),
+      callout(centre(1, 4), rows[1] - 0.04, 0.83, 0.78, jpnames[kinds[1][4]]),
+      callout(outj(1, 3).x, outj(1, 3).y, 0.5, 0.78, "パッチケーブル"))
+
+  // ── titles and notes ──
+  let model = "AL-{floor(~between(100, 999))}"
+  let title = text("モジュラー", 0.08, 0.0, 0.11, 0, bold, "left")
+  let sub   = text("試作 モジュラーシンセサイザー  {model}", 0.08, 0.085, 0.027, 0, bold, "left")
+  let rules = merge(pen(0.08, 0.118, 0.92, 0.118), pen(0.08, 0.83, 0.92, 0.83))
+  let notes = ["ケーブルで音の流れを自由に組み立てます。", "発振器の音程は一ボルトで一オクターブ。",
+               "フィルターで音色を削ります。", "エンベロープは音の形を決めます。",
+               "電源を入れる前にケーブルを確かめてください。", "シーケンサーは八つの音を繰り返します。"]
+  let s = floor(~between(0, 6))
+  let block = merge([text(notes[(s + k) % 6], 0.08, 0.87 + k * 0.042, 0.024, 0, jp, "left") for k in range(4)])
+
+  let ink   = merge(rack, cables, labels, title, sub, rules, block)
+  let wash  = clouds(scale: 3, detail: 5) * 0.07 + grain(0.035)
+  let print = wash + ink * (0.82 + grain(0.18))
+  render image(print, width: 1080, height: 1350, palette: ["#232323", "#efeadf"])
+
+  // ── the music: a waltz on a piano, 72 BPM, ten bars of three ──
+  let m    = meter(72, bars: 10, beats: 3)
+  let prog = chords(choose { "IVmaj7 Imaj7 IVmaj7 Imaj7 ii7 Imaj7 IVmaj7 iii7 vi7 Imaj7"
+                           | "Imaj7 IVmaj7 Imaj7 IVmaj7 vi7 IVmaj7 ii7 V7sus4 IVmaj7 Imaj7"
+                           | "IVmaj7 iii7 IVmaj7 Imaj7 ii7 iii7 IVmaj7 Imaj7 vi7 IVmaj7" },
+                    key: choose { "D3" | "G3" | "F3" }, scale: "major", bars: m)
+  let ladder(k) = 1 - (k + 0.5) / 12                  // the k-th tone of the chord, over three octaves
+  let degree(d) = 1 - (d + 0.5) / 21                  // the d-th degree of the scale, over three octaves
+
+  // a piano: strings a little out of tune with each other, partials that die faster as they rise
+  let piano = synth {
+    let v = note.velocity
+    let f = note.freq
+    let tone = sine(f) * perc(attack: 0.002, release: 3) + sine(f * 1.0016) * 0.5 * perc(attack: 0.002, release: 2.4)
+             + sine(f * 2.003) * 0.35 * perc(attack: 0.002, release: 1.4) + sine(f * 3.008) * 0.14 * perc(attack: 0.002, release: 0.7)
+             + sine(f * 4.016) * 0.06 * perc(attack: 0.001, release: 0.35)
+             + bandpass(noise(), cutoff: 2500, resonance: 0.2) * perc(attack: 0.001, release: 0.015) * 0.15
+    lowpass(tone * adsr(attack: 0.001, decay: 0.05, sustain: 1, release: 0.5), cutoff: 1200 + 3500 * v) * v
+  }
+  // the deep: a sine an octave below, slow to come and to go
+  let deep = synth {
+    (sine() + sine(note.freq * 2.002) * 0.15) * adsr(attack: 2.5, decay: 1, sustain: 0.9, release: 3)
+  }
+  // the machine's own noise: tiny clicks and blips
+  let blip = synth {
+    sine(note.freq * (1 + 6 * perc(attack: 0.0002, release: 0.004))) * perc(attack: 0.0005, release: 0.025)
+    + highpass(noise(), cutoff: 5000, resonance: 0.4) * perc(attack: 0.0002, release: 0.006) * 0.6
+  }
+
+  // the left hand: the bass on one, the chord on two, held through three
+  pattern lefthand = repeat 40 event(t: (floor(i / 4) * 3 + (i % 4 > 0)) / 30, x: 0.35 + 0.1 * (i % 4),
+                                     y: ladder([0, 5, 6, 7][i % 4]), size: 0.04 + 0.05 * (i % 4 == 0),
+                                     intensity: [0.5, 0.32, 0.3, 0.28][i % 4])
+  // the right hand: from the third bar, a melody that walks, slow
+  let rhythms = [choose { [1, 0, 0] | [0, 1, 0] | [1, 0, 1] | [0, 1, 1] | [1, 1, 0] } for b in range(8)]
+  let gates   = [rhythms[floor(k / 3)][k % 3] for k in range(24)]
+  // an arch that rises and falls, slowly, and small steps around it
+  let arch    = ~between(0, 6)
+  let lift    = ~between(0.3, 0.55)
+  let tune    = [floor(10.5 + 3.5 * sin(k * lift + arch) + choose { 1: -1 | 2: 0 | 1: 1 }) for k in range(24)]
+  pattern righthand = repeat 24 event(t: (6 + i) / 30, x: 0.6, y: degree(tune[i]), size: 0.09,
+                                      intensity: gates[i] * (0.45 + 0.1 * (i % 3 == 0)))
+  // once, a note stutters, as if the machine hesitated
+  let sb = choose { 6 | 7 | 8 }
+  pattern stutter = repeat 7 event(t: (sb * 3 + 2) / 30 + i / 30 / 6, x: 0.75, y: degree(tune[(sb - 2) * 3] + 7), size: 0.01,
+                                   intensity: 0.35 * (1 - i / 7))
+  pattern clicks = repeat ~poisson(16) event(t: ~between(0.05, 0.97), x: ~between(0.05, 0.95), y: ~between(0.2, 1),
+                                             intensity: ~between(0.15, 0.6))
+
+  let music = [
+    notes(lefthand,  instrument: piano, harmony: prog, key: prog.key / 2, tempo: m.tempo, humanize: 0.25, gain: 1),
+    notes(righthand, instrument: piano, scale: "major", key: prog.key, tempo: m.tempo, humanize: 0.35, gain: 0.9),
+    notes(stutter,   instrument: piano, scale: "major", key: prog.key, gain: 0.3),
+    notes(clicks,    instrument: blip, scale: "chromatic", key: 900, gain: 0.12),
+    drone(0.5 + 0.5 * lfo(5), voices: 2, instrument: deep, harmony: prog, key: prog.key / 4, gain: 0.55),
+    texture(0.4 + 0.6 * lfo(2) + x * 0, kind: "wind", gain: 0.1),
+  ]
+
+  // ── what the Reel adds: the machine lit by what it plays ──
+  let struck(tk) = (t >= tk) * exp(-(t - tk) * 22)     // a note, struck at tk, dying in about a second
+  let played = clamp(sum([gates[q] * struck((6 + q) / 30) for q in range(24)]) + 0.6 * sum([struck(b / 10) for b in range(10)]), 0, 1.2)
+  let beat   = floor(t * 30)
+
+  // the lamps of each kind: the VCO's when a note sounds, the steps, the LFO, the meter
+  let lamp(kind, u, v, w) = [
+      circle(u + w * 0.3, v - 0.075, 0.008, 0.001) * clamp(played, 0, 1),
+      0 * x,
+      0 * x,
+      merge([circle(u - w * 0.36 + (k % 4) * w * 0.24, v - 0.066 + floor(k / 4) * 0.045, 0.006, 0.001) * (beat % 8 == k) for k in range(8)]),
+      circle(u, v + 0.015, 0.008, 0.001) * (0.5 + 0.5 * sin(t * tau * 10)),
+      0 * x,
+      0 * x,
+      0 * x,
+      merge([rect(u, v - 0.06 + k * 0.016, 0.009, 0.005, 0, 0.001) * (played * 0.9 > (4 - k) / 5) for k in range(5)]),
+      0 * x,
+  ][kind]
+  // the scope traces what sounds
+  let trace(kind, u, v, w) = (kind == 9) * path([[u - w * 0.37 + w * 0.74 * k / 48,
+      v - 0.02 + 0.032 * clamp(played, 0, 1) * sin(k * 0.8 + t * tau * 15) * sin(k * 0.065 + 0.2)] for k in range(49)], 0.0025, 0.001)
+  let lit    = merge([lamp(kinds[r][k], centre(r, k), rows[r], widths[r][k]) for r in range(2) for k in range(5)])
+  let traces = merge([trace(kinds[r][k], centre(r, k), rows[r], widths[r][k]) for r in range(2) for k in range(5)])
+
+  // above: side A, the tempo, bar and beat
+  let counter = sequence([text("{floor(k / 3) + 1}.{k % 3 + 1}", 0.92, -0.24, 0.07, 0, "mono", "right") for k in range(30)], fade: 0)
+  let head = merge(
+      text("A面", 0.08, -0.24, 0.07, 0, bold, "left"),
+      text("再生中  72 BPM  3/4", 0.08, -0.16, 0.027, 0, bold, "left"),
+      counter, pen(0.08, -0.12, 0.92, -0.12))
+
+  // below: the melody written on a staff as it is played
+  let nx(q) = 0.1 + 0.8 * (q + 0.5) / 24
+  let ny(q) = 1.215 - (tune[q] - 5) * 0.0085
+  let staff = merge(
+      merge([pen(0.08, 1.13 + j * 0.017, 0.92, 1.13 + j * 0.017) for j in range(5)]),
+      merge([merge(hoop(nx(q), ny(q), 0.017), pen(nx(q) + 0.008, ny(q), nx(q) + 0.008, ny(q) - 0.05)) * gates[q] * (t >= (6 + q) / 30) for q in range(24)]),
+      text("旋律", 0.08, 1.07, 0.024, 0, jp, "left"),
+      text("ピアノ  左手と右手", 0.92, 1.07, 0.024, 0, jp, "right"))
+  let notelit = merge([circle(nx(q), ny(q), 0.013, 0.001) * gates[q] * struck((6 + q) / 30) for q in range(24)])
+
+  let sheet = wash + merge(ink, traces, head, staff) * (0.82 + grain(0.18) + 0.05 * clamp(played, 0, 1))
+  let lamps = merge(lit, notelit)
+  let film  = overlay(paint(sheet, palette: ["#232323", "#efeadf"], range: [0, 1]),
+                      paint(lamps, palette: ["#e8452c", "#ff6a3d"], range: [0, 1], alpha: lamps))
+  render video(film, duration: m.length, fps: 30, width: 1080, height: 1920, sound: music, room: 0.75, echo: 0.15)
+}
