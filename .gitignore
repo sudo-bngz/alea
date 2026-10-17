@@ -34,3 +34,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
+# outputs of alea runs
+*.mid
+*.patch
