@@ -89,20 +89,25 @@ pub struct SyncState {
     pub running: AtomicBool,
     /// Counts the DAW's "start" messages: a new one means "from the top".
     pub starts: AtomicU64,
-    last: Mutex<Option<(Instant, f64)>>,
+    /// When the last tick came (seconds, on the clock of `now`), and the interval.
+    last: Mutex<Option<(f64, f64)>>,
 }
 
 impl SyncState {
     /// Takes one byte of MIDI from the DAW (real-time messages only).
     pub fn feed(&self, b: u8) {
+        self.feed_at(b, RealClock.now())
+    }
+
+    /// The same, at a given time (seconds on a `Clock`).
+    fn feed_at(&self, b: u8, now: f64) {
         match b {
             0xF8 => {
-                let now = Instant::now();
                 let mut last = self.last.lock().unwrap();
                 let interval = match *last {
                     // smoothed: a jittery clock shouldn't shake the notes
                     Some((t, i)) => {
-                        let d = now.duration_since(t).as_secs_f64();
+                        let d = now - t;
                         if d < 0.2 { i * 0.8 + d * 0.2 } else { i }
                     }
                     None => 60.0 / 120.0 / 24.0,
@@ -123,11 +128,11 @@ impl SyncState {
         }
     }
 
-    /// Where the DAW is, in ticks, between two ticks included.
-    fn position(&self) -> f64 {
+    /// Where the DAW is at `now`, in ticks, between two ticks included.
+    fn position(&self, now: f64) -> f64 {
         let n = self.ticks.load(Ordering::SeqCst) as f64;
         match *self.last.lock().unwrap() {
-            Some((t, i)) if self.running.load(Ordering::SeqCst) => n + (t.elapsed().as_secs_f64() / i).min(0.999),
+            Some((t, i)) if self.running.load(Ordering::SeqCst) => n + ((now - t).max(0.0) / i).min(0.999),
             _ => n,
         }
     }
@@ -151,6 +156,30 @@ pub enum Outcome {
     Stopped,
     /// The DAW started again from the top.
     Restart,
+}
+
+// ───────────────────────────── time ─────────────────────────────
+
+/// Where playing reads the time and waits: the real clock, or, in the tests,
+/// a clock that moves only when asked (so they don't depend on how busy the
+/// machine is).
+pub trait Clock {
+    /// Seconds since some fixed moment.
+    fn now(&self) -> f64;
+    fn sleep(&self, d: Duration);
+}
+
+/// The machine's clock.
+pub struct RealClock;
+
+impl Clock for RealClock {
+    fn now(&self) -> f64 {
+        static EPOCH: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+        EPOCH.get_or_init(Instant::now).elapsed().as_secs_f64()
+    }
+    fn sleep(&self, d: Duration) {
+        std::thread::sleep(d)
+    }
 }
 
 // ───────────────────────────── playing ─────────────────────────────
@@ -188,38 +217,41 @@ impl Held {
     }
 }
 
-/// Waits until `ready` (checked every millisecond near the end), or until
-/// Ctrl-C. Returns false if stopped.
-fn wait_until(deadline: Instant) -> bool {
+/// Waits until `deadline` (seconds on `clock`; checked every millisecond near
+/// the end), or until Ctrl-C. Returns false if stopped.
+fn wait_until(clock: &dyn Clock, deadline: f64) -> bool {
     loop {
         if STOP.load(Ordering::SeqCst) {
             return false;
         }
-        let now = Instant::now();
-        if now >= deadline {
+        let left = deadline - clock.now();
+        if left <= 0.0 {
             return true;
         }
-        let left = deadline - now;
-        std::thread::sleep(if left > Duration::from_millis(12) { Duration::from_millis(10) } else { left.min(Duration::from_millis(1)) });
+        clock.sleep(if left > 0.012 { Duration::from_millis(10) } else { Duration::from_secs_f64(left).min(Duration::from_millis(1)) });
     }
 }
 
 /// Plays a score. With a DAW's clock, `base` is the tick where it starts;
 /// it is moved to the next bar after its end, for the next edition.
 pub fn play(score: &Score, sink: &mut dyn Sink, timing: &Timing, base: &mut f64) -> Result<Outcome, String> {
+    play_on(&RealClock, score, sink, timing, base)
+}
+
+fn play_on(time: &dyn Clock, score: &Score, sink: &mut dyn Sink, timing: &Timing, base: &mut f64) -> Result<Outcome, String> {
     let mut held = Held::default();
     let result = (|| -> Result<Outcome, String> {
         match timing {
             Timing::Free => {
-                let start = Instant::now();
+                let start = time.now();
                 for m in &score.msgs {
-                    if !wait_until(start + Duration::from_secs_f64(m.at)) {
+                    if !wait_until(time, start + m.at) {
                         return Ok(Outcome::Stopped);
                     }
                     sink.send(&m.bytes)?;
                     held.track(&m.bytes);
                 }
-                if !wait_until(start + Duration::from_secs_f64(score.duration)) {
+                if !wait_until(time, start + score.duration) {
                     return Ok(Outcome::Stopped);
                 }
                 Ok(Outcome::Finished)
@@ -231,7 +263,7 @@ pub fn play(score: &Score, sink: &mut dyn Sink, timing: &Timing, base: &mut f64)
                     if STOP.load(Ordering::SeqCst) {
                         return Ok(Outcome::Stopped);
                     }
-                    std::thread::sleep(Duration::from_millis(1));
+                    time.sleep(Duration::from_millis(1));
                 }
                 let starts = clock.starts.load(Ordering::SeqCst);
                 let reach = |target: f64, held: &mut Held, sink: &mut dyn Sink| -> Result<Option<Outcome>, String> {
@@ -248,10 +280,10 @@ pub fn play(score: &Score, sink: &mut dyn Sink, timing: &Timing, base: &mut f64)
                                 held.silence(sink)?;
                                 paused = true;
                             }
-                        } else if clock.position() >= target {
+                        } else if clock.position(time.now()) >= target {
                             return Ok(None);
                         }
-                        std::thread::sleep(Duration::from_micros(500));
+                        time.sleep(Duration::from_micros(500));
                     }
                 };
                 for m in &score.msgs {
@@ -373,11 +405,38 @@ pub use ports::{clock, list, output};
 mod tests {
     use super::*;
     use crate::midi::{Msg, Score};
+    use std::cell::{Cell, RefCell};
+    use std::rc::Rc;
 
-    struct Record(Vec<(f64, Vec<u8>)>, Instant);
+    /// A clock that moves only when playing sleeps, and plays a DAW's clock
+    /// messages into `daw` when their time comes: the tests are exact, and
+    /// take no time.
+    #[derive(Default)]
+    struct Simulated {
+        t: Cell<f64>,
+        daw: Option<(Arc<SyncState>, RefCell<Vec<(f64, u8)>>)>,
+    }
+    impl Clock for Simulated {
+        fn now(&self) -> f64 {
+            self.t.get()
+        }
+        fn sleep(&self, d: Duration) {
+            self.t.set(self.t.get() + d.as_secs_f64());
+            if let Some((state, events)) = &self.daw {
+                let mut events = events.borrow_mut();
+                while events.first().is_some_and(|(at, _)| *at <= self.t.get()) {
+                    let (at, b) = events.remove(0);
+                    state.feed_at(b, at);
+                }
+            }
+        }
+    }
+
+    /// What was sent, and when (on the simulated clock).
+    struct Record(Vec<(f64, Vec<u8>)>, Rc<Simulated>);
     impl Sink for Record {
         fn send(&mut self, b: &[u8]) -> Result<(), String> {
-            self.0.push((self.1.elapsed().as_secs_f64(), b.to_vec()));
+            self.0.push((self.1.now(), b.to_vec()));
             Ok(())
         }
     }
@@ -394,46 +453,37 @@ mod tests {
 
     #[test]
     fn plays_on_time_and_silences_at_the_end() {
-        let mut r = Record(Vec::new(), Instant::now());
-        let o = play(&score(), &mut r, &Timing::Free, &mut 0.0).unwrap();
+        let clock = Rc::new(Simulated::default());
+        let mut r = Record(Vec::new(), clock.clone());
+        let o = play_on(clock.as_ref(), &score(), &mut r, &Timing::Free, &mut 0.0).unwrap();
         assert_eq!(o, Outcome::Finished);
-        // never early; late only by what a busy machine's sleep allows (shared
-        // CI machines oversleep by tens of milliseconds)
-        let times: Vec<f64> = r.0.iter().take(3).map(|x| x.0).collect();
-        for (t, want) in times.iter().zip([0.0, 0.1, 0.2]) {
-            assert!(*t >= want - 0.002 && *t < want + 0.06, "{t} vs {want}");
+        // each message on its time (to the millisecond, the step of the wait)
+        for ((t, _), want) in r.0.iter().zip([0.0, 0.1, 0.2]) {
+            assert!(*t >= want - 1e-9 && *t < want + 0.0011, "{t} vs {want}");
         }
-        assert!(times.windows(2).all(|w| w[1] - w[0] > 0.05), "the notes are spread out in time: {times:?}");
         // the note still on (64) is turned off, then all notes off on channel 1
         assert_eq!(r.0[3].1, vec![0x80, 64, 0]);
         assert_eq!(r.0[4].1, vec![0xB0, 123, 0]);
+        assert!(r.0[3].0 >= 0.3, "the end waits for the score's duration");
     }
 
     #[test]
     fn follows_a_clock() {
-        let clock = Arc::new(SyncState::default());
-        let c = clock.clone();
-        // a DAW at 240 BPM: a tick every 1/96 s
-        // (returns how long a tick really took: sleep oversleeps on busy machines)
-        let daw = std::thread::spawn(move || {
-            let start = Instant::now();
-            c.feed(0xFA);
-            for _ in 0..40 {
-                std::thread::sleep(Duration::from_secs_f64(1.0 / 96.0));
-                c.feed(0xF8);
-            }
-            start.elapsed().as_secs_f64() / 40.0
-        });
-        let mut r = Record(Vec::new(), Instant::now());
+        // a DAW at 240 BPM: start, then a tick every 1/96 s
+        let state = Arc::new(SyncState::default());
+        let mut events = vec![(0.0, 0xFA)];
+        events.extend((1..=60).map(|k| (k as f64 / 96.0, 0xF8)));
+        let clock = Rc::new(Simulated { daw: Some((state.clone(), RefCell::new(events))), ..Default::default() });
+        let mut r = Record(Vec::new(), clock.clone());
         let mut base = 0.0;
-        let o = play(&score(), &mut r, &Timing::Sync(clock), &mut base).unwrap();
-        let tick = daw.join().unwrap();
+        let o = play_on(clock.as_ref(), &score(), &mut r, &Timing::Sync(state), &mut base).unwrap();
         assert_eq!(o, Outcome::Finished);
-        // the third note is 0.4 beats in, 9.6 ticks of the clock (24 a beat):
-        // it follows the clock (0.1 s at a true 240 BPM), not its own 120 BPM
-        let t2 = r.0[2].0 - r.0[0].0;
-        let want = 9.6 * tick;
-        assert!((t2 - want).abs() < (2.0 * tick).max(0.03), "{t2} vs {want} (a tick: {tick})");
-        assert_eq!(base, 96.0);
+        // at 240 BPM instead of the score's 120, everything comes twice as fast:
+        // 0.1 s of score is 4.8 ticks, 0.05 s of the DAW's time
+        for ((t, _), want) in r.0.iter().zip([0.0, 0.05, 0.1]) {
+            // (within a tick: alea starts from a guess of 120 BPM and learns the DAW's tempo)
+            assert!((t - want).abs() < 1.0 / 96.0, "{t} vs {want}");
+        }
+        assert_eq!(base, 96.0, "the next edition starts on the next bar");
     }
 }
