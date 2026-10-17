@@ -89,8 +89,9 @@ pub struct SyncState {
     pub running: AtomicBool,
     /// Counts the DAW's "start" messages: a new one means "from the top".
     pub starts: AtomicU64,
-    /// When the last tick came (seconds, on the clock of `now`), and the interval.
-    last: Mutex<Option<(f64, f64)>>,
+    /// When the last tick came (seconds, on the clock of `now`), the interval
+    /// between ticks, and whether that interval is still a guess (none measured yet).
+    last: Mutex<Option<(f64, f64, bool)>>,
 }
 
 impl SyncState {
@@ -104,15 +105,18 @@ impl SyncState {
         match b {
             0xF8 => {
                 let mut last = self.last.lock().unwrap();
-                let interval = match *last {
-                    // smoothed: a jittery clock shouldn't shake the notes
-                    Some((t, i)) => {
+                let (interval, guess) = match *last {
+                    // the first interval measured replaces the guess outright
+                    Some((t, _, true)) if now - t < 0.2 => (now - t, false),
+                    // then smoothed: a jittery clock shouldn't shake the notes
+                    Some((t, i, guess)) => {
                         let d = now - t;
-                        if d < 0.2 { i * 0.8 + d * 0.2 } else { i }
+                        if d < 0.2 { (i * 0.8 + d * 0.2, false) } else { (i, guess) }
                     }
-                    None => 60.0 / 120.0 / 24.0,
+                    // before the second tick, a guess: 120 BPM
+                    None => (60.0 / 120.0 / 24.0, true),
                 };
-                *last = Some((now, interval));
+                *last = Some((now, interval, guess));
                 if self.running.load(Ordering::SeqCst) {
                     self.ticks.fetch_add(1, Ordering::SeqCst);
                 }
@@ -132,13 +136,13 @@ impl SyncState {
     fn position(&self, now: f64) -> f64 {
         let n = self.ticks.load(Ordering::SeqCst) as f64;
         match *self.last.lock().unwrap() {
-            Some((t, i)) if self.running.load(Ordering::SeqCst) => n + ((now - t).max(0.0) / i).min(0.999),
+            Some((t, i, _)) if self.running.load(Ordering::SeqCst) => n + ((now - t).max(0.0) / i).min(0.999),
             _ => n,
         }
     }
 
     pub fn tempo(&self) -> Option<f64> {
-        self.last.lock().unwrap().map(|(_, i)| 60.0 / (i * 24.0))
+        self.last.lock().unwrap().map(|(_, i, _)| 60.0 / (i * 24.0))
     }
 }
 
@@ -481,8 +485,7 @@ mod tests {
         // at 240 BPM instead of the score's 120, everything comes twice as fast:
         // 0.1 s of score is 4.8 ticks, 0.05 s of the DAW's time
         for ((t, _), want) in r.0.iter().zip([0.0, 0.05, 0.1]) {
-            // (within a tick: alea starts from a guess of 120 BPM and learns the DAW's tempo)
-            assert!((t - want).abs() < 1.0 / 96.0, "{t} vs {want}");
+            assert!((t - want).abs() < 0.002, "{t} vs {want}");
         }
         assert_eq!(base, 96.0, "the next edition starts on the next bar");
     }
