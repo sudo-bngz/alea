@@ -27,6 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -65,6 +67,8 @@ jobs:
           - { name: windows-x86_64, os: windows-latest, target: x86_64-pc-windows-msvc }
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.name == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || matrix.target }}
@@ -110,7 +114,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: cli-${{ matrix.name }}
-          path: alea-*.*
+          # the archive only (a pattern like alea-*.* also caught the folder,
+          # whose name has the version's dots)
+          path: |
+            alea-${{ env.TAG }}-${{ matrix.name }}.tar.gz
+            alea-${{ env.TAG }}-${{ matrix.name }}.zip
+          if-no-files-found: error
 
   plugin:
     name: Plugin (${{ matrix.name }})
@@ -124,6 +133,8 @@ jobs:
           - { name: windows-x86_64, os: windows-latest }
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.name == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
@@ -163,7 +174,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: plugin-${{ matrix.name }}
-          path: alea-plugin-*.zip
+          path: alea-plugin-${{ env.TAG }}-${{ matrix.name }}.zip
+          if-no-files-found: error
 
   publish:
     name: Publish the release
@@ -178,18 +190,20 @@ jobs:
           merge-multiple: true
       - name: Checksums
         run: |
-          cd artifacts
-          mv playground.html "alea-$TAG-playground.html"
-          mv handbook.html "alea-$TAG-handbook.html"
-          rm -f alea.wasm
-          sha256sum * > SHA256SUMS.txt
+          mkdir release
+          # only the files meant for the release, whatever else came along
+          find artifacts -maxdepth 2 -type f \( -name 'alea-*.tar.gz' -o -name 'alea-*.zip' \) -exec mv {} release/ \;
+          mv artifacts/playground.html "release/alea-$TAG-playground.html"
+          mv artifacts/handbook.html "release/alea-$TAG-handbook.html"
+          cd release
+          sha256sum -- * > SHA256SUMS.txt
           cat SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
           name: alea ${{ env.TAG }}
           generate_release_notes: true
-          files: artifacts/*
+          files: release/*
 
   homebrew:
     name: Update the Homebrew tap
@@ -207,10 +221,13 @@ jobs:
       - name: Write the formula and push it to the tap
         if: steps.token.outputs.present == 'yes'
         env:
-          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          # the release is read with the workflow's own token; the tap's token
+          # can only write to the tap
+          GH_TOKEN: ${{ github.token }}
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern SHA256SUMS.txt
-          git clone "https://x-access-token:${GH_TOKEN}@github.com/sudo-bngz/homebrew-tap.git" tap
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/sudo-bngz/homebrew-tap.git" tap
           mkdir -p tap/Formula
           python3 packaging/homebrew/formula.py "$TAG" SHA256SUMS.txt > tap/Formula/alea.rb
           cd tap
