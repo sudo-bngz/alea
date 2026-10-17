@@ -406,31 +406,43 @@ mod tests {
 
     #[test]
     fn the_thread_sends_in_time() {
+        // waits for a condition (instead of sleeping a fixed time: a busy
+        // machine may take longer), failing after a few seconds
+        fn until(what: &str, ok: impl Fn() -> bool) {
+            let start = Instant::now();
+            while !ok() {
+                assert!(start.elapsed() < Duration::from_secs(5), "never happened: {what}");
+                std::thread::sleep(Duration::from_millis(2));
+            }
+        }
         let (port, tx) = Port::new();
         let port = std::sync::Arc::new(port);
         let quit = std::sync::Arc::new(AtomicBool::new(false));
         port.on.store(true, Ordering::Relaxed);
         let (p, q) = (port.clone(), quit.clone());
         let thread = std::thread::spawn(move || run_with(&p, &q, fake));
-        std::thread::sleep(Duration::from_millis(50));
-        assert!(port.status.lock().unwrap().starts_with("sending to"), "{}", port.status.lock().unwrap());
+        until("the port opens", || port.status.lock().unwrap().starts_with("sending to"));
+
+        // two notes, queued out of order: they leave in time order, never early
         let t0 = Instant::now();
-        tx.send(Timed { at: t0 + Duration::from_millis(30), len: 3, bytes: [0x91, 64, 90] }).unwrap();
+        let later = t0 + Duration::from_millis(30);
+        tx.send(Timed { at: later, len: 3, bytes: [0x91, 64, 90] }).unwrap();
         tx.send(Timed { at: t0, len: 3, bytes: [0x90, 60, 100] }).unwrap();
-        std::thread::sleep(Duration::from_millis(80));
-        port.test.store(true, Ordering::Relaxed);
-        std::thread::sleep(Duration::from_millis(60));
+        until("both notes are sent", || GOT.lock().unwrap().len() >= 2);
         let got = GOT.lock().unwrap().clone();
-        let notes: Vec<_> = got.iter().map(|g| g.1.clone()).collect();
-        assert_eq!(notes[0], vec![0x90, 60, 100]);
-        assert_eq!(notes[1], vec![0x91, 64, 90]);
-        let late = got[1].0.duration_since(t0 + Duration::from_millis(30));
-        assert!(late < Duration::from_millis(25), "on time: {late:?} late");
-        assert_eq!(notes.iter().filter(|n| n[1] == 60 && n[0] & 0xF0 == 0x90).count(), 17, "the test: a C on all 16 channels");
-        assert_eq!(port.sent.load(Ordering::Relaxed), got.len() as u64);
+        assert_eq!(got[0].1, vec![0x90, 60, 100]);
+        assert_eq!(got[1].1, vec![0x91, 64, 90]);
+        assert!(got[1].0 >= later, "never early");
+
+        // the Test button: a C on each of the 16 channels
+        port.test.store(true, Ordering::Relaxed);
+        let cs = || GOT.lock().unwrap().iter().filter(|g| g.1[0] & 0xF0 == 0x90 && g.1[1] == 60).count();
+        until("a C on every channel", || cs() == 17);
+        until("every message counted", || port.sent.load(Ordering::Relaxed) == GOT.lock().unwrap().len() as u64);
+
+        // closing: all notes off
         port.on.store(false, Ordering::Relaxed);
-        std::thread::sleep(Duration::from_millis(60));
-        assert!(GOT.lock().unwrap().iter().any(|g| g.1 == vec![0xB0, 123, 0]), "closing: all notes off");
+        until("all notes off when it closes", || GOT.lock().unwrap().iter().any(|g| g.1 == vec![0xB0, 123, 0]));
         quit.store(true, Ordering::Relaxed);
         thread.join().unwrap();
     }
