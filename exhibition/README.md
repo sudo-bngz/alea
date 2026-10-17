@@ -24,7 +24,7 @@ alea nocturne.alea  --seed 0xa1ea06          # the image, and the 1080×1920 Ree
 alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
-alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 15 minutes)
+alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
 alea kikai.alea --seed 0xa1ea05              # the drawing, and the 1080×1920 Reel of the machine playing (about 10 minutes)
 ```
 
