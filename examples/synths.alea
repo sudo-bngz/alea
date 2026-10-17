@@ -1,0 +1,49 @@
+// Synths — instruments written in alea: a pad, a bass and an FM bell,
+// built from oscillators, envelopes and filters. Chance goes into the
+// sound too: every edition detunes, colours and strikes them differently.
+
+work Synths {
+  let m    = meter(floor(~between(84, 104)), bars: 8)
+  let prog = chords("functional", key: choose { "A2" | "D3" | "C3" }, scale: "dorian", bars: m)
+
+  // two saws a little apart, a thin pulse an octave up; the filter opens
+  // where the field is bright (note.level), slowly, like breath
+  let pad = synth {
+    let env = adsr(attack: 1.5, decay: 0.5, sustain: 0.8, release: 2)
+    let osc = saw() + saw(note.freq * ~around(1.0, 0.003)) + pulse(note.freq * 2, width: 0.3) * 0.25
+    chorus(lowpass(osc, cutoff: 300 + 2200 * note.level, resonance: ~between(0.1, 0.4)) * env, depth: 0.6)
+  }
+
+  // a saw through a resonant filter that snaps shut (the layer plays it
+  // an octave down: key: prog.key / 2)
+  let bass = synth {
+    let env = adsr(attack: 0.005, decay: 0.2, sustain: 0.5, release: 0.12)
+    let snap = perc(release: ~between(0.15, 0.4))
+    drive(lowpass(saw(), cutoff: 120 + 2400 * snap, resonance: 0.6) * env, amount: 0.25)
+  }
+
+  // frequency modulation: one sine bending another, the classic bell
+  let bell = synth {
+    let ratio = choose { 1.4 | 2 | 3.5 }
+    let index = perc(release: 0.5) * note.freq * ~between(1, 4) * note.velocity
+    delay(sine(note.freq + sine(note.freq * ratio) * index) * perc(release: 2.5), time: 60 / m.tempo * 0.75, feedback: 0.3)
+  }
+
+  // a hi-hat: noise, only its highs, struck and gone
+  let hat = synth {
+    highpass(noise(), cutoff: ~between(6000, 9000), resonance: 0.3) * perc(release: ~between(0.04, 0.12)) * note.velocity
+  }
+
+  let music = [
+    drone(clouds(scale: 2) * 0.5 + 0.5, voices: 3, instrument: pad, harmony: prog, gain: 0.8),
+    notes(euclid(choose { 3 | 5 }, 8, bars: m, y: 0.97), instrument: bass, harmony: prog, key: prog.key / 2, tempo: m.tempo),
+    arp(prog, euclid(choose { 5 | 7 | 9 }, 16, bars: m), mode: choose { "up" | "updown" | "converge" },
+        octaves: 2, gate: 0.5, instrument: bell, gain: 0.7),
+    notes(steps(16, density: 0.35 + 0.5 * lfo(2), bars: m, y: 0.4), instrument: hat, tempo: m.tempo, humanize: 0.4, gain: 0.35),
+  ]
+
+  let rings = kaleidoscope(ripples(count: 9), sides: 6)
+  render image(rings * 0.6 + glow(size: 0.2), width: 600, palette: "night")
+  render sound(music, duration: m.length, room: 0.35, echo: 0.15)
+  render midi(music, duration: m.length, tempo: m.tempo)
+}

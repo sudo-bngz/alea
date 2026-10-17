@@ -13,6 +13,7 @@ GALLERY = [
     ("bauhaus", "Bauhaus — bold shapes"), ("poster", "Poster — words and a photo"),
     ("breathing", "Breathing — a looping video"), ("phases", "Phases — works made of works"),
     ("crossing", "Crossing — mixing two works"), ("tide", "Tide — image, sound, sculpture"),
+    ("synths", "Synths — instruments written in alea"),
     ("constellation", "Constellation — a galaxy (slower)"), ("hello", "Hello"),
     ("sky", "NightSky — a component"), ("frame", "Frame — needs another work"),
 ]

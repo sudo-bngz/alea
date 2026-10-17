@@ -251,7 +251,7 @@ const ALEA_ASSETS = /*ASSETS*/;
 <script>
 (() => {
   // ───────────── syntax highlighting ─────────────
-  const KW = new Set(['use','work','let','field','pattern','constraint','render','output','repeat','event','choose','and','or','grow','then','for','in']);
+  const KW = new Set(['use','work','let','field','pattern','constraint','render','output','repeat','event','choose','synth','and','or','grow','then','for','in']);
   const PRIM = new Set(['meter','euclid','steps','chords','arp','lfo','orbit','cc','input','colours','colors','band','at','ease','keys','progress','sequence','blur','pixelate','edges','relief','posterize','film','vignette','bloom','chroma','paint','mosaic','place','overlay','drone','notes','texture','range','join','slice','reverse','sum','path','along','length','neighbours','neighbors','spread','nearby','circle','ring','rect','square','line','blob','stripes','waves','ripples','dots','checker','gradient','glow','clouds','grain','scatter','move','rotate','zoom','tile','mirror','kaleidoscope','warp','merge','overlap','cut','invert','threshold','text','picture']);
   const DIST = new Set(['uniform','normal','beta','poisson','exponential','between','around']);
   const FN = new Set(['sin','cos','tan','abs','sqrt','exp','ln','floor','fract','sign','min','max','atan2','step','clamp','mix','smoothstep','distance','noise','mean','stddev','minimum','maximum','count','image','sound','video','sculpture','midi']);
@@ -356,6 +356,7 @@ const ALEA_ASSETS = /*ASSETS*/;
     ['Chance', ['~between(0, 1)', '~around(0.5, 0.1)', 'choose { a | b }', '~~uniform(0, 1)']],
     ['Time', ['t', 'lfo()', 'lfo(4, shape: "pulse")', 'orbit(0.3, times: [2, 3])', 'rotate(shape, angle: t * 360)']],
     ['Renders', ['render image(output)', 'render video(output, duration: 8)', 'render sound(output, duration: 10)', 'render sculpture(output)', 'render midi(drone(output), cc(output, 74))']],
+    ['Synths', ['synth { saw() * adsr() }', 'lowpass(saw(), cutoff: 800)', 'sine(note.freq + sine(note.freq * 2) * 300)', 'perc(release: 1)', 'note.freq', 'note.velocity']],
     ['Music', ['meter(100, bars: 8)', 'euclid(5, 16)', 'steps("X...x...X...x..o")', 'chords("functional", key: "D3", scale: "dorian")', 'arp(prog, euclid(7, 16), mode: "updown")']],
     ['Statements', ['let name = ', 'field name = ', 'output ', 'constraint ', 'use "moon.alea"']],
   ];
