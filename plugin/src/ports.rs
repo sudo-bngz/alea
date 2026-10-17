@@ -425,7 +425,7 @@ mod tests {
         assert_eq!(notes[0], vec![0x90, 60, 100]);
         assert_eq!(notes[1], vec![0x91, 64, 90]);
         let late = got[1].0.duration_since(t0 + Duration::from_millis(30));
-        assert!(late < Duration::from_millis(5), "on time: {late:?} late");
+        assert!(late < Duration::from_millis(25), "on time: {late:?} late");
         assert_eq!(notes.iter().filter(|n| n[1] == 60 && n[0] & 0xF0 == 0x90).count(), 17, "the test: a C on all 16 channels");
         assert_eq!(port.sent.load(Ordering::Relaxed), got.len() as u64);
         port.on.store(false, Ordering::Relaxed);

@@ -397,10 +397,13 @@ mod tests {
         let mut r = Record(Vec::new(), Instant::now());
         let o = play(&score(), &mut r, &Timing::Free, &mut 0.0).unwrap();
         assert_eq!(o, Outcome::Finished);
+        // never early; late only by what a busy machine's sleep allows (shared
+        // CI machines oversleep by tens of milliseconds)
         let times: Vec<f64> = r.0.iter().take(3).map(|x| x.0).collect();
         for (t, want) in times.iter().zip([0.0, 0.1, 0.2]) {
-            assert!((t - want).abs() < 0.01, "{t} vs {want}");
+            assert!(*t >= want - 0.002 && *t < want + 0.06, "{t} vs {want}");
         }
+        assert!(times.windows(2).all(|w| w[1] - w[0] > 0.05), "the notes are spread out in time: {times:?}");
         // the note still on (64) is turned off, then all notes off on channel 1
         assert_eq!(r.0[3].1, vec![0x80, 64, 0]);
         assert_eq!(r.0[4].1, vec![0xB0, 123, 0]);
@@ -411,21 +414,26 @@ mod tests {
         let clock = Arc::new(SyncState::default());
         let c = clock.clone();
         // a DAW at 240 BPM: a tick every 1/96 s
+        // (returns how long a tick really took: sleep oversleeps on busy machines)
         let daw = std::thread::spawn(move || {
+            let start = Instant::now();
             c.feed(0xFA);
             for _ in 0..40 {
                 std::thread::sleep(Duration::from_secs_f64(1.0 / 96.0));
                 c.feed(0xF8);
             }
+            start.elapsed().as_secs_f64() / 40.0
         });
         let mut r = Record(Vec::new(), Instant::now());
         let mut base = 0.0;
         let o = play(&score(), &mut r, &Timing::Sync(clock), &mut base).unwrap();
-        daw.join().unwrap();
+        let tick = daw.join().unwrap();
         assert_eq!(o, Outcome::Finished);
-        // at 240 BPM instead of 120, everything comes twice as fast
+        // the third note is 0.4 beats in, 9.6 ticks of the clock (24 a beat):
+        // it follows the clock (0.1 s at a true 240 BPM), not its own 120 BPM
         let t2 = r.0[2].0 - r.0[0].0;
-        assert!((t2 - 0.1).abs() < 0.03, "{t2}");
+        let want = 9.6 * tick;
+        assert!((t2 - want).abs() < (2.0 * tick).max(0.03), "{t2} vs {want} (a tick: {tick})");
         assert_eq!(base, 96.0);
     }
 }

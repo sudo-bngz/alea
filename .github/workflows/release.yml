@@ -38,6 +38,8 @@ jobs:
         run: web/build.sh
       - name: Build the handbook (illustrated with the tour)
         run: |
+          # the tour has videos: rendering them needs ffmpeg
+          sudo apt-get update && sudo apt-get install -y ffmpeg
           pip install markdown Pillow
           cargo build --release
           python3 web/handbook.py
