@@ -79,7 +79,7 @@
         },
         {
           "name": "keyword.control.alea",
-          "match": "\\b(constraint|render|repeat|choose|output|use|grow|then|for|in)\\b"
+          "match": "\\b(constraint|render|repeat|choose|synth|output|use|grow|then|for|in)\\b"
         },
         {
           "name": "storage.type.event.alea",

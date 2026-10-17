@@ -727,7 +727,7 @@ voices make chords); the first voice, at the top of the canvas, is the lowest.
 | Parameter | Default | Values |
 |---|---|---|
 | `voices` | 6 | 1–24 |
-| `instrument` | `"sine"` | `"sine"`, `"organ"`, `"reed"`, `"strings"` (three players, vibrato), `"choir"` (a vowel that opens with the field), `"glass"`, `"wind"` (breath, tuned) |
+| `instrument` | `"sine"` | `"sine"`, `"organ"`, `"reed"`, `"strings"` (three players, vibrato), `"choir"` (a vowel that opens with the field), `"glass"`, `"wind"` (breath, tuned), or a synth (see *Synths* below) |
 | `scale` | `"pentatonic"` | see below |
 | `key` | 110 | 20–2000 Hz: the first note |
 | `gain` | 1 | 0–10 |
@@ -742,7 +742,7 @@ seconds (at most 3, longer for bells and glass, shorter for wood and ticks);
 
 | Parameter | Default | Values |
 |---|---|---|
-| `instrument` | `"bell"` | `"bell"`, `"pluck"` (a string), `"marimba"`, `"kalimba"`, `"glass"`, `"wood"`, `"drum"` (two octaves down), `"tick"` |
+| `instrument` | `"bell"` | `"bell"`, `"pluck"` (a string), `"marimba"`, `"kalimba"`, `"glass"`, `"wood"`, `"drum"` (two octaves down), `"tick"`, or a synth (see *Synths* below) |
 | `scale` | `"pentatonic"` | see below |
 | `key` | 220 | 20–4000 Hz |
 | `gain` | 1 | 0–10 |
@@ -756,6 +756,58 @@ takes).
 |---|---|---|
 | `kind` | `"wind"` | `"wind"` (brighter when louder), `"waves"` (slow swells, out of step between the ears), `"rain"` (drops, more of them), `"crackle"` (sparse pops) |
 | `gain` | 1 | 0–10 |
+
+**Synths**: an instrument of your own, built from oscillators, envelopes,
+filters and effects, and played once per note. `synth { … }` is a few `let`s,
+then one expression: the sound.
+
+```alea
+let pad = synth {
+  let env = adsr(attack: 1.5, decay: 0.5, sustain: 0.8, release: 2)
+  let osc = saw() + saw(note.freq * ~around(1.0, 0.003))   // two saws, detuned by chance
+  lowpass(osc, cutoff: 300 + 2200 * note.level, resonance: 0.3) * env
+}
+notes(melody, instrument: pad)      // `drone` and `arp` take a synth the same way
+```
+
+Inside a synth, `note` is the note being played:
+
+| Value | What it is |
+|---|---|
+| `note.freq` | its frequency, in Hz (the default of every oscillator) |
+| `note.velocity` | how hard it is played, 0–1, from the event's `intensity` |
+| `note.gate` | 1 while the note is held, then 0 |
+| `note.time` | seconds since the note started |
+| `note.level` | in a drone, how loud the field is there (0–1); 1 for notes |
+
+and these names are units (outside a synth, `square` is still a shape):
+
+| Unit | Parameters (default) | What it does |
+|---|---|---|
+| `sine`, `saw`, `square`, `triangle` | `freq` (`note.freq`) | an oscillator, from −1 to 1; saw and square are band-limited (no whistling at high notes) |
+| `pulse` | `freq` (`note.freq`), `width` (0.25) | a square with its high part `width` of a cycle long |
+| `noise` | | white noise |
+| `adsr` | `attack` (0.01), `decay` (0.2), `sustain` (0.7), `release` (0.3) | an envelope, 0–1: up in `attack` seconds, down to `sustain` in `decay`, held while the note is, then down to 0 in `release` |
+| `perc` | `attack` (0.005), `release` (1) | a struck envelope: up in `attack`, down to silence in `release`, however long the note |
+| `lowpass`, `highpass`, `bandpass` | `input`, `cutoff` (1000 Hz), `resonance` (0.2; 0–1) | a resonant filter (state-variable, stable at any setting) |
+| `delay` | `input`, `time` (0.3 s), `feedback` (0.4; 0–0.95), `mix` (0.35) | an echo |
+| `drive` | `input`, `amount` (0.5; 0–1) | saturation, from warm to fuzzy |
+| `chorus` | `input`, `depth` (0.5), `rate` (0.8 Hz), `mix` (0.5) | a slightly late, swaying copy: width and shimmer |
+
+Signals combine with `+ - * /` and numbers; any parameter that is a signal
+can move (a filter's cutoff following an envelope, an oscillator's frequency
+bent by another: FM). Envelope times and the delay's and chorus's settings are
+fixed for the synth: numbers, or `~` draws. A `~` draw in a synth is drawn
+once per edition, like anywhere else, so each edition has its own timbre. An
+oscillator at a low frequency is an LFO: `sine(5)` sways five times a second.
+
+A note sounds for as long as it is held (an arpeggio's `gate`, or the
+event's ringing time) plus its `adsr` release and the tail of its echoes; with
+only `perc` envelopes, for as long as they ring. Its loudness already follows
+the event's `intensity`, and a drone's the field: `note.velocity` and
+`note.level` are there to shape the timbre too. Each voice ends with a gentle
+high-pass at 15 Hz, which takes out rumble and any offset from zero. In MIDI
+files and in the plugin, a synth is named after its `let`: `notes - pad`.
 
 **Scales**: `"pentatonic"`, `"minor-pentatonic"`, `"major"`, `"minor"`,
 `"dorian"`, `"phrygian"`, `"lydian"`, `"mixolydian"`, `"harmonic-minor"`,

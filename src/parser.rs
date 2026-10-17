@@ -478,6 +478,9 @@ impl Parser {
                 if name == "choose" && self.at(&Tok::LBrace) {
                     return self.choose(span);
                 }
+                if name == "synth" && self.at(&Tok::LBrace) {
+                    return self.synth(span);
+                }
                 if self.at(&Tok::LParen) && !self.cur().newline_before {
                     self.bump();
                     let args = self.args()?;
@@ -491,6 +494,25 @@ impl Parser {
             }
             other => Err(Error::new(format!("expected an expression, found {}", describe(&other)), span)),
         }
+    }
+
+    /// `synth { let env = adsr() … sine(note.freq) * env }`: some `let`s, then
+    /// the sound, as an expression.
+    fn synth(&mut self, start: Span) -> Res<Expr> {
+        self.bump(); // {
+        let mut lets = Vec::new();
+        while self.at_kw("let") {
+            self.bump();
+            let (name, _) = self.free_name()?;
+            self.expect(Tok::Assign, "`=`")?;
+            lets.push((name, self.expr(0)?));
+        }
+        if self.at(&Tok::RBrace) {
+            return Err(self.error_here("a synth ends with its sound: an expression such as `sine(note.freq) * adsr()`"));
+        }
+        let body = self.expr(0)?;
+        let end = self.expect(Tok::RBrace, "`}` (a synth is some `let`s, then one expression: its sound)")?;
+        Ok(Expr { kind: ExprKind::Synth { lets, body: Box::new(body) }, span: start.to(end.span) })
     }
 
     fn choose(&mut self, start: Span) -> Res<Expr> {
@@ -534,6 +556,10 @@ fn relocate(e: &mut Expr, span: Span) {
         ExprKind::Comprehension { body, loops } => {
             relocate(body, span);
             loops.iter_mut().for_each(|(_, l)| relocate(l, span));
+        }
+        ExprKind::Synth { lets, body } => {
+            relocate(body, span);
+            lets.iter_mut().for_each(|(_, l)| relocate(l, span));
         }
         _ => {}
     }

@@ -1048,6 +1048,9 @@ fn path_lengths(pts: &[(Field, Field)]) -> (Vec<Field>, Field) {
 /// Arithmetic on lists works element by element; a single value applies to
 /// every element.
 fn bin_val(op: BinOp, a: Val, b: Val, span: Span) -> Res<Val> {
+    if matches!(a, Val::Signal(_)) || matches!(b, Val::Signal(_)) {
+        return signal_bin(op, a, b, span);
+    }
     match (a, b) {
         (Val::Field(x), Val::Field(y)) => Ok(Val::Field(fold(Field::Bin(op, Box::new(x), Box::new(y))))),
         (Val::List(x), Val::List(y)) => {
@@ -1065,12 +1068,57 @@ fn bin_val(op: BinOp, a: Val, b: Val, span: Span) -> Res<Val> {
         }
         (x, y) => {
             let bad = if matches!(x, Val::Field(_) | Val::List(_)) { y } else { x };
+            if matches!(bad, Val::Synth(_)) {
+                return Err(Error::new("a synth is an instrument: give it to `instrument:` in `notes`, `drone` or `arp`", span));
+            }
             Err(Error::new(format!("{} can't be used in a computation", kind_of(&bad)), span))
         }
     }
 }
 
+/// A signal of a synth, from a signal or a fixed number.
+fn as_signal(v: Val, span: Span) -> Res<Arc<crate::synth::Sig>> {
+    match v {
+        Val::Signal(s) => Ok(s),
+        Val::Field(f) => match f.constant() {
+            Some(c) => Ok(Arc::new(crate::synth::Sig::Const(c))),
+            None => Err(Error::new(
+                "a synth plays sound, not pictures: this value depends on x, y, t or a `~~` grain. \
+                 Use a number, a `~` draw, or a value of the note (`note.freq`, `note.velocity`, `note.time`)",
+                span,
+            )),
+        },
+        Val::Dist(_) => Err(Error::new("this is a distribution, not a value: put `~` in front of it to draw one", span)),
+        other => Err(Error::new(format!("{} can't go into a synth", kind_of(&other)), span)),
+    }
+}
+
+fn signal_bin(op: BinOp, a: Val, b: Val, span: Span) -> Res<Val> {
+    use crate::synth::{Op2, Sig};
+    let op = match op {
+        BinOp::Add => Op2::Add,
+        BinOp::Sub => Op2::Sub,
+        BinOp::Mul => Op2::Mul,
+        BinOp::Div => Op2::Div,
+        _ => return Err(Error::new("in a synth, signals are combined with + - * / (comparisons and powers apply to fixed numbers)", span)),
+    };
+    let (a, b) = (as_signal(a, span)?, as_signal(b, span)?);
+    if let (Some(x), Some(y)) = (a.constant(), b.constant()) {
+        let v = match op {
+            Op2::Add => x + y,
+            Op2::Sub => x - y,
+            Op2::Mul => x * y,
+            Op2::Div => x / y,
+        };
+        return Ok(Val::Signal(Arc::new(Sig::Const(v))));
+    }
+    Ok(Val::Signal(Arc::new(Sig::Bin(op, a, b))))
+}
+
 fn neg_val(v: Val, span: Span) -> Res<Val> {
+    if let Val::Signal(s) = v {
+        return Ok(Val::Signal(Arc::new(crate::synth::Sig::Neg(s))));
+    }
     match v {
         Val::Field(f) => Ok(Val::Field(fold(Field::Neg(Box::new(f))))),
         Val::List(items) => Ok(Val::List(Arc::new(items.iter().map(|i| neg_val(i.clone(), span)).collect::<Res<Vec<_>>>()?))),
@@ -1204,6 +1252,10 @@ pub enum Val {
     Meter(crate::harmony::Meter),
     /// `chords(…)`: a progression of chords over the work.
     Harmony(Arc<crate::harmony::Harmony>),
+    /// Inside `synth { … }`: a signal, one unit of the patch (`saw(note.freq)`).
+    Signal(Arc<crate::synth::Sig>),
+    /// `synth { … }`: an instrument, for `notes`, `drone` and `arp`.
+    Synth(Arc<crate::synth::Synth>),
 }
 
 /// A function written in alea: its parameters, its body, and the names it
@@ -1230,6 +1282,8 @@ fn kind_of(v: &Val) -> &'static str {
         Val::Input(i) => i.kind_name(),
         Val::Meter(_) => "a meter",
         Val::Harmony(_) => "a progression",
+        Val::Signal(_) => "a signal of a synth",
+        Val::Synth(_) => "a synth",
     }
 }
 
@@ -1298,7 +1352,7 @@ fn draw_work(m: &Module, seed: u64, given: &HashMap<String, Val>, component: boo
     let mut rng = ChaCha8Rng::seed_from_u64(seed);
     let mut failures: Vec<(Span, u32)> = Vec::new();
     for attempt in 1..=MAX_ATTEMPTS {
-        let mut r = Resolver { rng: &mut rng, env: HashMap::new(), next_id: 0, seed, module: m, depth, grid: None };
+        let mut r = Resolver { rng: &mut rng, env: HashMap::new(), next_id: 0, seed, module: m, depth, grid: None, in_synth: 0 };
         match r.run(&m.work, given, component)? {
             Ok((renders, output)) => return Ok(Outcome { renders, output, attempts: attempt }),
             Err(span) => match failures.iter_mut().find(|(s, _)| *s == span) {
@@ -1323,6 +1377,8 @@ pub(crate) struct Resolver<'a> {
     depth: usize,
     /// Inside a `grow` rule: the grid's cells per side (for `neighbours` & co).
     grid: Option<usize>,
+    /// Inside `synth { … }`: oscillators, envelopes and filters are named.
+    in_synth: usize,
 }
 
 fn reseed(v: Val, seed: u64) -> Val {
@@ -1391,7 +1447,11 @@ impl Resolver<'_> {
                 }
                 Stmt::Render { .. } if component => {}
                 Stmt::Let { name, val, .. } => {
-                    let v = self.lower(val)?;
+                    let v = match self.lower(val)? {
+                        // `let pad = synth { … }`: the synth is called `pad` (in MIDI files, in the plugin)
+                        Val::Synth(sy) => Val::Synth(Arc::new(sy.named(name))),
+                        v => v,
+                    };
                     self.env.insert(name.clone(), share(v));
                 }
                 Stmt::Func { name, params, body, .. } => {
@@ -1575,6 +1635,148 @@ impl Resolver<'_> {
     }
 
     /// `neighbours(f)`, `spread(f)`, `nearby(f, r)`: what is around each cell of a grow grid.
+    /// An `instrument:`: one of the built-in names (Ok), or a synth (Err).
+    #[allow(clippy::type_complexity)]
+    fn instrument(&mut self, e: Option<&Expr>, default: &str, names: &[&str]) -> Res<Result<String, Arc<crate::synth::Synth>>> {
+        let Some(e) = e else { return Ok(Ok(default.to_string())) };
+        match self.lower(e)? {
+            Val::Str(s) if names.contains(&s.as_str()) => Ok(Ok(s)),
+            Val::Synth(sy) => Ok(Err(sy)),
+            _ => Err(Error::new(format!("`instrument` is one of: {}, or a synth (`synth {{ … }}`)", names.join(", ")), e.span)),
+        }
+    }
+
+    /// `synth { let … ; sound }`: the `let`s and the sound, with `note` and
+    /// the units of a synth in scope; then the patch, compiled.
+    fn synth_block(&mut self, lets: &[(String, Expr)], body: &Expr, span: Span) -> Res<Val> {
+        use crate::synth::{Sig, Synth};
+        let mut saved: Vec<(String, Option<Val>)> = Vec::new();
+        saved.push(("note".into(), self.env.insert("note".into(), Val::Signal(Arc::new(Sig::NoteRecord)))));
+        self.in_synth += 1;
+        let mut result = Ok(None);
+        for (name, e) in lets {
+            match self.lower(e) {
+                Ok(v) => saved.push((name.clone(), self.env.insert(name.clone(), v))),
+                Err(err) => {
+                    result = Err(err);
+                    break;
+                }
+            }
+        }
+        if result.is_ok() {
+            result = self.lower(body).and_then(|v| as_signal(v, body.span)).map(Some);
+        }
+        self.in_synth -= 1;
+        for (name, old) in saved.into_iter().rev() {
+            match old {
+                Some(v) => self.env.insert(name, v),
+                None => self.env.remove(&name),
+            };
+        }
+        let sig = result?.expect("set on success");
+        let synth = Synth::new(&sig).map_err(|m| Error::new(m, span))?;
+        Ok(Val::Synth(Arc::new(synth)))
+    }
+
+    /// The units of a synth: oscillators, envelopes, filters, effects.
+    fn synth_unit(&mut self, name: &str, args: &[Arg], span: Span) -> Res<Val> {
+        use crate::synth::{NoteValue, Pass, Sig, Wave};
+        let names: &[&str] = match name {
+            "sine" | "saw" | "square" | "triangle" => &["freq"],
+            "pulse" => &["freq", "width"],
+            "noise" => &[],
+            "adsr" => &["attack", "decay", "sustain", "release"],
+            "perc" => &["attack", "release"],
+            "lowpass" | "highpass" | "bandpass" => &["input", "cutoff", "resonance"],
+            "delay" => &["input", "time", "feedback", "mix"],
+            "drive" => &["input", "amount"],
+            _ => &["input", "depth", "rate", "mix"], // chorus
+        };
+        let slots = bind_slots(name, names, args)?;
+        // a signal (or a number), with its default
+        let sig = |r: &mut Self, k: usize, default: Option<Sig>| -> Res<Arc<Sig>> {
+            match (slots[k], default) {
+                (Some(e), _) => as_signal(r.lower(e)?, e.span),
+                (None, Some(d)) => Ok(Arc::new(d)),
+                (None, None) => Err(Error::new(format!("`{name}` needs its `{}`: `{name}({}, …)`", names[k], names[k]), span)),
+            }
+        };
+        // a fixed number, within its range
+        let fixed = |r: &mut Self, k: usize, default: f64, lo: f64, hi: f64| -> Res<f64> {
+            match slots[k] {
+                None => Ok(default),
+                Some(e) => {
+                    let fixed_only = || {
+                        Error::new(
+                            format!(
+                                "the `{}` of `{name}` is set once for the whole synth: a number or a `~` draw, \
+                                 not a value that moves (a note's value, an oscillator…)",
+                                names[k]
+                            ),
+                            e.span,
+                        )
+                    };
+                    let v = match r.lower(e)? {
+                        Val::Signal(sg) => sg.constant().ok_or_else(fixed_only)?,
+                        Val::Field(f) => f.constant().ok_or_else(fixed_only)?,
+                        other => return Err(Error::new(format!("the `{}` of `{name}` is a number, not {}", names[k], kind_of(&other)), e.span)),
+                    };
+                    if !(lo..=hi).contains(&v) {
+                        return Err(Error::new(format!("the `{}` of `{name}` goes from {lo} to {hi}", names[k]), e.span));
+                    }
+                    Ok(v)
+                }
+            }
+        };
+        let freq = || Some(Sig::Note(NoteValue::Freq));
+        let s = match name {
+            "sine" | "saw" | "square" | "triangle" | "pulse" => {
+                let wave = match name {
+                    "sine" => Wave::Sine,
+                    "saw" => Wave::Saw,
+                    "square" => Wave::Square,
+                    "triangle" => Wave::Triangle,
+                    _ => Wave::Pulse,
+                };
+                let f = sig(self, 0, freq())?;
+                let width = if name == "pulse" { sig(self, 1, Some(Sig::Const(0.25)))? } else { Arc::new(Sig::Const(0.5)) };
+                Sig::Osc { wave, freq: f, width }
+            }
+            "noise" => Sig::Noise,
+            "adsr" => Sig::Adsr {
+                attack: fixed(self, 0, 0.01, 0.0, 30.0)?,
+                decay: fixed(self, 1, 0.2, 0.0, 30.0)?,
+                sustain: fixed(self, 2, 0.7, 0.0, 1.0)?,
+                release: fixed(self, 3, 0.3, 0.0, 30.0)?,
+            },
+            "perc" => Sig::Perc { attack: fixed(self, 0, 0.005, 0.0, 10.0)?, release: fixed(self, 1, 1.0, 0.001, 30.0)? },
+            "lowpass" | "highpass" | "bandpass" => Sig::Filter {
+                pass: match name {
+                    "lowpass" => Pass::Low,
+                    "highpass" => Pass::High,
+                    _ => Pass::Band,
+                },
+                input: sig(self, 0, None)?,
+                cutoff: sig(self, 1, Some(Sig::Const(1000.0)))?,
+                resonance: sig(self, 2, Some(Sig::Const(0.2)))?,
+            },
+            "delay" => Sig::Delay {
+                input: sig(self, 0, None)?,
+                time: fixed(self, 1, 0.3, 0.001, 4.0)?,
+                feedback: fixed(self, 2, 0.4, 0.0, 0.95)?,
+                mix: fixed(self, 3, 0.35, 0.0, 1.0)?,
+            },
+            "drive" => Sig::Drive { input: sig(self, 0, None)?, amount: sig(self, 1, Some(Sig::Const(0.5)))? },
+            _ => Sig::Chorus {
+                input: sig(self, 0, None)?,
+                depth: fixed(self, 1, 0.5, 0.0, 1.0)?,
+                rate: fixed(self, 2, 0.8, 0.01, 20.0)?,
+                mix: fixed(self, 3, 0.5, 0.0, 1.0)?,
+            },
+        };
+        Ok(Val::Signal(Arc::new(s)))
+    }
+
     fn grid_helper(&mut self, name: &str, args: &[Arg], span: Span) -> Res<Val> {
         let Some(res) = self.grid else {
             return Err(Error::new(
@@ -1722,6 +1924,7 @@ impl Resolver<'_> {
                     _ => self.member(v, name, base.span, e.span)?,
                 }
             }
+            ExprKind::Synth { lets, body } => self.synth_block(lets, body, e.span)?,
             ExprKind::Template(parts) => {
                 let mut text = String::new();
                 for part in parts {
@@ -1809,6 +2012,12 @@ impl Resolver<'_> {
                 "this is a distribution, not a value: put `~` in front of it to draw one",
                 e.span,
             )),
+            Val::Signal(_) => Err(Error::new(
+                "this is a signal of a synth: it goes through + - * / and the synth's own units \
+                 (sine, saw, square, triangle, pulse, noise, adsr, perc, lowpass, highpass, bandpass, delay, drive, chorus)",
+                e.span,
+            )),
+            Val::Synth(_) => Err(Error::new("a synth is an instrument: give it to `instrument:` in `notes`, `drone` or `arp`", e.span)),
         }
     }
 
@@ -1824,6 +2033,9 @@ impl Resolver<'_> {
     fn call(&mut self, name: &str, args: &[Arg], span: Span) -> Res<Val> {
         if let Some(Val::Func(f)) = self.env.get(name).cloned() {
             return self.call_func(&f, args, span);
+        }
+        if self.in_synth > 0 && crate::synth::UNITS.contains(&name) {
+            return self.synth_unit(name, args, span);
         }
         if let Some(m) = self.module.deps.get(name).cloned() {
             return self.call_work(&m, args, span);
@@ -2729,12 +2941,9 @@ impl Resolver<'_> {
                 };
                 let octaves = whole(num(self, 3, 2.0)?, 3, 1.0, 5.0)?;
                 let gate = num(self, 4, 0.8)?.clamp(0.05, 1.0);
-                let strike = match slots[5] {
-                    None => crate::sound::Strike::Pluck,
-                    Some(e) => match self.lower(e)? {
-                        Val::Str(s) if crate::sound::Strike::parse(&s).is_some() => crate::sound::Strike::parse(&s).unwrap(),
-                        _ => return Err(Error::new(format!("`instrument` is one of: {}", crate::sound::NOTE_INSTRUMENTS.join(", ")), e.span)),
-                    },
+                let (strike, synth) = match self.instrument(slots[5], "pluck", crate::sound::NOTE_INSTRUMENTS)? {
+                    Ok(name) => (crate::sound::Strike::parse(&name).expect("checked"), None),
+                    Err(sy) => (crate::sound::Strike::Marimba, Some(sy)),
                 };
                 let key = self.key_of(slots[6], harmony.key, 20.0, 4000.0)?;
                 let gain = num(self, 7, 1.0)?.clamp(0.0, 10.0);
@@ -2743,7 +2952,7 @@ impl Resolver<'_> {
                 let humanize = num(self, 10, 0.0)?.clamp(0.0, 1.0);
                 let feel = crate::sound::Feel { swing, humanize, harmony: Some(harmony), arp: Some(Arp { mode, octaves, gate }) };
                 let scale = crate::sound::Scale::parse("chromatic").expect("built in");
-                Ok(Val::Sound(Arc::new(crate::sound::Layer::Notes { events, strike, scale, key, gain, tempo, seed: self.seed, feel })))
+                Ok(Val::Sound(Arc::new(crate::sound::Layer::Notes { events, strike, scale, key, gain, tempo, seed: self.seed, feel, synth })))
             }
         }
     }
@@ -2852,6 +3061,14 @@ impl Resolver<'_> {
     /// `photo.luma`, `song.level`, `poem.words`, `point.x`…
     fn member(&mut self, v: Val, name: &str, base: Span, span: Span) -> Res<Val> {
         use crate::input::{Kind, CHANNELS};
+        if let Val::Signal(s) = &v {
+            if matches!(s.as_ref(), crate::synth::Sig::NoteRecord) {
+                return match crate::synth::NoteValue::parse(name) {
+                    Some(n) => Ok(Val::Signal(Arc::new(crate::synth::Sig::Note(n)))),
+                    None => Err(Error::new(format!("a note has no `.{name}` — it has: {}", crate::synth::NOTE_VALUES.join(", ")), span)),
+                };
+            }
+        }
         const SOUND: &[&str] = &["level", "bass", "mid", "treble", "pulse", "beats", "duration"];
         let name = if name == "luminance" { "luma" } else { name };
         let input = match v {
@@ -3022,20 +3239,27 @@ impl Resolver<'_> {
             "drone" => {
                 let field = self.field(first)?;
                 let voices = number(self, 1, 6.0, 1.0, 24.0)?.round() as usize;
-                let voice = Voice::parse(&text(self, 2, "sine", DRONE_INSTRUMENTS)?).expect("checked");
+                let (voice, synth) = match self.instrument(slots[2], "sine", DRONE_INSTRUMENTS)? {
+                    Ok(name) => (Voice::parse(&name).expect("checked"), None),
+                    Err(sy) => (Voice::Sine, Some(sy)),
+                };
                 let scale = scale_of(text(self, 3, "pentatonic", SCALES)?);
                 let harmony = harmony_of(self, 6)?;
                 let default_key = harmony.as_ref().map_or(110.0, |h| h.key / 2.0);
                 let key = self.key_of(slots[4], default_key, 20.0, 2000.0)?;
                 let gain = number(self, 5, 1.0, 0.0, 10.0)?;
-                Layer::Drone { field, seed: self.seed, voices, voice, scale, key, gain, harmony }
+                Layer::Drone { field, seed: self.seed, voices, voice, scale, key, gain, harmony, synth }
             }
             "notes" => {
                 let f = self.field(first)?;
                 let Some(events) = f.pattern().cloned() else {
                     return Err(Error::new("`notes` plays a pattern (`pattern p = repeat …`)", first.span));
                 };
-                let strike = Strike::parse(&text(self, 1, "bell", NOTE_INSTRUMENTS)?).expect("checked");
+                let (strike, synth) = match self.instrument(slots[1], "bell", NOTE_INSTRUMENTS)? {
+                    Ok(name) => (Strike::parse(&name).expect("checked"), None),
+                    // placed as a melodic instrument (not a drum, which plays two octaves down)
+                    Err(sy) => (Strike::Marimba, Some(sy)),
+                };
                 let scale = scale_of(text(self, 2, "pentatonic", SCALES)?);
                 let harmony = harmony_of(self, 6)?;
                 let key = self.key_of(slots[3], harmony.as_ref().map_or(220.0, |h| h.key), 20.0, 4000.0)?;
@@ -3044,7 +3268,7 @@ impl Resolver<'_> {
                 let swing = number(self, 7, 0.5, 0.5, 0.75)?;
                 let humanize = number(self, 8, 0.0, 0.0, 1.0)?;
                 let feel = crate::sound::Feel { swing, humanize, harmony, arp: None };
-                Layer::Notes { events, strike, scale, key, gain, tempo, seed: self.seed, feel }
+                Layer::Notes { events, strike, scale, key, gain, tempo, seed: self.seed, feel, synth }
             }
             "cc" => {
                 let field = self.field(first)?;

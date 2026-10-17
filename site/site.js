@@ -5,7 +5,7 @@
   const $ = (id) => document.getElementById(id);
 
   // ── a small highlighter for alea ──
-  const KEYWORDS = /^(work|let|field|output|render|use|choose|for|in|if|else|constraint|true|false)$/;
+  const KEYWORDS = /^(work|let|field|output|render|use|choose|synth|for|in|if|else|constraint|true|false)$/;
   function highlight(src) {
     const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const re = /(\/\/[^\n]*)|("(?:[^"\\]|\\.)*")|(~~?)|(\b\d+(?:\.\d+)?\b|\b0x[0-9a-f]+\b)|([A-Za-z_][A-Za-z0-9_]*)(\s*\()?|([\s\S])/gi;
