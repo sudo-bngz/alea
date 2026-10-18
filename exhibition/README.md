@@ -14,6 +14,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Culture** | `culture.alea` | A petri dish: colonies seeded at random grow by reaction–diffusion, two kinds of life side by side. Also a Reel: 72 hours of incubation in 20 seconds. |
 | **Correspondances** | `correspondances.alea` (+ `correspondances/`) | The plan of a metro for a Paris that was never built: the real city's grammar, a new geometry every edition, and a Reel of one day of service. |
 | **Kikai** (機械図) | `kikai.alea` (+ `fonts/`) | The technical drawing of an analog machine that never existed: a cassette deck, a radio-cassette, a portable radio or a rhythm machine, in off-white line on washed charcoal, labelled in Japanese like a service manual. Each edition draws another machine. Also a Reel: the machine plays a techno track in the spirit of Detroit, with its acid line written below. |
+| **Kairo** (回路) | `kairo.alea` (+ `fonts/`) | After Kikai, a modular synthesizer that never existed: two rows of modules racked in another order each edition, patched with hanging cables. Also a Reel without drums: a slow piano waltz over a deep drone, the melody written on a staff as it plays. |
 
 ## Replaying the editions
 
@@ -23,6 +24,7 @@ alea nocturne.alea  --seed 0xa1ea06          # the image, and the 1080×1920 Ree
 alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
+alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
 alea kikai.alea --seed 0xa1ea05              # the drawing, and the 1080×1920 Reel of the machine playing (about 10 minutes)
 ```
 
@@ -388,6 +390,44 @@ acid tirée au hasard (celle qui est écrite sous la machine est celle qu'on
 entend) et, dans la seconde moitié, les accords mineurs de Detroit. Dessiné,
 composé et synthétisé par le même programme. Édition 0xa1ea05.
 
+## Fifth room: Kairo
+
+| # | Post | Files |
+|---|---|---|
+| 13 | Kairo, Reel (25 s, ten bars of three at 72 BPM) | `13-kairo-reel.mp4` (cover: `13-kairo-reel-cover.jpg`) |
+
+**How it is made.** The rack is two rows of five modules (oscillators,
+filter, envelope, sequencer, LFO, VCA, mixer, reverb, scope, output) whose
+order is drawn for each edition; their widths are shared out like the HP of a
+real case. Cables hang from an output to an input, sagging, each swaying at
+its own pace. The music has no drums. A piano, written as a synth (two
+strings a little out of tune, partials that die faster as they rise), plays a
+waltz: the bass on one, a seventh chord on two, over chords that rock between
+the fourth and the first like a gymnopédie. From the third bar a melody
+arches over it, slow. Under it, a drone an octave below the bass; around it, a
+long room. A few tiny clicks, and once a note stutters, as if the machine
+hesitated. In the Reel the sequencer steps on each beat, the scope traces
+what sounds, the meter rises with each chord, and the melody is written on
+the staff below as it is played.
+
+### 13 · Kairo (Reel)
+
+**EN**
+
+KAIRO, a modular synthesizer that never existed plays a slow waltz on a
+piano: a seventh chord on every second beat, a melody that rises and falls,
+a deep drone under it, the small clicks of a machine thinking. The melody is
+written on the staff as you hear it. Drawn, composed and synthesized by the
+same program. Edition 0xa1ea01.
+
+**FR**
+
+KAIRO, un synthétiseur modulaire qui n'a jamais existé joue une valse lente
+au piano : un accord de septième à chaque deuxième temps, une mélodie qui
+monte et redescend, un bourdon grave dessous, les petits clics d'une machine
+qui réfléchit. La mélodie s'écrit sur la portée à mesure qu'on l'entend.
+Dessiné, composé et synthétisé par le même programme. Édition 0xa1ea01.
+
 ### Hashtags
 
 ```
@@ -395,5 +435,5 @@ composé et synthétisé par le même programme. Édition 0xa1ea05.
 #genart #newmediaart #digitalart #topography #nocturne #stainedglass #rustlang
 #paris #metro #transitmap #cartography
 #reactiondiffusion #gameoflife #emergence #biology #petridish
-#detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
+#idm #piano #modularsynth #eurorack #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
 ```
