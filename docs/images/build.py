@@ -9,6 +9,7 @@ Needs Pillow and ffmpeg. Writes, next to this file:
   isohypses-editions.jpg   the six posted editions of Isohypses, with their seeds
   breathing-0x3.webp, breathing-0x7.webp   examples/breathing.alea, two looping editions
   culture.webp             the Culture Reel: colonies growing in a petri dish
+  kikai.webp, kairo.webp, atardecer.webp   four seconds of each of their Reels
 """
 import glob, pathlib, subprocess, tempfile
 
@@ -50,8 +51,8 @@ def main():
 
     # the banner: one edition of each work of the exhibition
     picks = ["1-isohypses-1-0xa1ea03", "3-rosace-2-0xa1ea05", "2-nocturne-3-0xa1ea09",
-             "7-correspondances-2-0xa1ea01", "9-culture-3-0xc06", "1-isohypses-3-0xa1ea01",
-             "3-rosace-6-0xa1ea0f"]
+             "7-correspondances-2-0xa1ea01", "9-culture-3-0xc06", "12-kikai-1-0xa1ea05",
+             "13-atardecer-1-0xa1ea01", "14-kairo-1-0xa1ea01"]
     tiles = [Image.open(posts / f"{p}.jpg").convert("RGB").resize((240, 300), Image.LANCZOS) for p in picks]
     gap = 8
     banner = Image.new("RGB", (len(tiles) * 240 + (len(tiles) - 1) * gap, 300), INK)
@@ -87,6 +88,14 @@ def main():
     subprocess.run(["ffmpeg", "-v", "error", "-i", str(posts / "10-culture-reel.mp4"), "-vf",
                     "fps=10,crop=1080:1080:0:420,scale=300:300:flags=lanczos", str(frames / "%03d.png")], check=True)
     anim(str(frames / "*.png"), here / "culture.webp", 100)
+
+    # Kikai, Kairo, Atardecer: four seconds of each Reel
+    for stem, start in [("12-kikai-reel", 1.0), ("14-kairo-reel", 14.0), ("13-atardecer-reel", 4.0)]:
+        frames = tmp / stem
+        frames.mkdir()
+        subprocess.run(["ffmpeg", "-v", "error", "-ss", str(start), "-t", "4", "-i", str(posts / f"{stem}.mp4"), "-vf",
+                        "fps=12,scale=270:-1:flags=lanczos", str(frames / "%03d.png")], check=True)
+        anim(str(frames / "*.png"), here / f"{stem.split('-')[1]}.webp", 83)
 
     for f in sorted(here.glob("*.*")):
         if f.suffix != ".py":

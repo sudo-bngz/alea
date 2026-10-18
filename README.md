@@ -120,6 +120,23 @@ incubation in twenty seconds.
 </tr>
 </table>
 
+<table>
+<tr>
+<td width="25%"><img src="docs/images/kikai.webp" alt="Kikai: a rhythm machine drawn like a service manual, its steps lighting up"></td>
+<td width="25%"><img src="docs/images/kairo.webp" alt="Kairo: a modular synthesizer, its cables swaying, the melody written on a staff"></td>
+<td width="25%"><img src="docs/images/atardecer.webp" alt="Atardecer: a record setting into the sea as the sun"></td>
+<td>
+<strong>The picture and the music, one program.</strong>
+<a href="exhibition/kikai.alea">Kikai</a> draws a machine that never existed and
+plays Detroit techno on it; <a href="exhibition/kairo.alea">Kairo</a> racks a
+modular synthesizer that plays a slow piano waltz;
+<a href="exhibition/atardecer.alea">Atardecer</a> sets a record into the sea over
+lofi house. Every instrument is a <code>synth</code>, and the notes you hear are
+the ones drawn.
+</td>
+</tr>
+</table>
+
 ## What you can make
 
 | `render …` | You get |
@@ -171,7 +188,7 @@ On macOS, the first time: `xattr -d com.apple.quarantine alea`.
 | **[The reference](docs/reference.md)** | every statement, function, render option and limit |
 | **[The instruments](examples/instruments/)** | alea's instruments written as synths, to open, change and `use` |
 | **[The examples](examples/)** | finished works: `rosace`, `moon`, `tide`, `poster`, `constellation`… |
-| **[The exhibition](exhibition/)** | larger works: `isohypses`, `nocturne`, `correspondances`, `culture`… |
+| **[The exhibition](exhibition/)** | larger works: `isohypses`, `nocturne`, `correspondances`, `culture`, `kikai`, `kairo`… |
 
 ## The language in one screen
 
