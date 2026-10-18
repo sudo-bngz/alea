@@ -42,6 +42,12 @@ The posted editions:
 | Correspondances Reel | 0xa1ea18 |
 | Culture | 0xc00 · 0xc05 · 0xc06 · 0xc0b · 0xc0a · 0xc01 |
 | Culture Reel | 0xc06 |
+| Kikai | 0xa1ea05 · 0xa1ea04 · 0xa1ea08 · 0xa1ea01 · 0xa1ea0a · 0xa1ea0f |
+| Kikai Reel | 0xa1ea05 |
+| Atardecer | 0xa1ea01 · 0xa1ea03 · 0xa1ea04 · 0xa1ea02 · 0xa1ea06 · 0xa1ea07 |
+| Atardecer Reel | 0xa1ea01 |
+| Kairo | 0xa1ea01 · 0xa1ea00 · 0xa1ea02 · 0xa1ea03 · 0xa1ea04 · 0xa1ea06 |
+| Kairo Reel | 0xa1ea01 |
 
 All images are 1080 × 1350 (4:5, Instagram's portrait format); the Reel is
 1080 × 1920 (9:16), 15 seconds, with sound.
@@ -359,6 +365,7 @@ Chaque écran est un programme qui tourne au même instant.
 
 | # | Post | Files |
 |---|---|---|
+| 12 | Kikai, carousel of 6 | `12-kikai-*-0x*.jpg` (0xa1ea05 · 0xa1ea04 · 0xa1ea08 · 0xa1ea01 · 0xa1ea0a · 0xa1ea0f) |
 | 12 | Kikai, Reel (15 s, eight bars at 128 BPM) | `12-kikai-reel.mp4` (cover: `12-kikai-reel-cover.jpg`) |
 
 **How it is made.** The drawing is the still, and every motion is zero at
@@ -395,6 +402,7 @@ composé et synthétisé par le même programme. Édition 0xa1ea05.
 
 | # | Post | Files |
 |---|---|---|
+| 13 | Atardecer, carousel of 6 | `13-atardecer-*-0x*.jpg` (0xa1ea01 · 0xa1ea03 · 0xa1ea04 · 0xa1ea02 · 0xa1ea06 · 0xa1ea07) |
 | 13 | Atardecer, Reel (16.5 s, eight bars at 116 BPM) | `13-atardecer-reel.mp4` (cover: `13-atardecer-reel-cover.jpg`) |
 
 **How it is made.** The sun is written as a function of the point, not as a
@@ -428,6 +436,7 @@ composé et synthétisé par le même programme. Édition 0xa1ea01.
 
 | # | Post | Files |
 |---|---|---|
+| 14 | Kairo, carousel of 6 | `14-kairo-*-0x*.jpg` (0xa1ea01 · 0xa1ea00 · 0xa1ea02 · 0xa1ea03 · 0xa1ea04 · 0xa1ea06) |
 | 14 | Kairo, Reel (25 s, ten bars of three at 72 BPM) | `14-kairo-reel.mp4` (cover: `14-kairo-reel-cover.jpg`) |
 
 **How it is made.** The rack is two rows of five modules (oscillators,

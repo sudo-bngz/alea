@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Assembles the site (alea.bngz.io) in _site/: the pages of site/, the browser
 engine and the work drawn live on the home page, the exhibition's editions
-(resized for the web), two Reels, the fonts, the playground and the handbook.
+(resized for the web), the Reels, the fonts, the playground and the handbook.
 
     web/build.sh && python3 web/handbook.py   # the engine, playground, handbook
     python3 site/build.py                     # → _site/
@@ -29,8 +29,17 @@ WORKS = [
      "The plan of a metro for a Paris that was never built: the real city's grammar, a new network every edition."),
     ("culture", "Culture", "exhibition/culture.alea",
      "A petri dish: colonies seeded at random grow by reaction–diffusion, two kinds of life side by side."),
+    ("kikai", "Kikai 機械図", "exhibition/kikai.alea",
+     "The technical drawing of an analog machine that never existed (a cassette deck, a radio-cassette, a portable radio or a rhythm machine), labelled in Japanese like a service manual."),
+    ("atardecer", "Atardecer", "exhibition/atardecer.alea",
+     "A sunset on the sea, the sun a record setting into it: grooves, a label, the reflection broken into slats, palms in silhouette, in washed-out colours."),
+    ("kairo", "Kairo 回路", "exhibition/kairo.alea",
+     "After Kikai, a modular synthesizer that never existed: modules racked in another order every edition, patched with hanging cables."),
 ]
 REELS = [
+    ("12-kikai-reel", "Kikai", "A rhythm machine plays Detroit techno at 128 BPM; the acid line written below is the one you hear."),
+    ("14-kairo-reel", "Kairo", "A modular synthesizer plays a slow piano waltz, no drums; the melody is written on the staff as it plays."),
+    ("13-atardecer-reel", "Atardecer", "A record setting into the sea turns at 33 rpm, over lofi house at 116 BPM."),
     ("8-correspondances-reel", "Correspondances", "One day of service on the network, with its sound."),
     ("10-culture-reel", "Culture", "Seventy-two hours of incubation in twenty seconds."),
 ]
@@ -86,7 +95,7 @@ def main():
     resized(first, out / "img" / "hero.webp", 1080, 86)
     shutil.copy(posts / "6-alea-card.jpg", out / "og.jpg")
 
-    # two Reels, with their covers
+    # the Reels, with their covers
     for stem, _, _ in REELS:
         shutil.copy(posts / f"{stem}.mp4", out / "img" / f"{stem}.mp4")
         resized(posts / f"{stem}-cover.jpg", out / "img" / f"{stem}.webp", 720)
