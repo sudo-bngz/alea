@@ -13,6 +13,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | *Opening card* | `exhibition.alea` | A triptych of the three works, each called as a component. |
 | **Culture** | `culture.alea` | A petri dish: colonies seeded at random grow by reaction–diffusion, two kinds of life side by side. Also a Reel: 72 hours of incubation in 20 seconds. |
 | **Correspondances** | `correspondances.alea` (+ `correspondances/`) | The plan of a metro for a Paris that was never built: the real city's grammar, a new geometry every edition, and a Reel of one day of service. |
+| **Atardecer** | `atardecer.alea` | A sunset on the sea, the sun a record setting into it: grooves, a turning sheen, a label with the side it plays, the reflection broken into slats, palms in silhouette, in washed-out colours. Also a Reel of slow, lofi house. |
 | **Kikai** (機械図) | `kikai.alea` (+ `fonts/`) | The technical drawing of an analog machine that never existed: a cassette deck, a radio-cassette, a portable radio or a rhythm machine, in off-white line on washed charcoal, labelled in Japanese like a service manual. Each edition draws another machine. Also a Reel: the machine plays a techno track in the spirit of Detroit, with its acid line written below. |
 | **Kairo** (回路) | `kairo.alea` (+ `fonts/`) | After Kikai, a modular synthesizer that never existed: two rows of modules racked in another order each edition, patched with hanging cables. Also a Reel without drums: a slow piano waltz over a deep drone, the melody written on a staff as it plays. |
 
@@ -390,6 +391,39 @@ acid tirée au hasard (celle qui est écrite sous la machine est celle qu'on
 entend) et, dans la seconde moitié, les accords mineurs de Detroit. Dessiné,
 composé et synthétisé par le même programme. Édition 0xa1ea05.
 
+## Fifth room: Atardecer
+
+| # | Post | Files |
+|---|---|---|
+| 13 | Atardecer, Reel (16.5 s, eight bars at 116 BPM) | `13-atardecer-reel.mp4` (cover: `13-atardecer-reel-cover.jpg`) |
+
+**How it is made.** The sun is written as a function of the point, not as a
+shape, so the sea can draw it again upside down, shifted row by row by the
+ripples into slats. It turns at 33 rpm (nine turns in the loop), its grooves
+a fine sine of the distance, the light on them a sine of twice the angle. The
+palms are paths: a trunk that leans, fronds that rise and droop, leaflets
+hanging from them, swaying around the crown. The music is lofi house: a round
+kick, a soft snare, shakers and congas on a swung grid, a rolling bass on
+minor ninths, an arpeggio that opens, and a lead's long notes from the fifth
+bar. All of it runs through a slow wobble of pitch, like an old tape, with the
+crackle of a record.
+
+### 13 · Atardecer (Reel)
+
+**EN**
+
+ATARDECER, a record setting into the sea. It turns at 33 rpm, the sea breaks
+its reflection into slats, the palms sway. The track is lofi house at 116 BPM:
+congas, a rolling bass, an arpeggio over minor ninths, the wobble of an old
+tape. Drawn, composed and synthesized by the same program. Edition 0xa1ea01.
+
+**FR**
+
+ATARDECER, un disque qui se couche dans la mer. Il tourne à 33 tours, la mer
+brise son reflet en lamelles, les palmiers se balancent. Le morceau est de la
+house lofi à 116 BPM : des congas, une basse qui roule, un arpège sur des
+accords de neuvième mineure, le pleurage d'une vieille cassette. Dessiné,
+composé et synthétisé par le même programme. Édition 0xa1ea01.
 ## Fifth room: Kairo
 
 | # | Post | Files |
@@ -435,5 +469,6 @@ Dessiné, composé et synthétisé par le même programme. Édition 0xa1ea01.
 #genart #newmediaart #digitalart #topography #nocturne #stainedglass #rustlang
 #paris #metro #transitmap #cartography
 #reactiondiffusion #gameoflife #emergence #biology #petridish
+#lofi #lofihouse #sunset #vinyl #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
 #idm #piano #modularsynth #eurorack #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
 ```
