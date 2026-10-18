@@ -424,11 +424,11 @@ brise son reflet en lamelles, les palmiers se balancent. Le morceau est de la
 house lofi à 116 BPM : des congas, une basse qui roule, un arpège sur des
 accords de neuvième mineure, le pleurage d'une vieille cassette. Dessiné,
 composé et synthétisé par le même programme. Édition 0xa1ea01.
-## Fifth room: Kairo
+## Sixth room: Kairo
 
 | # | Post | Files |
 |---|---|---|
-| 13 | Kairo, Reel (25 s, ten bars of three at 72 BPM) | `13-kairo-reel.mp4` (cover: `13-kairo-reel-cover.jpg`) |
+| 14 | Kairo, Reel (25 s, ten bars of three at 72 BPM) | `14-kairo-reel.mp4` (cover: `14-kairo-reel-cover.jpg`) |
 
 **How it is made.** The rack is two rows of five modules (oscillators,
 filter, envelope, sequencer, LFO, VCA, mixer, reverb, scope, output) whose
@@ -444,7 +444,7 @@ hesitated. In the Reel the sequencer steps on each beat, the scope traces
 what sounds, the meter rises with each chord, and the melody is written on
 the staff below as it is played.
 
-### 13 · Kairo (Reel)
+### 14 · Kairo (Reel)
 
 **EN**
 
