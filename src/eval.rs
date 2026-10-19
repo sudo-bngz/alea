@@ -178,6 +178,11 @@ pub struct Event {
     pub t: f64,
     pub intensity: f64,
     pub size: f64,
+    /// A note read from a MIDI file keeps its pitch (a MIDI note number): a
+    /// `notes` layer plays it as written, whatever its height, scale or key.
+    pub pitch: Option<f64>,
+    /// …and its length, in seconds.
+    pub length: Option<f64>,
 }
 
 /// A resolved field: a function of (x, y, t) whose `~` draws have all been made.
@@ -2019,6 +2024,7 @@ impl Resolver<'_> {
                     crate::input::Kind::Image(_) => "an image can't be used in a computation as it is: take one of its channels, `photo.luma`, `photo.red`, `photo.hue`…",
                     crate::input::Kind::Sound(_) => "a sound can't be used in a computation as it is: take a curve, `song.level`, `song.bass`, `band(song, 200, 800)`…",
                     crate::input::Kind::Text(_) => "a text input can't be used in a computation: take `.words`, `.lines` or `.rows`",
+                    crate::input::Kind::Midi(_) => "a MIDI file can't be used in a computation as it is: take its notes, `song.notes`, `song.tracks[0]`, or a curve, `song.level`",
                 },
                 e.span,
             )),
@@ -2079,6 +2085,9 @@ impl Resolver<'_> {
         }
         if matches!(name, "input" | "colours" | "colors" | "band") {
             return self.input_fn(name, args, span);
+        }
+        if matches!(name, "open" | "files" | "choose") {
+            return self.files_fn(name, args, span);
         }
         if let Some(r) = self.primitive(name, args, span) {
             return r;
@@ -2812,7 +2821,7 @@ impl Resolver<'_> {
                 },
             }
         };
-        let event = |t: f64, y: f64, intensity: f64| Event { x: t, y, t, intensity, size: 0.012 };
+        let event = |t: f64, y: f64, intensity: f64| Event { x: t, y, t, intensity, size: 0.012, pitch: None, length: None };
         match name {
             "meter" => {
                 let tempo = num(self, 0, 120.0)?;
@@ -2974,6 +2983,83 @@ impl Resolver<'_> {
                 Ok(Val::Sound(Arc::new(crate::sound::Layer::Notes { events, strike, scale, key, gain, tempo, seed: self.seed, feel, synth })))
             }
         }
+    }
+
+    /// `open(file)`, `files("photos/*.jpg")`, `choose(list)`.
+    fn files_fn(&mut self, name: &str, args: &[Arg], span: Span) -> Res<Val> {
+        if let Some(a) = args.iter().find(|a| a.name.is_some()) {
+            return Err(Error::new(format!("`{name}` takes no named argument"), a.val.span));
+        }
+        if args.len() != 1 {
+            let what = match name {
+                "open" => "a file: `open(\"poem.txt\")`",
+                "files" => "a pattern: `files(\"photos/*.jpg\")`",
+                _ => "a list: `choose(names)` (or the choices themselves: `choose { a | b }`)",
+            };
+            return Err(Error::new(format!("`{name}` takes {what}"), span));
+        }
+        let e = &args[0].val;
+        if name == "choose" {
+            return match self.lower(e)? {
+                Val::List(l) if l.is_empty() => Err(Error::new("`choose` can't choose from an empty list", e.span)),
+                Val::List(l) => {
+                    // one draw, as `choose { … }` makes
+                    let k = ((self.rng.random::<f64>() * l.len() as f64) as usize).min(l.len() - 1);
+                    Ok(l[k].clone())
+                }
+                other => Err(Error::new(format!("`choose(…)` takes a list, not {}", kind_of(&other)), e.span)),
+            };
+        }
+        let path = match self.lower(e)? {
+            Val::Str(s) => s,
+            other => return Err(Error::new(format!("`{name}` takes a file name, as a text, not {}", kind_of(&other)), e.span)),
+        };
+        // only inside the work's folder: works stay shareable, and the web page and the plugin stay sandboxed
+        let p = std::path::Path::new(&path);
+        if path.is_empty() || p.is_absolute() || path.starts_with(['/', '\\']) || path.contains(':')
+            || p.components().any(|c| matches!(c, std::path::Component::ParentDir))
+        {
+            return Err(Error::new(
+                format!("`{name}` reads files in the work's folder and the folders inside it: `\"{path}\"` is outside (no absolute path, no `..`)"),
+                e.span,
+            ));
+        }
+        if name == "open" {
+            let full = self.module.dir.join(p);
+            let i = crate::input::from_file(&full, &path).map_err(|err| {
+                Error::new(format!("cannot open `{path}` (next to {}): {err}", self.module.dir.display()), e.span)
+            })?;
+            crate::input::mark_used(&i);
+            return Ok(Val::Input(i));
+        }
+        // files: wildcards in the last part of the path
+        let (dir, pattern) = match path.rfind('/') {
+            Some(k) => (&path[..k], &path[k + 1..]),
+            None => ("", path.as_str()),
+        };
+        if dir.contains(['*', '?']) {
+            return Err(Error::new("`files` takes wildcards (`*`, `?`) in the file name only: `files(\"photos/*.jpg\")`", e.span));
+        }
+        let folder = self.module.dir.join(dir);
+        let mut names: Vec<String> = crate::vfs::list(&folder)
+            .map_err(|err| Error::new(format!("cannot list `{}` (next to {}): {err}", if dir.is_empty() { "." } else { dir }, self.module.dir.display()), e.span))?
+            .into_iter()
+            .filter(|n| !n.starts_with('.') && wildcard(pattern.as_bytes(), n.as_bytes()))
+            .collect();
+        // in order of name, so the list (and the editions drawn from it) are the same everywhere
+        names.sort();
+        if names.is_empty() {
+            return Err(Error::new(format!("no file matches `{path}`"), e.span));
+        }
+        Ok(Val::List(Arc::new(
+            names
+                .into_iter()
+                .map(|n| {
+                    crate::vfs::touch(&folder.join(&n));
+                    Val::Str(if dir.is_empty() { n } else { format!("{dir}/{n}") })
+                })
+                .collect(),
+        )))
     }
 
     /// `input(name, or:)`, `colours(image, n)`, `band(sound, low, high)`.
@@ -3162,7 +3248,7 @@ impl Resolver<'_> {
                         .enumerate()
                         .map(|(k, &(time, strength))| {
                             let u = |salt: u64| (hash(&[self.seed, 0xbea7, k as u64, salt]) >> 11) as f64 / (1u64 << 53) as f64;
-                            Event { x: 0.1 + 0.8 * u(0), y: 0.1 + 0.8 * u(1), t: time / d, intensity: strength, size: 0.006 + 0.012 * strength }
+                            Event { x: 0.1 + 0.8 * u(0), y: 0.1 + 0.8 * u(1), t: time / d, intensity: strength, size: 0.006 + 0.012 * strength, pitch: None, length: None }
                         })
                         .collect();
                     Val::Field(Field::Pattern(Arc::new(events)))
@@ -3190,6 +3276,58 @@ impl Resolver<'_> {
                 )),
                 _ => return Err(unknown(&["text", "words", "lines", "rows"])),
             },
+            Kind::Midi(song) => {
+                // notes as events: along the work in time, up the canvas in
+                // pitch (the file's range spans it), keeping pitch and length
+                let (lo, hi) = song.range();
+                let d = song.duration.max(1e-9);
+                let events = |notes: &[crate::input::Note]| {
+                    let evs: Vec<Event> = notes
+                        .iter()
+                        .map(|n| Event {
+                            x: n.start / d,
+                            y: 1.0 - (n.pitch as f64 - lo as f64 + 0.5) / (hi as f64 - lo as f64 + 1.0),
+                            t: n.start / d,
+                            intensity: n.velocity as f64 / 127.0,
+                            size: 0.006 + 0.004 * n.length.min(2.0),
+                            pitch: Some(n.pitch as f64),
+                            length: Some(n.length),
+                        })
+                        .collect();
+                    Val::Field(Field::Pattern(Arc::new(evs)))
+                };
+                match name {
+                    "notes" => events(&song.notes()),
+                    "tracks" => Val::List(Arc::new(song.tracks.iter().map(|(_, n)| events(n)).collect())),
+                    "names" => Val::List(Arc::new(song.tracks.iter().map(|(name, _)| Val::Str(name.clone())).collect())),
+                    "tempo" => Val::Field(Field::Const(song.tempo)),
+                    "duration" => Val::Field(Field::Const(song.duration)),
+                    "level" => {
+                        // how much is sounding: the velocities of the notes held,
+                        // each fading over 0.15 s after it ends; the loudest 1 % reach 1
+                        let rate = crate::input::CURVE_RATE;
+                        let n = (song.duration * rate).ceil() as usize + 1;
+                        let mut v = vec![0.0f64; n];
+                        for note in song.notes() {
+                            let a = (note.start * rate) as usize;
+                            let b = ((note.start + note.length) * rate) as usize;
+                            let w = note.velocity as f64 / 127.0;
+                            for (k, x) in v.iter_mut().enumerate().skip(a) {
+                                let tail = if k <= b { 1.0 } else { (-((k - b) as f64 / rate) / 0.05).exp() };
+                                if tail < 1e-3 {
+                                    break;
+                                }
+                                *x += w * tail;
+                            }
+                        }
+                        let mut sorted = v.clone();
+                        sorted.sort_by(f64::total_cmp);
+                        let top = sorted[((n - 1) as f64 * 0.99) as usize].max(1e-9);
+                        Val::Field(Field::Curve(Arc::new(v.iter().map(|x| (x / top).min(1.0) as f32).collect())))
+                    }
+                    _ => return Err(unknown(&["notes", "tracks", "names", "tempo", "duration", "level"])),
+                }
+            }
         })
     }
 
@@ -3478,6 +3616,8 @@ impl Resolver<'_> {
                 t: self.rng.random(),
                 intensity: 1.0,
                 size: 0.02,
+                pitch: None,
+                length: None,
             };
             for a in attrs {
                 let v = self.scalar(&a.val, "an event attribute")?;
@@ -3494,5 +3634,99 @@ impl Resolver<'_> {
         self.env.remove("i");
         self.env.remove("n");
         Ok(evs)
+    }
+}
+
+/// `*` any run of characters, `?` any one character, anything else itself.
+fn wildcard(p: &[u8], s: &[u8]) -> bool {
+    match (p.first(), s.first()) {
+        (None, None) => true,
+        (Some(b'*'), _) => wildcard(&p[1..], s) || (!s.is_empty() && wildcard(p, &s[1..])),
+        (Some(b'?'), Some(_)) => wildcard(&p[1..], &s[1..]),
+        (Some(a), Some(b)) if a == b => wildcard(&p[1..], &s[1..]),
+        _ => false,
+    }
+}
+
+#[cfg(test)]
+mod files_tests {
+    use super::*;
+
+    /// A folder with a work in it, and some files beside it.
+    fn folder(name: &str, files: &[(&str, &[u8])]) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("alea-files-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        for (f, bytes) in files {
+            let p = dir.join(f);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, bytes).unwrap();
+        }
+        dir
+    }
+
+    fn run(dir: &std::path::Path, body: &str, seed: u64) -> Result<Edition, String> {
+        let path = dir.join("w.alea");
+        std::fs::write(&path, format!("work W {{\n{body}\n  render image(x, width: 16)\n}}\n")).unwrap();
+        let m = crate::library::load(path.to_str().unwrap()).map_err(|e| format!("{e:?}"))?;
+        resolve(&m, seed).map_err(|e| e.msg.clone())
+    }
+
+    /// The number a work's `let v` came to, read back from its first render.
+    fn picked(dir: &std::path::Path, body: &str, seed: u64) -> f64 {
+        let ed = run(dir, &format!("{body}\n  render image(v + x * 0, width: 16)"), seed).unwrap();
+        ed.renders[0].required_field(0, "f").unwrap().eval([0.5, 0.5, 0.0], seed)
+    }
+
+    #[test]
+    fn files_lists_in_order_and_choose_picks_one() {
+        let dir = folder("list", &[("notes/b.txt", b"two"), ("notes/a.txt", b"one"), ("notes/c.txt", b"three"), ("notes/.hidden.txt", b"x"), ("notes/d.md", b"no")]);
+        // three files, in order of name; dotfiles and other extensions left out
+        assert!(run(&dir, "  let v = files(\"notes/*.txt\")\n  constraint count(v) == 3", 1).is_ok());
+        let mut seen = std::collections::BTreeSet::new();
+        for seed in 0..24 {
+            // the file chosen, by the length of its one word (one, two, three)
+            let w = picked(&dir, "  let v = count(open(choose(files(\"notes/*.txt\"))).words)", seed);
+            assert_eq!(w, 1.0, "a file of one word");
+            let k = picked(&dir, "  let l = files(\"notes/*.txt\")\n  let v = choose(range(count(l)))", seed);
+            // the same draw as `choose { … }` over the same choices
+            let c = picked(&dir, "  let v = choose { 0 | 1 | 2 }", seed);
+            assert_eq!(k, c, "seed {seed}");
+            seen.insert(k as i64);
+        }
+        assert_eq!(seen.len(), 3, "every file gets chosen: {seen:?}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn open_stays_in_the_works_folder() {
+        let dir = folder("inside", &[("poem.txt", b"a b c")]);
+        assert!(run(&dir, "  let v = open(\"poem.txt\")\n  constraint count(v.words) == 3", 1).is_ok());
+        for bad in ["/etc/hosts", "../poem.txt", "a/../../poem.txt"] {
+            let e = run(&dir, &format!("  let v = open(\"{bad}\")"), 1).unwrap_err();
+            assert!(e.contains("outside"), "{bad}: {e}");
+        }
+        assert!(run(&dir, "  let v = files(\"*.png\")", 1).unwrap_err().contains("no file matches"));
+        assert!(run(&dir, "  let v = choose([])", 1).unwrap_err().contains("empty"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_midi_file_gives_notes_that_keep_their_pitch() {
+        let dir = folder("midi", &[("song.mid", &crate::input::midi_tests::sample())]);
+        let body = "  let song = open(\"song.mid\")\n  constraint count(song.notes) == 3 and count(song.tracks) == 1\n  constraint count(song.names) == 1 and abs(song.tempo - 90) < 0.01";
+        assert!(run(&dir, body, 1).is_ok(), "{:?}", run(&dir, body, 1).err());
+        // played as written, whatever the layer's scale and key
+        let e = Event { x: 0.5, y: 0.9, t: 0.0, intensity: 1.0, size: 0.02, pitch: Some(69.0), length: Some(1.5) };
+        let minor = crate::sound::Scale::parse("minor").unwrap();
+        let p = crate::sound::place_note(&e, crate::sound::Strike::Pluck, &minor, 123.0, 0.0, 10.0);
+        assert!((p.freq - 440.0).abs() < 1e-9);
+        assert_eq!(p.hold, Some(1.5), "and held as long as written");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn wildcards() {
+        assert!(wildcard(b"*.jpg", b"a.jpg") && wildcard(b"a?c", b"abc") && wildcard(b"*", b"x"));
+        assert!(!wildcard(b"*.jpg", b"a.png") && !wildcard(b"a?c", b"ac"));
     }
 }

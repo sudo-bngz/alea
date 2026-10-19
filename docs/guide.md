@@ -1075,6 +1075,51 @@ filter that opens on harder notes, a vowel that opens when louder. Envelope
 times are set once per synth (numbers, or `~` draws). The full list of parts
 and their settings is in the reference, under *Synths*.
 
+## 28. Files: opening what the work needs
+
+A work can open the files it needs, from its own folder: a photo, a sound,
+a poem, a MIDI file. `open` reads one and recognises it by its contents;
+what you get is the same as an [input](#23-input-works-in-a-pipe), with the
+same `.luma`, `.level` or `.lines`.
+
+```alea
+let poem  = open("poem.txt")
+let photo = open("photos/harbour.jpg")
+```
+
+`files` lists a folder, and `choose(list)` picks one element by chance, so
+each edition can take its own:
+
+```alea
+let poem = open(choose(files("poems/*.txt")))   // a poem drawn for each edition
+```
+
+The list is in order of name, the same on every computer, so an edition
+picks the same file wherever it is drawn again. `choose(list)` is a draw
+like `choose { … }`: one in the order of the work's draws.
+
+**MIDI files.** A `.mid` file opens as notes. `song.notes` is a pattern: one
+event per note, along the work in time, up the canvas in pitch. You can draw
+it, and you can play it: a note from a MIDI file keeps its pitch and its
+length, so `notes(song.notes, instrument: …)` plays the piece as written,
+with alea's instruments or with your own `synth`s.
+
+```alea
+let song = open("tune.mid")
+let score = zoom(song.notes, by: 0.55, x: 0.5, y: 0.95)
+render sound([notes(song.tracks[0], instrument: "kalimba"),
+              notes(song.tracks[1], instrument: "pluck")], duration: song.duration)
+```
+
+`song.tracks` gives each track's notes apart, `song.tempo` and
+`song.duration` the file's tempo and length, and `song.level` a curve of
+how much is sounding, to move a picture with the music. Compose in your
+DAW, export the MIDI, and let alea draw and orchestrate it.
+
+**Where files can be.** In the work's folder, or in folders inside it:
+never an absolute path, never `..`. A work and its files stay together, and
+a web page made with `--web` carries them.
+
 ## How values become media
 
 Every medium receives the same thing, a field, and translates it:

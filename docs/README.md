@@ -6,7 +6,7 @@
   3. Chance · 4. Choices · 5. Combining · 6. Transforms · 7. Textures ·
   8. Words and pictures · 9. Fields · 10. Patterns · 11. Constraints ·
   12. Time · 13. Sound: layers · 14. Sculpture · 15. Works made of works ·
-  16. Everything together · 17. Growing · 18. Lists and functions · 19. Paintings · 20. Colours of your own · 21. Animation · 22. Filters · 23. Input · 24. Listening · 25. MIDI · 26. Harmony and rhythm · 27. Synths; then how values become media, and tips.
+  16. Everything together · 17. Growing · 18. Lists and functions · 19. Paintings · 20. Colours of your own · 21. Animation · 22. Filters · 23. Input · 24. Listening · 25. MIDI · 26. Harmony and rhythm · 27. Synths · 28. Files; then how values become media, and tips.
 - **[Reference](reference.md)**: files, lexical rules, grammar, statements,
   expressions and precedence, values, distributions and when draws happen,
   every primitive with its parameters and defaults, functions and measures,

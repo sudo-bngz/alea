@@ -72,6 +72,36 @@ pub fn read_to_string(p: &Path) -> io::Result<String> {
     String::from_utf8(read(p)?).map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "not valid UTF-8 text"))
 }
 
+/// The names of the files (not folders) in a folder, in no particular order.
+pub fn list(dir: &Path) -> io::Result<Vec<String>> {
+    match MEMORY.lock().unwrap().as_ref() {
+        Some(m) => {
+            let d = normalize(dir);
+            Ok(m.keys().filter(|k| k.parent() == Some(d.as_path())).filter_map(|k| k.file_name()).map(|n| n.to_string_lossy().into_owned()).collect())
+        }
+        None => {
+            let mut out = Vec::new();
+            for e in std::fs::read_dir(dir)? {
+                let e = e?;
+                if e.file_type()?.is_file() {
+                    out.push(e.file_name().to_string_lossy().into_owned());
+                }
+            }
+            Ok(out)
+        }
+    }
+}
+
+/// Records a file as used without reading it (a file listed by `files()`
+/// may be opened by another edition, so `--web` bundles it too).
+pub fn touch(p: &Path) {
+    if MEMORY.lock().unwrap().is_none() {
+        if let Ok(c) = std::fs::canonicalize(p) {
+            TOUCHED.lock().unwrap().insert(c);
+        }
+    }
+}
+
 /// Every file read from disk so far (native only), as canonical paths.
 pub fn touched() -> Vec<PathBuf> {
     TOUCHED.lock().unwrap().iter().cloned().collect()

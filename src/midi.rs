@@ -186,7 +186,9 @@ pub fn score(layers: &[Arc<Layer>], duration: f64, tempo: Option<f64>, name: &st
                     if p.when >= duration {
                         continue;
                     }
-                    let note = if drums {
+                    let note = if let (true, Some(p)) = (drums, e.pitch) {
+                        p.round().clamp(0.0, 127.0) as u8 // a drum read from a MIDI file: the same drum
+                    } else if drums {
                         let set = if *strike == Strike::Drum { KIT } else { TICKS };
                         // the degree climbs the canvas; spread it over the kit
                         let degrees = 3 * scale.len();
