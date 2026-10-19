@@ -7,7 +7,8 @@
 //!   and a palette (`colours(photo, 5)`);
 //! - a sound as fields of time (`.level`, `.bass`, `band(song, lo, hi)`…),
 //!   a pattern of its beats (`.beats`), and itself, as a soundtrack;
-//! - text as words, lines and rows.
+//! - text as words, lines and rows;
+//! - a MIDI file as patterns of notes that keep their pitch and length.
 //!
 //! Nothing here draws from the edition's randomness: an input changes what a
 //! work shows, never the order of its draws.
@@ -32,6 +33,7 @@ pub enum Kind {
     Image(Image),
     Sound(Clip),
     Text(String),
+    Midi(Song),
 }
 
 impl Input {
@@ -40,6 +42,7 @@ impl Input {
             Kind::Image(_) => "an image",
             Kind::Sound(_) => "a sound",
             Kind::Text(_) => "a text",
+            Kind::Midi(_) => "a MIDI file",
         }
     }
 }
@@ -127,6 +130,7 @@ pub fn hints() -> (Option<(usize, usize)>, Option<f64>) {
         .iter()
         .filter_map(|i| match &i.kind {
             Kind::Sound(c) => Some(c.duration()),
+            Kind::Midi(s) => Some(s.duration),
             _ => None,
         })
         .fold(None, |m: Option<f64>, d| Some(m.map_or(d, |m| m.max(d))));
@@ -150,6 +154,8 @@ pub fn decode(name: &str, bytes: &[u8]) -> Result<Input, String> {
         Kind::Image(Image::decode(bytes)?)
     } else if riff(b"WAVE") {
         Kind::Sound(Clip::decode_wav(bytes)?)
+    } else if bytes.starts_with(b"MThd") {
+        Kind::Midi(Song::decode(bytes)?)
     } else if bytes.starts_with(b"fLaC") || bytes.starts_with(b"ID3") || bytes.starts_with(b"OggS") || bytes.starts_with(&[0xFF, 0xFB]) {
         return Err("this sound format isn't read directly: convert it to WAV, for example \
                     `ffmpeg -i song.mp3 -f wav - | alea work.alea`"
@@ -157,7 +163,7 @@ pub fn decode(name: &str, bytes: &[u8]) -> Result<Input, String> {
     } else {
         match std::str::from_utf8(bytes) {
             Ok(s) => Kind::Text(s.to_string()),
-            Err(_) => return Err("not an image (PNG, JPEG, WebP), a sound (WAV) or a text".into()),
+            Err(_) => return Err("not an image (PNG, JPEG, WebP), a sound (WAV), a MIDI file or a text".into()),
         }
     };
     Ok(Input { name: name.to_string(), hash, kind })
@@ -616,3 +622,267 @@ pub fn rows(text: &str) -> Vec<Vec<Result<f64, String>>> {
         .collect()
 }
 
+
+// ───────────────────────────── MIDI files ─────────────────────────────
+
+/// One note of a MIDI file, in seconds.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Note {
+    pub start: f64,
+    pub length: f64,
+    /// The MIDI note number, 0–127 (60 is middle C).
+    pub pitch: u8,
+    /// 1–127.
+    pub velocity: u8,
+    pub channel: u8,
+}
+
+/// A Standard MIDI File, read as notes: one list per track that has any.
+#[derive(Debug)]
+pub struct Song {
+    /// Each track's name (or "track N"), and its notes in time order.
+    pub tracks: Vec<(String, Vec<Note>)>,
+    /// The first tempo of the file, in beats per minute (120 without one).
+    pub tempo: f64,
+    /// When the last note ends, in seconds.
+    pub duration: f64,
+}
+
+impl Song {
+    pub fn notes(&self) -> Vec<Note> {
+        let mut all: Vec<Note> = self.tracks.iter().flat_map(|(_, n)| n.iter().copied()).collect();
+        all.sort_by(|a, b| a.start.total_cmp(&b.start).then(a.pitch.cmp(&b.pitch)));
+        all
+    }
+
+    /// The lowest and highest pitch of the whole file.
+    pub fn range(&self) -> (u8, u8) {
+        let notes = self.tracks.iter().flat_map(|(_, n)| n.iter());
+        notes.fold((127, 0), |(lo, hi), n| (lo.min(n.pitch), hi.max(n.pitch)))
+    }
+
+    /// Format 0 or 1, in ticks per quarter note. Tempo changes, from any
+    /// track, apply to all; notes still held at the end of a track end there.
+    pub fn decode(bytes: &[u8]) -> Result<Song, String> {
+        let bad = |what: &str| format!("not a MIDI file that alea can read: {what}");
+        let be16 = |b: &[u8]| u16::from_be_bytes([b[0], b[1]]) as usize;
+        let be32 = |b: &[u8]| u32::from_be_bytes([b[0], b[1], b[2], b[3]]) as usize;
+        if bytes.len() < 14 || &bytes[0..4] != b"MThd" || be32(&bytes[4..8]) < 6 {
+            return Err(bad("no header"));
+        }
+        let format = be16(&bytes[8..10]);
+        let count = be16(&bytes[10..12]);
+        let division = be16(&bytes[12..14]);
+        if format > 1 {
+            return Err(bad("format 2 (independent patterns) isn't supported"));
+        }
+        if division & 0x8000 != 0 || division == 0 {
+            return Err(bad("SMPTE time isn't supported, only ticks per quarter note"));
+        }
+        // each track's events in ticks: (tick, kind)
+        enum Ev {
+            On(u8, u8, u8),
+            Off(u8, u8),
+            Tempo(f64),
+            Name(String),
+            End,
+        }
+        let mut pos = 8 + be32(&bytes[4..8]);
+        let mut raw: Vec<Vec<(u64, Ev)>> = Vec::new();
+        for _ in 0..count {
+            if pos + 8 > bytes.len() {
+                break;
+            }
+            let len = be32(&bytes[pos + 4..pos + 8]);
+            let start = pos + 8;
+            let end = (start + len).min(bytes.len());
+            if &bytes[pos..pos + 4] != b"MTrk" {
+                pos = end;
+                continue;
+            }
+            let data = &bytes[start..end];
+            pos = end;
+            let mut i = 0;
+            let mut tick = 0u64;
+            let mut status = 0u8;
+            let mut evs = Vec::new();
+            let vlq = |i: &mut usize| -> Result<u64, String> {
+                let mut v = 0u64;
+                for _ in 0..4 {
+                    let b = *data.get(*i).ok_or_else(|| bad("a track ends early"))?;
+                    *i += 1;
+                    v = (v << 7) | (b & 0x7F) as u64;
+                    if b & 0x80 == 0 {
+                        return Ok(v);
+                    }
+                }
+                Err(bad("a length is too long"))
+            };
+            while i < data.len() {
+                tick += vlq(&mut i)?;
+                let mut b = *data.get(i).ok_or_else(|| bad("a track ends early"))?;
+                if b & 0x80 != 0 {
+                    i += 1;
+                    if b < 0xF0 {
+                        status = b;
+                    }
+                } else {
+                    b = status; // running status
+                }
+                match b {
+                    0xFF => {
+                        let kind = *data.get(i).ok_or_else(|| bad("a track ends early"))?;
+                        i += 1;
+                        let n = vlq(&mut i)? as usize;
+                        let body = data.get(i..i + n).ok_or_else(|| bad("a track ends early"))?;
+                        i += n;
+                        match kind {
+                            0x51 if n == 3 => {
+                                let us = ((body[0] as u32) << 16 | (body[1] as u32) << 8 | body[2] as u32).max(1);
+                                evs.push((tick, Ev::Tempo(60_000_000.0 / us as f64)));
+                            }
+                            0x03 => evs.push((tick, Ev::Name(String::from_utf8_lossy(body).trim().to_string()))),
+                            0x2F => {
+                                evs.push((tick, Ev::End));
+                                break;
+                            }
+                            _ => {}
+                        }
+                    }
+                    0xF0 | 0xF7 => {
+                        let n = vlq(&mut i)? as usize;
+                        i += n;
+                    }
+                    0x80..=0xEF => {
+                        let two = !matches!(b & 0xF0, 0xC0 | 0xD0);
+                        let d1 = *data.get(i).ok_or_else(|| bad("a track ends early"))?;
+                        let d2 = if two { *data.get(i + 1).ok_or_else(|| bad("a track ends early"))? } else { 0 };
+                        i += if two { 2 } else { 1 };
+                        let ch = b & 0x0F;
+                        match b & 0xF0 {
+                            0x90 if d2 > 0 => evs.push((tick, Ev::On(ch, d1 & 0x7F, d2 & 0x7F))),
+                            0x80 | 0x90 => evs.push((tick, Ev::Off(ch, d1 & 0x7F))),
+                            _ => {}
+                        }
+                    }
+                    _ => return Err(bad("an unexpected byte in a track")),
+                }
+            }
+            raw.push(evs);
+        }
+        // the tempo map, from every track: (tick, seconds at that tick, seconds per tick)
+        let mut tempos: Vec<(u64, f64)> = raw.iter().flatten().filter_map(|(t, e)| if let Ev::Tempo(b) = e { Some((*t, *b)) } else { None }).collect();
+        tempos.sort_by_key(|(t, _)| *t);
+        let first_tempo = tempos.first().map_or(120.0, |(_, b)| *b);
+        let ppq = division as f64;
+        let mut map: Vec<(u64, f64, f64)> = vec![(0, 0.0, 60.0 / 120.0 / ppq)];
+        for (t, bpm) in tempos {
+            let (t0, s0, spt) = *map.last().unwrap();
+            let s = s0 + (t - t0) as f64 * spt;
+            if t == t0 {
+                map.pop();
+            }
+            map.push((t, s, 60.0 / bpm / ppq));
+        }
+        let seconds = |tick: u64| {
+            let k = map.partition_point(|(t, _, _)| *t <= tick).max(1) - 1;
+            let (t0, s0, spt) = map[k];
+            s0 + (tick - t0) as f64 * spt
+        };
+        let mut tracks = Vec::new();
+        let mut duration: f64 = 0.0;
+        for (n, evs) in raw.iter().enumerate() {
+            let mut name = format!("track {}", n + 1);
+            let mut held: HashMap<(u8, u8), Vec<(f64, u8)>> = HashMap::new();
+            let mut notes = Vec::new();
+            let mut last = 0.0f64;
+            for (tick, e) in evs {
+                let at = seconds(*tick);
+                last = last.max(at);
+                match e {
+                    Ev::On(ch, p, v) => held.entry((*ch, *p)).or_default().push((at, *v)),
+                    Ev::Off(ch, p) => {
+                        if let Some((start, v)) = held.get_mut(&(*ch, *p)).and_then(|s| if s.is_empty() { None } else { Some(s.remove(0)) }) {
+                            notes.push(Note { start, length: (at - start).max(0.0), pitch: *p, velocity: v, channel: *ch });
+                        }
+                    }
+                    Ev::Name(s) if !s.is_empty() => name = s.clone(),
+                    _ => {}
+                }
+            }
+            for ((ch, p), starts) in held {
+                for (start, v) in starts {
+                    notes.push(Note { start, length: (last - start).max(0.0), pitch: p, velocity: v, channel: ch });
+                }
+            }
+            if notes.is_empty() {
+                continue;
+            }
+            notes.sort_by(|a, b| a.start.total_cmp(&b.start).then(a.pitch.cmp(&b.pitch)));
+            duration = notes.iter().fold(duration, |d, n| d.max(n.start + n.length));
+            tracks.push((name, notes));
+        }
+        if tracks.is_empty() {
+            return Err(bad("it has no notes"));
+        }
+        Ok(Song { tracks, tempo: first_tempo, duration: duration.max(0.5) })
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod midi_tests {
+    use super::*;
+
+    /// A small file: format 1, a tempo track at 90 BPM, a named track with
+    /// a C held one beat, an E and a G (running status, note-on velocity 0
+    /// as note-off).
+    pub fn sample() -> Vec<u8> {
+        let mut f = b"MThd\0\0\0\x06\0\x01\0\x02\x01\xe0".to_vec(); // 480 ticks per quarter
+        let tempo = [0x00, 0xFF, 0x51, 0x03, 0x0A, 0x2C, 0x2B, 0x00, 0xFF, 0x2F, 0x00]; // 666 667 µs: 90 BPM
+        f.extend(b"MTrk");
+        f.extend((tempo.len() as u32).to_be_bytes());
+        f.extend(tempo);
+        let mut t = vec![0x00, 0xFF, 0x03, 0x04, b'l', b'e', b'a', b'd'];
+        t.extend([0x00, 0x90, 60, 100]); // C on
+        t.extend([0x83, 0x60, 60, 0]); // 480 ticks later, C off (running status, velocity 0)
+        t.extend([0x00, 64, 80]); // E on
+        t.extend([0x81, 0x70, 0x80, 64, 0]); // 240 ticks, E off
+        t.extend([0x00, 0x90, 67, 90]); // G on, held to the end of the track
+        t.extend([0x83, 0x60, 0xFF, 0x2F, 0x00]);
+        f.extend(b"MTrk");
+        f.extend((t.len() as u32).to_be_bytes());
+        f.extend(t);
+        f
+    }
+
+    #[test]
+    fn reads_notes_tempo_and_names() {
+        let s = Song::decode(&sample()).unwrap();
+        assert_eq!(s.tracks.len(), 1, "the tempo track has no notes");
+        assert_eq!(s.tracks[0].0, "lead");
+        assert!((s.tempo - 90.0).abs() < 0.01, "{}", s.tempo);
+        let n = &s.tracks[0].1;
+        assert_eq!(n.iter().map(|n| n.pitch).collect::<Vec<_>>(), vec![60, 64, 67]);
+        let beat = 60.0 / 90.0;
+        assert!((n[0].length - beat).abs() < 1e-3 && n[0].start == 0.0);
+        assert!((n[1].start - beat).abs() < 1e-3 && (n[1].length - beat / 2.0).abs() < 1e-3);
+        assert!((n[2].length - beat).abs() < 1e-3, "held to the end of its track");
+        assert_eq!(n[0].velocity, 100);
+        assert!((s.duration - beat * 2.5).abs() < 1e-3);
+        assert_eq!(s.range(), (60, 67));
+    }
+
+    #[test]
+    fn recognised_as_an_input() {
+        let i = decode("song.mid", &sample()).unwrap();
+        assert_eq!(i.kind_name(), "a MIDI file");
+    }
+
+    #[test]
+    fn refuses_what_it_cannot_read() {
+        let mut f = sample();
+        f[12] = 0xE7; // SMPTE division
+        assert!(Song::decode(&f).unwrap_err().contains("SMPTE"));
+        assert!(Song::decode(b"MThd\0\0\0\x06\0\x00\0\x00\x01\xe0").unwrap_err().contains("no notes"));
+    }
+}

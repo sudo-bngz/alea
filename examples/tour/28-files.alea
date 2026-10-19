@@ -1,0 +1,30 @@
+// 28 · Files: opening what the work needs.
+//
+// open("file")            a file in the work's folder: an image, a WAV sound,
+//                         a MIDI file or a text, recognised by its contents
+// files("poems/*.txt")    the files whose names match, in order of name
+// choose(list)            one of them by chance: a draw, like choose { … }
+// song.notes              a MIDI file's notes as a pattern: along the work in
+//                         time, up the canvas in pitch, each keeping its own
+// song.tracks[0]          one track's notes; also .names, .tempo, .duration,
+//                         and .level, how much is sounding, along the work
+//
+// Files are read from the work's folder and the folders inside it, never
+// from elsewhere: a work and its files travel together.
+
+work Files {
+  let poem = open(choose(files("files/poems/*.txt")))
+  let song = open("files/tune.mid")
+
+  // the poem, one line under the other
+  let lines = poem.lines
+  let words = merge([text(lines[k], 0.5, 0.16 + k * 0.08, 0.05) for k in range(count(lines))])
+
+  // the tune as a score: each note a mark, where it falls in time and pitch
+  let score = zoom(song.notes, by: 0.55, x: 0.5, y: 0.95)
+
+  render image(max(words, score * 0.9), width: 800, palette: choose { "ink" | "night" })
+  render sound([notes(song.tracks[0], instrument: "kalimba"),
+                notes(song.tracks[1], instrument: "pluck", gain: 0.7)],
+               duration: song.duration + 1, room: 0.45)
+}

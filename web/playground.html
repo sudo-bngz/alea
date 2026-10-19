@@ -223,10 +223,10 @@ figcaption .grow { flex: 1; }
         </div>
         <div class="pics">
           <span>Input:</span>
-          <span class="chips"><span id="inputname" class="muted">none: drop an image, a WAV sound or a text on the work, read it with <code>input()</code></span></span>
+          <span class="chips"><span id="inputname" class="muted">none: drop an image, a WAV sound, a MIDI file or a text on the work, read it with <code>input()</code></span></span>
           <button id="addinput" class="btn small">Choose…</button>
           <button id="clearinput" class="btn small" hidden>Remove</button>
-          <input type="file" id="inputfile" accept="image/png,image/jpeg,image/webp,audio/wav,audio/x-wav,.wav,text/plain,.txt,.csv" hidden>
+          <input type="file" id="inputfile" accept="image/png,image/jpeg,image/webp,audio/wav,audio/x-wav,.wav,audio/midi,.mid,.midi,text/plain,.txt,.csv" hidden>
         </div>
       </div>
     </section>
@@ -252,7 +252,7 @@ const ALEA_ASSETS = /*ASSETS*/;
 (() => {
   // ───────────── syntax highlighting ─────────────
   const KW = new Set(['use','work','let','field','pattern','constraint','render','output','repeat','event','choose','synth','and','or','grow','then','for','in']);
-  const PRIM = new Set(['meter','euclid','steps','chords','arp','lfo','orbit','cc','input','colours','colors','band','at','ease','keys','progress','sequence','blur','pixelate','edges','relief','posterize','film','vignette','bloom','chroma','paint','mosaic','place','overlay','drone','notes','texture','range','join','slice','reverse','sum','path','along','length','neighbours','neighbors','spread','nearby','circle','ring','rect','square','line','blob','stripes','waves','ripples','dots','checker','gradient','glow','clouds','grain','scatter','move','rotate','zoom','tile','mirror','kaleidoscope','warp','merge','overlap','cut','invert','threshold','text','picture']);
+  const PRIM = new Set(['meter','euclid','steps','chords','arp','lfo','orbit','cc','input','open','files','colours','colors','band','at','ease','keys','progress','sequence','blur','pixelate','edges','relief','posterize','film','vignette','bloom','chroma','paint','mosaic','place','overlay','drone','notes','texture','range','join','slice','reverse','sum','path','along','length','neighbours','neighbors','spread','nearby','circle','ring','rect','square','line','blob','stripes','waves','ripples','dots','checker','gradient','glow','clouds','grain','scatter','move','rotate','zoom','tile','mirror','kaleidoscope','warp','merge','overlap','cut','invert','threshold','text','picture']);
   const DIST = new Set(['uniform','normal','beta','poisson','exponential','between','around']);
   const FN = new Set(['sin','cos','tan','abs','sqrt','exp','ln','floor','fract','sign','min','max','atan2','step','clamp','mix','smoothstep','distance','noise','mean','stddev','minimum','maximum','count','image','sound','video','sculpture','midi']);
   const VARS = new Set(['x','y','t','i','n','pi','tau']);
@@ -400,7 +400,7 @@ const ALEA_ASSETS = /*ASSETS*/;
       el.textContent = `${file.name} (${r.what})`;
       el.classList.remove('muted');
     } else {
-      el.innerHTML = 'none: drop an image, a WAV sound or a text on the work, read it with <code>input()</code>';
+      el.innerHTML = 'none: drop an image, a WAV sound, a MIDI file or a text on the work, read it with <code>input()</code>';
       el.classList.add('muted');
     }
     $('clearinput').hidden = !(file && r.ok);

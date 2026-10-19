@@ -607,6 +607,8 @@ impl Resolver<'_> {
                         t: self.rng.random(),
                         intensity: 0.5 + 0.5 * self.rng.random::<f64>(),
                         size: (size * (0.5 + self.rng.random::<f64>())).abs().max(1e-4),
+                        pitch: None,
+                        length: None,
                     })
                     .collect();
                 Field::Pattern(Arc::new(events))

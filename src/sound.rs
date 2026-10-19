@@ -613,7 +613,7 @@ pub struct Placed {
     pub index: usize,
     /// Its loudness, relative to the event's intensity.
     pub vel: f64,
-    /// For an arpeggio: how long it is held (seconds), from its gate.
+    /// How long it is held (seconds): an arpeggio's gate, or a written note's length.
     pub hold: Option<f64>,
 }
 
@@ -628,7 +628,11 @@ pub fn place_note(e: &Event, kind: Strike, scale: &Scale, key: f64, tempo: f64, 
     }
     let d = (1.0 - e.y.clamp(0.0, 1.0)) * degrees as f64;
     let degree = (d as usize).min(degrees - 1);
-    let freq = scale.freq(key, degree) * if kind == Strike::Drum { 0.25 } else { 1.0 };
+    let freq = match e.pitch {
+        // a note from a MIDI file: as written
+        Some(p) => 440.0 * libm::pow(2.0, (p - 69.0) / 12.0),
+        None => scale.freq(key, degree) * if kind == Strike::Drum { 0.25 } else { 1.0 },
+    };
     let ring = (0.08 + e.size * 20.0).min(3.0) * match kind {
         Strike::Tick => 0.15,
         Strike::Wood => 0.4,
@@ -636,7 +640,11 @@ pub fn place_note(e: &Event, kind: Strike, scale: &Scale, key: f64, tempo: f64, 
         Strike::Glass | Strike::Bell => 1.6,
         _ => 1.0,
     };
-    Placed { when, degree, freq, ring, index: 0, vel: 1.0, hold: None }
+    match e.length {
+        // a note from a MIDI file rings and is held as long as written
+        Some(l) => Placed { when, degree, freq, ring: l.clamp(0.05, 8.0), index: 0, vel: 1.0, hold: Some(l.max(0.02)) },
+        None => Placed { when, degree, freq, ring, index: 0, vel: 1.0, hold: None },
+    }
 }
 
 /// Every event of a `notes` layer, placed: on the scale (by height), or on
@@ -666,6 +674,9 @@ pub fn placements(events: &[Event], kind: Strike, scale: &Scale, key: f64, tempo
         let octaves = feel.arp.map_or(3, |a| a.octaves);
         for p in out.iter_mut() {
             let e = &events[p.index];
+            if e.pitch.is_some() && feel.arp.is_none() {
+                continue; // a written note keeps its pitch (an arpeggio takes only its rhythm)
+            }
             let ladder = h.ladder(e.t.clamp(0.0, 1.0), key, octaves);
             let k = match feel.arp {
                 Some(a) => a.mode.index(rank[p.index], ladder.len(), seed),

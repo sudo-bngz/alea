@@ -152,6 +152,11 @@ Works can use other works as parts, take a photo or a sound as input, and
 read and write pipes: `cat photo.png | alea riso.alea > print.png` prints a
 photo in three inks, with a new registration every edition.
 
+**Files of your own.** `open("tune.mid")` reads a photo, a WAV, a text or a
+MIDI file from the work's folder; `choose(files("poems/*.txt"))` gives each
+edition its own. A MIDI file's notes keep their pitch and length: compose in
+your DAW, and let alea draw the piece and play it with your own synths.
+
 **In your DAW.** The [plugin](plugin/) (VST3 and CLAP) plays a work's music
 in time with Ableton Live, Bitwig or Reaper, a new edition every few bars,
 each layer to its own instrument.

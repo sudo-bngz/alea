@@ -167,6 +167,7 @@ pub unsafe extern "C" fn alea_input_put(name: *mut u8, name_len: usize, data: *m
                 crate::input::Kind::Image(img) => format!("an image, {}×{}", img.w, img.h),
                 crate::input::Kind::Sound(c) => format!("a sound, {:.1} s", c.duration()),
                 crate::input::Kind::Text(t) => format!("a text, {} words", t.split_whitespace().count()),
+                crate::input::Kind::Midi(s) => format!("a MIDI file, {} notes, {:.1} s", s.notes().len(), s.duration),
             };
             set_out(format!(r#"{{"ok":true,"what":{}}}"#, json_str(&what)).into_bytes());
             0

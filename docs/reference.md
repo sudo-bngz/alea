@@ -577,6 +577,22 @@ the painting is drawn:
 
 ## Inputs
 
+### Files
+
+| Function | Gives |
+|---|---|
+| `open(file)` | the file, read as an input (below): an image, a sound, a MIDI file or a text, recognised by its contents. `file` is a text, a path from the work's folder |
+| `files(pattern)` | a list of texts: the files whose names match, as paths from the work's folder (ready for `open`), in order of name. `*` stands for any run of characters, `?` for one, in the file name only (`"photos/*.jpg"`, not `"*/a.jpg"`); names starting with `.` are left out. No match is an error |
+| `choose(list)` | one element of the list, all equally likely: one draw, the same as `choose { list[0] \| list[1] \| … }` |
+
+`open` and `files` reach the work's folder and the folders inside it, never
+further (no absolute path, no `..`), so a work and its files can travel
+together, and a web page made with `--web` carries them (every file
+`files` lists is bundled). Opening a file makes no draw; each file is read
+once per run, and shown with the edition, by name and fingerprint.
+
+### What comes in
+
 `input(name, or)` gives what the work was given: the default input (`name`
 omitted) comes from the pipe or `--in FILE`; a named one from
 `--in NAME=FILE`. Without one, `or` is used: a text is a file to read
@@ -586,7 +602,8 @@ or without an input.
 
 An input is recognised by its first bytes: PNG, JPEG or WebP (an image), WAV
 (a sound: PCM 8, 16, 24 or 32 bits, or float, at most two channels and ten
-minutes), otherwise UTF-8 text. Inputs make no draw.
+minutes), a Standard MIDI File (format 0 or 1, in ticks per quarter note),
+otherwise UTF-8 text. Inputs make no draw.
 
 | Image | Gives |
 |---|---|
@@ -616,6 +633,22 @@ at most 600 s).
 | `.text` | all of it |
 | `.words`, `.lines` | lists of texts (blank lines skipped) |
 | `.rows` | a list per line: cells split on `,` `;` or tabs (otherwise spaces); a cell that reads as a number is a number |
+
+| MIDI file | Gives |
+|---|---|
+| `.notes` | a pattern: one event per note of every track, in time order. `t` and `x` are its start over the file (0 to 1), `y` its pitch over the file's range (the lowest note at the bottom, the highest at the top), `intensity` its velocity ÷ 127, `size` 0.006 + 0.004 × its length in seconds (at most 2) |
+| `.tracks` | a list of patterns, one per track that has notes (the same heights as `.notes`) |
+| `.names` | the tracks' names (or `track N`) |
+| `.tempo` | the file's first tempo, in beats per minute (120 without one) |
+| `.duration` | seconds, until the last note ends |
+| `.level` | how much is sounding along the file: the velocities of the notes held, each fading over 0.05 s after it ends, scaled so the loudest 1 % reach 1 |
+
+A note read from a MIDI file keeps its pitch and its length: a `notes`
+layer plays it as written, whatever its height, `scale`, `key` or
+`harmony` (an `arp` takes only its rhythm), and `render midi` writes it
+back as it was (a drum on channel 10 stays the same drum). Tempo changes
+anywhere in the file are followed. A MIDI file sets the default `duration`
+of videos and sounds, as a sound does.
 
 A default given as a value stands in for the input: its channels and curves
 (`.luma`, `.level`…) are itself, `.alpha` is 1, `.painting` paints it in

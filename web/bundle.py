@@ -39,6 +39,9 @@ for f in sorted((ex / "instruments").glob("*.alea")):
                      "source": f.read_text()})
 assets = [{"path": f"assets/{p.name}", "data": base64.b64encode(p.read_bytes()).decode()}
           for p in sorted((ex / "assets").glob("*")) if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".wav")]
+# the files the tour opens (28 · Files), at their place beside it
+assets += [{"path": "tour/" + p.relative_to(ex / "tour").as_posix(), "data": base64.b64encode(p.read_bytes()).decode()}
+           for p in sorted((ex / "tour" / "files").rglob("*")) if p.is_file()]
 
 page = (web / "playground.html").read_text()
 page = page.replace("{{WASM}}", base64.b64encode((web / "dist" / "alea.wasm").read_bytes()).decode())
