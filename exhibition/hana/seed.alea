@@ -1,0 +1,23 @@
+// Seed — one square at a node of the network, holding its charge: it turns
+// by steps, and square ripples leave it, as if it were calling.
+// What it returns: 0 dark, up to 1 light.
+
+use "lattice.alea"
+
+work Seed(size = 0.06, rings = 7, rate = 12, at = [0.5, 0.5]) {
+  let tick = floor(t * rate)
+  let jx = 0.004 * sin(tick * 7.31)
+  let jy = 0.004 * sin(tick * 3.17)
+  let dx = x - at.x - jx
+  let dy = y - at.y - jy
+  let turn = floor(t * 8) * choose { 7.5 | 15 | 22.5 } / 57.2958
+  let rx = dx * cos(turn) - dy * sin(turn)
+  let ry = dx * sin(turn) + dy * cos(turn)
+  let d = max(abs(rx), abs(ry))                                    // the square distance
+  let core = (d < size * (0.5 + 0.08 * sin(t * 40))) * 1
+  let shell = (abs(d - size * 0.9) < 0.003) * 0.8
+  // ripples: square rings going out, fading with the distance
+  let ripple = (fract(d * rings * 2.2 - t * ~between(2, 4)) < 0.08) * clamp(1 - d * 1.6, 0, 1) * 0.6 * (d > size)
+  let net = Lattice(shake: 0.4) * 0.45
+  output merge(core, shell, ripple, net * (1 - core))
+}

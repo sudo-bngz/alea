@@ -1,0 +1,13 @@
+// Comp — the compressor: the loud parts held down; the gain-reduction
+// meter diving on every kick and letting go. What it returns: 0 dark, up to 1.
+
+work Comp(beats = 6) {
+  let kick = exp(-fract(t * beats) * 5)
+  let gr = 0.6 * kick
+  let meter = merge([rect(0.5, 0.75 - j * 0.03, 0.4, 0.02, 0, 0.001) * (0.15 + 0.85 * (j / 16 < gr)) for j in range(17)])
+  let scale = merge([text("{-j * 2}", 0.78, 0.75 - j * 0.03 * 4, 0.022, 0, "mono") * 0.5 for j in range(5)])
+  let curve = (abs(y - (1.3 - 0.6 * ((x < 0.5) * x * 1.4 + (x >= 0.5) * (0.7 + (x - 0.5) * 0.35)))) < 0.005) * (x > 0.1) * (x < 0.9) * 0.7
+  let labels = merge(text("COMP", 0.5, 0.14, 0.09, 0, "mono"), text("4:1   ·   attack 10 ms   ·   release 120 ms", 0.5, 0.22, 0.024, 0, "mono") * 0.6,
+                     text("gain reduction", 0.5, 0.3, 0.024, 0, "mono") * 0.5)
+  output merge(meter, scale, curve, labels)
+}

@@ -1,0 +1,25 @@
+// Drift — seeds on the wind of the network: square specks streaming
+// across in rows, each row its own speed, smeared by their speed.
+// What it returns: 0 dark, up to 1 light.
+
+work Drift(rows = 22, angle = 20, rate = 15) {
+  let tick = floor(t * rate)
+  let seed = ~between(0, 100)
+  let hash(a, b) = fract(sin(a * 12.9898 + b * 78.233 + seed) * 43758.5453)
+  let ca = cos(angle / 57.2958)
+  let sa = sin(angle / 57.2958)
+  let u = x * ca + y * sa
+  let v = -x * sa + y * ca
+  let row = floor(v * rows)
+  let speed = 0.6 + 1.6 * hash(row, 1)
+  let w = (u + t * speed + hash(row, 2)) * 9
+  let col = floor(w)
+  let there = hash(col, row) > 0.55
+  let sz = 0.12 + 0.25 * hash(col, row + 0.5)
+  let du = fract(w) - 0.5
+  let dv = fract(v * rows) - 0.5
+  let speck = there * (abs(du) < sz) * (abs(dv) < sz * 0.9)
+  let smear = there * (du < -sz) * (du > -sz - 0.35 * speed) * (abs(dv) < 0.06) * 0.35
+  let flick = 0.7 + 0.3 * (hash(col + tick, row) > 0.3)
+  output merge(speck * flick, smear)
+}

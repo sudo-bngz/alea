@@ -1,0 +1,24 @@
+// Mix — the desk: a strip for each voice, faders and meters that jump with
+// what plays, the master bus at the right. What it returns: 0 dark, up to 1.
+
+work Mix(beats = 14) {
+  let names = ["kick", "clap", "hat", "bass", "stab", "lead", "fx"]
+  let levels = [0.85, 0.6, 0.5, 0.8, 0.65, 0.55, 0.3]
+  let beat = fract(t * beats)
+  // each meter bounces in its own way
+  let bounce(k) = clamp(levels[k] * (0.5 + 0.5 * exp(-fract(t * beats * [1, 0.5, 2, 1, 0.5, 0.25, 0.125][k]) * [6, 4, 10, 5, 3, 2, 1][k])) + 0.1 * noise(t * 20, k, 4), 0, 1)
+  let strip(k) = merge(
+      line(0.1 + k * 0.115, 0.5, 0.1 + k * 0.115, 0.95, 0.004, 0.002) * 0.3,
+      rect(0.1 + k * 0.115, 0.95 - 0.45 * levels[k], 0.05, 0.016, 0, 0.001),
+      merge([rect(0.1 + k * 0.115 + 0.04, 0.93 - j * 0.026, 0.014, 0.018, 0, 0.001) * (0.2 + 0.8 * (j / 16 < bounce(k))) * (0.6 + 0.4 * (j > 13)) for j in range(17)]),
+      text(names[k], 0.1 + k * 0.115, 1.0, 0.02, 0, "mono") * 0.7)
+  let master = merge(
+      rect(0.9, 0.95 - 0.45 * 0.8, 0.06, 0.016, 0, 0.001),
+      line(0.9, 0.5, 0.9, 0.95, 0.004, 0.002) * 0.3,
+      merge([rect(0.86, 0.93 - j * 0.026, 0.014, 0.018, 0, 0.001) * (0.2 + 0.8 * (j / 16 < 0.7 + 0.25 * exp(-beat * 6))) for j in range(17)]),
+      merge([rect(0.94, 0.93 - j * 0.026, 0.014, 0.018, 0, 0.001) * (0.2 + 0.8 * (j / 16 < 0.68 + 0.25 * exp(-beat * 6))) for j in range(17)]),
+      text("master", 0.9, 1.0, 0.02, 0, "mono") * 0.7)
+  let labels = merge(text("MIX", 0.5, 0.14, 0.09, 0, "mono"), text("128 BPM   ·   A minor   ·   stereo out", 0.5, 0.24, 0.026, 0, "mono") * 0.6,
+                     text("L  R", 0.9, 0.46, 0.02, 0, "mono") * 0.5)
+  output merge(merge([strip(k) for k in range(7)]), master, labels)
+}

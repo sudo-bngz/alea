@@ -1,0 +1,188 @@
+// Hana 花 — an electronic flower, from seed to seed, in a network. A minute,
+// cut fast: the network waiting, a seed calling in it, roots running along
+// its links, a stem of square cells, a bud of nested squares, the bloom of
+// square petals, the seeds leaving along the links and the wind, flowers
+// opening all over the grid, the petals falling apart into grain, a seed
+// again. Forty-one scenes on a timeline, in a loop, crossed by glitches,
+// pixels and morphs drawn anew for each edition; every scene draws its own
+// grid, links, roots, petals and seeds. Colours of old prints, with grain.
+//
+// The track follows the six stages, two to five bars each at 92 BPM,
+// twenty-three bars, a minute: a warped pad in D and tape hiss for the seed;
+// a sub bass and a soft kick for the roots; the snare, hats and a detuned
+// bell melody for the stem and the bud; the full beat and an arpeggio for
+// the bloom; the beat broken into rolls for the spread; the drums gone for
+// the withering. Every drum hit, ghost note, roll and melody note is drawn
+// by chance; a blip marks each cut.
+
+use "hana/lattice.alea"
+use "hana/seed.alea"
+use "hana/roots.alea"
+use "hana/stem.alea"
+use "hana/bud.alea"
+use "hana/bloom.alea"
+use "hana/macro.alea"
+use "hana/spread.alea"
+use "hana/drift.alea"
+use "hana/field.alea"
+use "hana/wither.alea"
+use "hana/data.alea"
+
+work Hana {
+  // ── the colours, faded like old prints: one set per stage, and an odd one for the data ──
+  let teal   = ["#0d1312", "#1d4440", "#a8b48a", "#efe6cc"]
+  let rust   = ["#130d0a", "#5e2c1e", "#c97a46", "#f2e0c2"]
+  let moss   = ["#0c110b", "#2f4a30", "#9fb062", "#ecedd0"]
+  let rose   = ["#120b10", "#5c2a46", "#e0889a", "#f8e8dc"]
+  let vhs    = ["#0a0d14", "#26406a", "#8cb2c4", "#f0eee2"]
+  let sepia  = ["#100d08", "#4a3a1e", "#c9a35a", "#f3e8cc"]
+  let odd    = choose { ["#0b0b0b", "#3a3a3a", "#d0c8b4", "#fffaf0"] | ["#100a05", "#7a3b12", "#f0a040", "#fff4e0"] | ["#05100e", "#0f5a50", "#5ee0c0", "#eafff8"] }
+  let ink(piece, colours) = paint(piece, palette: colours, range: [0, 1])
+  // a cut, drawn anew each time it is used: mostly glitches, some pixels and morphs, now and then a plain jump
+  let xf(s) = choose { 4: glitch(s, amount: ~between(0.6, 1)) | 2: pixels(s, size: ~between(0.03, 0.09)) | 2: morph(s, amount: ~between(0.15, 0.35)) | 1: jump() }
+
+  let reel = timeline([
+      // the seed, in the network (bars 0–3)
+      scene(ink(Lattice(), teal), 1.6),                                 xf(0.3),
+      scene(ink(Seed(), teal), 1.3),                                    xf(0.25),
+      scene(ink(Lattice(cols: 4, rows: 7, speed: 6), teal), 0.9),       xf(0.2),
+      scene(ink(Seed(size: 0.12, rings: 4), teal), 1.6),                xf(0.3),
+      scene(ink(Data(), odd), 0.8),                                     xf(0.2),
+      scene(ink(Seed(rate: 24), teal), 1.6),                            xf(0.3),
+      // the roots (bars 3–6)
+      scene(ink(Roots(), rust), 2),                                     xf(0.3),
+      scene(ink(Lattice(cols: 8, rows: 14, speed: 5), rust), 0.7),      xf(0.2),
+      scene(ink(Roots(count: 9, steps: 12, pace: 1.3), rust), 1.6),     xf(0.3),
+      scene(ink(Data(cols: 8, rows: 14), odd), 0.6),                    xf(0.2),
+      scene(ink(Roots(count: 4), rust), 1.3),                           xf(0.3),
+      scene(ink(Stem(), moss), 1.6),                                    xf(0.3),
+      // the stem and the bud (bars 6–9)
+      scene(ink(Stem(leaves: 9, sway: 0.05), moss), 1.6),              xf(0.3),
+      scene(ink(Bud(), moss), 1.3),                                     xf(0.25),
+      scene(ink(Stem(rate: 24), moss), 0.8, from: 0.5, to: 1),          xf(0.2),
+      scene(ink(Bud(shells: 8), moss), 1.6),                            xf(0.3),
+      scene(ink(Data(rate: 30), odd), 0.6),                             xf(0.2),
+      scene(ink(Bud(rate: 20), rose), 2),                               xf(0.35),
+      // the bloom (bars 9–14)
+      scene(ink(Bloom(), rose), 2.6),                                   xf(0.3),
+      scene(ink(Macro(), rose), 1),                                     xf(0.25),
+      scene(ink(Bloom(petals: 6, layers: 3, scale: 1.3), rose), 1.6),   xf(0.3),
+      scene(ink(Macro(cells: 22), rose), 0.7),                          xf(0.2),
+      scene(ink(Bloom(petals: 12, scale: 1.5), rose), 2, from: 0.3, to: 1), xf(0.3),
+      scene(ink(Data(cols: 16, rows: 28), odd), 0.5),                   xf(0.2),
+      scene(ink(Macro(cells: 9), rose), 1.3),                           xf(0.3),
+      scene(ink(Bloom(petals: 8, layers: 3, scale: 1.7), rose), 3.3, from: 0.4, to: 1), xf(0.35),
+      // the seeds go (bars 14–19)
+      scene(ink(Spread(), vhs), 2.6),                                   xf(0.3),
+      scene(ink(Drift(), vhs), 1.3),                                    xf(0.25),
+      scene(ink(Spread(count: 30), vhs), 1.6),                          xf(0.3),
+      scene(ink(Lattice(cols: 10, rows: 18, speed: 8), vhs), 0.6),      xf(0.2),
+      scene(ink(Drift(rows: 34, angle: -15), vhs), 1.6),                xf(0.3),
+      scene(ink(Spread(count: 16), vhs), 2),                            xf(0.3),
+      scene(ink(Data(rate: 40), odd), 0.6),                             xf(0.2),
+      scene(ink(Field(), moss), 2.8),                                   xf(0.35),
+      // flowers everywhere, then the fall (bars 19–23)
+      scene(ink(Field(count: 18), sepia), 2),                           xf(0.3),
+      scene(ink(Bloom(petals: 10, scale: 1.2), sepia), 0.8, from: 0.6, to: 1), xf(0.2),
+      scene(ink(Field(count: 9), sepia), 1.3),                          xf(0.3),
+      scene(ink(Wither(), sepia), 2),                                   xf(0.3),
+      scene(ink(Drift(rows: 14, angle: 80), sepia), 0.7),               xf(0.2),
+      scene(ink(Wither(rate: 20), sepia), 2),                           xf(0.4),
+      scene(ink(Seed(size: 0.04), teal), 1.6),                          fade(0.5, through: 0),
+  ], loop: 1)                                                           // 60 s
+  let look = chroma(vignette(film(reel, amount: 0.07), amount: 0.45), amount: 0.7)
+
+  // ── the instruments, all warped a little, like a tape that has been played too often ──
+  let m = meter(92, bars: 23)
+  let wow(f) = f * (1 + 0.006 * sine(0.27) + 0.0015 * sine(5.8))
+  let pad = synth {
+    let f = wow(note.freq)
+    let env = adsr(attack: 0.9, decay: 1, sustain: 0.8, release: 2.5)
+    chorus(lowpass(saw(f) + saw(f * 1.004) * 0.8 + triangle(f * 0.5) * 0.6, cutoff: 650 + 450 * sine(0.13), resonance: 0.15) * env * 0.35,
+           depth: 0.8, rate: 0.35)
+  }
+  let sub = synth {
+    let f = wow(note.freq)
+    lowpass(sine(f) + triangle(f) * 0.35, cutoff: 380, resonance: 0.1) * adsr(attack: 0.01, decay: 0.5, sustain: 0.6, release: 0.3)
+  }
+  let bell = synth {                                                 // a detuned electric bell, through a dotted-eighth echo
+    let f = wow(note.freq)
+    delay((sine(f) + sine(f * 2.01) * 0.35 * perc(release: 0.35) + triangle(f * 0.997) * 0.3) * perc(attack: 0.004, release: 1.6) * 0.5,
+          time: 60 / 92 * 0.75, feedback: 0.45, mix: 0.4)
+  }
+  let pluck = synth {
+    let f = note.freq
+    lowpass(square(f) * 0.4 + saw(f * 1.003) * 0.3, cutoff: 1200 + 2600 * perc(release: 0.12) * note.velocity, resonance: 0.3)
+      * perc(attack: 0.002, release: 0.3)
+  }
+  let kick = synth {
+    drive(lowpass(sine(note.freq * (1 + 3 * perc(attack: 0.0005, release: 0.04))) * perc(attack: 0.002, release: 0.35), cutoff: 900, resonance: 0.1)
+          + noise() * perc(release: 0.008) * 0.12, amount: 0.3)
+  }
+  let snare = synth {
+    lowpass(bandpass(noise(), cutoff: 1800, resonance: 0.3) * perc(attack: 0.001, release: 0.18) + sine(185) * perc(release: 0.07) * 0.5,
+            cutoff: 5000, resonance: 0.1) * note.velocity
+  }
+  let hat = synth { bandpass(noise(), cutoff: 7200, resonance: 0.4) * perc(release: 0.03) * note.velocity }
+  let blip = synth { (square(note.freq) * 0.5 + noise() * 0.3) * perc(attack: 0.001, release: 0.06) * note.velocity }
+  let hiss = synth { lowpass(highpass(noise(), cutoff: 3000, resonance: 0.1), cutoff: 9000, resonance: 0.1) * adsr(attack: 1, decay: 0.1, sustain: 1, release: 1.5) * 0.05 }
+
+  // ── the arrangement: 23 bars of sixteenths; the stages begin at bars 3, 6, 9, 14, 19 ──
+  let s16 = 23 * 16
+  let semi(s) = 1 - (s + 0.5) / 36                                   // a semitone above the key, as a height
+  let bar(j) = floor(j / 16)
+  let step(j) = j % 16
+  let between_bars(j, a, b) = (bar(j) >= a) * (bar(j) < b)
+  // four chords in D, two bars each, round and round: Dmaj9, Bm9, Gmaj7#11, Em9 (semitones above D2)
+  let chords = [[12, 16, 19, 23, 26], [9, 12, 16, 19, 23], [5, 9, 12, 16, 23], [14, 17, 21, 24, 28]]
+  let roots = [10, 7, 3, 0]                                          // D2, B1, G1, E1 above E1
+  let chord(b) = chords[floor(b / 2) % 4]
+  pattern pads = repeat 23 * 5 event(t: floor(i / 5) * 16 / s16, x: 0.3 + 0.1 * (i % 5), y: semi(chord(floor(i / 5))[i % 5]), size: 0.136,
+                                     intensity: 0.5 * (floor(i / 5) < 22) + 0.3 * (floor(i / 5) == 22))
+  pattern breath = repeat 23 event(t: i / 23, x: 0.5, y: 0.5, size: 0.146, intensity: 0.6)
+  // the sub: the chord's root on the one, and somewhere in the bar again
+  pattern low = repeat s16 event(t: i / s16, x: 0.5, y: semi(roots[floor(bar(i) / 2) % 4]), size: 0.02,
+      intensity: between_bars(i, 3, 21) * ((step(i) == 0) * 0.9 + (step(i) != 0) * (~between(0, 1) < 0.09) * 0.6))
+  // drums, drawn step by step: the kick, the snare with ghosts, the hats; nothing is fixed but the one
+  pattern kicks = repeat s16 event(t: i / s16, x: 0.5, y: 0.99,
+      intensity: between_bars(i, 3, 6) * ((step(i) == 0) * 0.8 + (step(i) == 8) * 0.55)
+               + between_bars(i, 6, 14) * ((step(i) == 0) + (step(i) == 10) * 0.75 + (step(i) % 2 == 1) * (~between(0, 1) < 0.1) * 0.6)
+               + between_bars(i, 14, 19) * ((step(i) == 0) + (~between(0, 1) < 0.22) * 0.7))
+  pattern snares = repeat s16 event(t: i / s16, x: 0.55, y: 0.5,
+      intensity: between_bars(i, 6, 9) * (step(i) == 8) * 0.8
+               + between_bars(i, 9, 19) * ((step(i) == 4) + (step(i) == 12)) * 0.85
+               + between_bars(i, 6, 19) * (step(i) % 4 != 0) * (~between(0, 1) < 0.1) * 0.22)
+  pattern hats = repeat s16 event(t: i / s16, x: 0.5 + 0.3 * sin(i * 1.7), y: 0.5,
+      intensity: between_bars(i, 3, 6) * (step(i) % 4 == 2) * 0.4
+               + between_bars(i, 6, 9) * (step(i) % 2 == 0) * (0.3 + 0.2 * (step(i) % 4 == 2))
+               + between_bars(i, 9, 19) * (0.15 + 0.35 * ~between(0, 1)) * (~between(0, 1) < 0.85))
+  // the rolls of the spread: thirty-second notes on a beat here and there, rising or falling
+  let rolled = [~between(0, 1) < 0.3 for k in range(23 * 4)]
+  pattern rolls = repeat 23 * 32 event(t: i / (23 * 32), x: 0.5 + 0.4 * sin(i * 0.9), y: 0.5,
+      intensity: (floor(i / 128) >= 14) * (floor(i / 128) < 19) * rolled[floor(i / 8)] * (0.15 + 0.07 * (i % 8)))
+  // the melody: a detuned bell on the pentatonic of D, an eighth now and then, from bar 2 to the end
+  let penta = [12, 14, 16, 19, 21, 24, 26, 28, 31]
+  pattern tune = repeat 23 * 8 event(t: i / (23 * 8), x: ~between(0.2, 0.8), y: semi(penta[floor(~between(0, 9))]), size: 0.056,
+      intensity: (floor(i / 8) >= 2) * (~between(0, 1) < 0.22) * 0.6)
+  // the arpeggio of the bloom and the spread: the chord's notes an octave up, faster in the spread
+  pattern arp = repeat s16 event(t: i / s16, x: 0.5 + 0.3 * sin(i), y: semi(12 + chord(bar(i))[floor(~between(0, 5))] - 12 * (bar(i) < 14)), size: 0.01,
+      intensity: between_bars(i, 9, 14) * (step(i) % 2 == 0) * (~between(0, 1) < 0.7) * 0.45
+               + between_bars(i, 14, 19) * (~between(0, 1) < 0.75) * 0.4)
+
+  let music = [
+    notes(pads,   instrument: pad, scale: "chromatic", key: 73.42, tempo: m.tempo, gain: 0.9),
+    notes(breath, instrument: hiss, gain: 0.6),
+    notes(low,    instrument: sub, scale: "chromatic", key: 41.2, tempo: m.tempo, gain: 1.3),
+    notes(kicks,  instrument: kick, scale: "chromatic", key: 50, tempo: m.tempo, swing: 0.56, gain: 1.6),
+    notes(snares, instrument: snare, tempo: m.tempo, swing: 0.56, gain: 0.6),
+    notes(hats,   instrument: hat, tempo: m.tempo, swing: 0.58, gain: 0.3),
+    notes(rolls,  instrument: hat, gain: 0.35),
+    notes(tune,   instrument: bell, scale: "chromatic", key: 73.42, tempo: m.tempo, swing: 0.56, gain: 0.45),
+    notes(arp,    instrument: pluck, scale: "chromatic", key: 73.42, tempo: m.tempo, swing: 0.56, gain: 0.3),
+    notes(reel.cues, instrument: blip, scale: "pentatonic", key: 880, gain: 0.12),
+    texture(0.4 + x * 0, kind: "crackle", gain: 0.25),
+  ]
+
+  render image(look, width: 1080, height: 1920, at: 35 / 60)                 // the cover: the bloom, wide open
+  render video(look, fps: 30, width: 1080, height: 1920, sound: music, room: 0.35, echo: 0.1)
+}
