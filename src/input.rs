@@ -51,7 +51,11 @@ impl Input {
 
 static INPUTS: LazyLock<Mutex<HashMap<String, Arc<Input>>>> = LazyLock::new(Default::default);
 static FILES: LazyLock<Mutex<HashMap<PathBuf, Arc<Input>>>> = LazyLock::new(Default::default);
-static USED: LazyLock<Mutex<Vec<Arc<Input>>>> = LazyLock::new(Default::default);
+// The inputs read by the evaluation running on this thread: one per thread, since works are drawn on several at
+// once (the tests, the plugin's instances) and what one reads must not give another its length or its canvas.
+thread_local! {
+    static USED: std::cell::RefCell<Vec<Arc<Input>>> = const { std::cell::RefCell::new(Vec::new()) };
+}
 /// How to read the pipe, set by the command line. Read at most once, and
 /// only when a work asks for its input.
 static STDIN: OnceLock<Box<dyn Fn() -> Option<Vec<u8>> + Send + Sync>> = OnceLock::new();
@@ -70,7 +74,7 @@ pub fn put(name: &str, bytes: Vec<u8>) -> Result<Arc<Input>, String> {
 
 pub fn clear() {
     INPUTS.lock().unwrap().clear();
-    USED.lock().unwrap().clear();
+    USED.with(|u| u.borrow_mut().clear());
 }
 
 /// The input of that name; the default one is read from the pipe the first time.
@@ -104,24 +108,26 @@ pub fn from_file(path: &Path, shown: &str) -> Result<Arc<Input>, String> {
 }
 
 pub fn mark_used(i: &Arc<Input>) {
-    let mut u = USED.lock().unwrap();
-    if !u.iter().any(|x| Arc::ptr_eq(x, i)) {
-        u.push(i.clone());
-    }
+    USED.with(|u| {
+        let mut u = u.borrow_mut();
+        if !u.iter().any(|x| Arc::ptr_eq(x, i)) {
+            u.push(i.clone());
+        }
+    });
 }
 
 pub fn reset_used() {
-    USED.lock().unwrap().clear();
+    USED.with(|u| u.borrow_mut().clear());
 }
 
 pub fn used() -> Vec<Arc<Input>> {
-    USED.lock().unwrap().clone()
+    USED.with(|u| u.borrow().clone())
 }
 
 /// The canvas an image input suggests (its own size), and the length a sound
 /// input suggests (its duration), from the inputs used so far.
 pub fn hints() -> (Option<(usize, usize)>, Option<f64>) {
-    let u = USED.lock().unwrap();
+    let u = used();
     let canvas = u.iter().find_map(|i| match &i.kind {
         Kind::Image(img) => Some((img.w, img.h)),
         _ => None,
