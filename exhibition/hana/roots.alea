@@ -1,0 +1,27 @@
+// Roots — the seed opens downwards and sideways, along the network:
+// staircase paths from node to node, revealed as they grow, their tips
+// bright. What it returns: 0 dark, up to 1 light.
+
+use "lattice.alea"
+
+work Roots(count = 6, steps = 9, pace = 1) {
+  let start = [0.5, 0.18]
+  let cell = 0.8 / 5
+  // each root: a list of moves drawn once: 0 down, 1 right, 2 left (down more often)
+  let moves = [[choose { 3: 0 | 2: 1 | 2: 2 } for s in range(steps)] for k in range(count)]
+  let mx = [[(m == 1) - (m == 2) for m in moves[k]] for k in range(count)]
+  let my = [[(m == 0) * 1 for m in moves[k]] for k in range(count)]
+  let point(k, s) = [start.x + cell * sum(slice(mx[k], 0, s)), start.y + cell * sum(slice(my[k], 0, s))]
+  let route(k) = [point(k, s) for s in range(steps + 1)]
+  let routes = [route(k) for k in range(count)]
+  let lag = [~between(0, 0.25) for k in range(count)]
+  let reach(k) = clamp((t * pace - lag[k]) / (1 - lag[k]), 0, 1) * length(routes[k])
+  // a root drawn up to where it has reached: the path masked by how far along each point is
+  let shown(k) = merge([line(routes[k][s].x, routes[k][s].y, routes[k][s + 1].x, routes[k][s + 1].y, 0.004, 0.002)
+                        * (reach(k) > s * cell) for s in range(steps)])
+  let tip(k) = along(routes[k], reach(k))
+  let tips = merge([square(tip(k).x, tip(k).y, 0.022, 45, 0.002) for k in range(count)])
+  let seed = square(start.x, start.y, 0.05, floor(t * 10) * 15, 0.002)
+  let net = Lattice(shake: 0.6, speed: 1.5) * 0.3
+  output merge(net, merge([shown(k) for k in range(count)]) * 0.8, tips, seed)
+}

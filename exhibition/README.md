@@ -18,6 +18,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Parasite** | `parasite.alea` (+ `parasite/`) | A broadcast being lost: snow, someone who appears in it made of the same blocks, a desktop filling with windows, a test card counting down, the figure again. Five works on a timeline, crossed with glitches, a morph and a fade, in a loop; a drone of pulses and a burst of static at every cut. |
 | **Requête** | `requete.alea` (+ `requete/`) | The life of one request, layer by layer: the address typed, the name resolved down a tree, the handshake and the lock, packets finding their way across a grid of routers, bits and pulses of light on the wire, and the page building itself. Six works on a timeline, in a loop, each with its own sound. |
 | **Signal** | `signal.alea` (+ `signal/`) | The path of a sound, from the oscillator to the room: DCO, noise, LFO, envelope, high-pass, filter, VCA and chorus, delay, the mix, the compressor, the lathe, the vinyl, the stylus, the speaker, the room. Fifteen works in twenty-one fast cuts, a minute, in a loop; a Detroit techno track built stage by stage with the chain. |
+| **Hana** (花) | `hana.alea` (+ `hana/`) | An electronic flower, from seed to seed, in a network: a seed calling in the grid, roots along its links, a stem of square cells, a bud of nested squares, the bloom of square petals, the seeds leaving along the links and on the wind, flowers everywhere, the petals falling apart into grain. Forty-one cuts in a minute, glitches drawn anew every edition, an IDM track in the Boards of Canada way. |
 | **Kairo** (回路) | `kairo.alea` (+ `fonts/`) | After Kikai, a modular synthesizer that never existed: two rows of modules racked in another order each edition, patched with hanging cables. Also a Reel without drums: a slow piano waltz over a deep drone, the melody written on a staff as it plays. |
 
 ## Replaying the editions
@@ -29,6 +30,7 @@ alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
 alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
+alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea signal.alea --seed 0xa1ea01             # the 1080×1920 Reel: 60 s, in a loop
 alea requete.alea --seed 0xa1ea01            # the 1080×1920 Reel: 28.5 s, in a loop
 alea parasite.alea --seed 0xa1ea01          # the 1080×1920 Reel: 24 s, in a loop
@@ -54,6 +56,10 @@ The posted editions:
 | Atardecer Reel | 0xa1ea01 |
 | Kairo | 0xa1ea01 · 0xa1ea00 · 0xa1ea02 · 0xa1ea03 · 0xa1ea04 · 0xa1ea06 |
 | Kairo Reel | 0xa1ea01 |
+| Parasite Reel | 0xa1ea01 |
+| Requête Reel | 0xa1ea01 |
+| Signal Reel | 0xa1ea01 |
+| Hana Reel | 0xa1ea01 |
 
 All images are 1080 × 1350 (4:5, Instagram's portrait format); the Reel is
 1080 × 1920 (9:16), 15 seconds, with sound.
@@ -604,6 +610,66 @@ compresseur, la graveuse, le vinyle, la pointe, l'enceinte, la piste : une
 œuvre par étage, vingt et une coupes, et le morceau se construit avec eux, étage par étage,
 techno de Detroit à 128. Une minute, en boucle. Édition 0xa1ea01.
 
+## Tenth room: Hana
+
+| # | Post | Files |
+|---|---|---|
+| 18 | Hana, Reel (60 s, a loop) | `18-hana-reel.mp4` (cover: `18-hana-reel-cover.jpg`) |
+
+**How it is made.** Twelve works in `hana/`, each a stage or a texture of
+the flower's life, all built on one idea: the square, and the distance that
+draws it (the largest of |dx| and |dy|), so that rings, petals, cells and
+seeds are all squares. *Lattice* (the network: a grid of nodes, links there
+or not by chance, packets running along them, the grid shaken a little on
+every tick), *Seed* (a square turning by steps, square ripples leaving it),
+*Roots* (staircase paths from node to node, drawn once and revealed as they
+grow), *Stem* (a column of cells swaying by steps, square leaves opening
+where it passes), *Bud* (square shells nested and turning their own ways),
+*Bloom* (square petals in layers around a blinking heart, opening with an
+overshoot), *Macro* (inside a petal: a weave of cells folded fourfold),
+*Spread* (seeds leaving the heart along the links to nodes of their own),
+*Drift* (seeds on the wind, in rows of their own speed), *Field* (flowers
+opening all over the grid), *Wither* (petals falling, the picture coming
+apart into larger cells and then grain) and *Data* (a block of bits
+changing on every tick, between the stages). Forty-one scenes of 0.5 to 3.3
+seconds on a timeline, in a loop; every cut is drawn for each edition: a
+glitch most often, pixels or a morph sometimes, now and then a plain jump.
+Every scene draws its own grid, links, roots, petals and seeds. The colours
+are those of old prints (teal, rust, moss, a faded rose, a VHS blue,
+sepia), one set per stage, and the whole film goes through `film` (grain),
+`vignette` and `chroma`.
+
+The track follows the six stages at 92 BPM, twenty-three bars, a minute: a
+pad in D (Dmaj9, Bm9, Gmaj7♯11, Em9), two saws a little apart under a slow
+low-pass, warped by a tape's wow and flutter, and hiss, for the seed; a sub
+bass and a soft kick for the roots; a dusty snare, hats and a detuned bell
+on the pentatonic, through a dotted-eighth echo, for the stem and the bud;
+the full swung beat and an arpeggio for the bloom; the beat broken into
+rolls of thirty-second notes for the spread; the drums gone for the fall.
+Every kick, ghost note, roll, bell note and arpeggio note is drawn by
+chance, and a blip marks each cut.
+
+### 18 · Hana (Reel)
+
+**EN**
+
+HANA 花 — an electronic flower, from seed to seed, in a network. A seed
+calls in the grid; roots run along its links; a stem of square cells, a bud
+of nested squares, square petals; the seeds leave along the links and on
+the wind, flowers open everywhere, the petals fall apart into grain, and a
+seed again. Forty-one cuts, every glitch drawn by chance, an IDM track that
+grows with it. A minute, in a loop. Edition 0xa1ea01.
+
+**FR**
+
+HANA 花 — une fleur électronique, de graine en graine, dans un réseau. Une
+graine appelle dans la grille ; des racines courent le long de ses liens ;
+une tige de cellules carrées, un bouton de carrés emboîtés, des pétales
+carrés ; les graines partent par les liens et dans le vent, des fleurs
+s'ouvrent partout, les pétales tombent en grain, et de nouveau une graine.
+Quarante et une coupes, chaque glitch tiré au hasard, un morceau d'IDM qui
+pousse avec elle. Une minute, en boucle. Édition 0xa1ea01.
+
 ### Hashtags
 
 ```
@@ -612,5 +678,6 @@ techno de Detroit à 128. Une minute, en boucle. Édition 0xa1ea01.
 #paris #metro #transitmap #cartography
 #reactiondiffusion #gameoflife #emergence #biology #petridish
 #lofi #lofihouse #sunset #vinyl #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
+#flower #squares #network #growth #boardsofcanada #idm #tape #analog
 #synthesizer #juno #modular #signalpath #vinyl #http #dns #tcp #osi #networking #glitch #glitchart #vhs #nosignal #idm #piano #modularsynth #eurorack #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
 ```

@@ -1,0 +1,17 @@
+// Data — what the flower is, written in the network: a block of bits that
+// changes on every tick, a line reading it.
+// What it returns: 0 dark, up to 1 light.
+
+work Data(cols = 12, rows = 22, rate = 20) {
+  let tick = floor(t * rate)
+  let seed = ~between(0, 100)
+  let gx = (x - 0.08) / 0.84 * cols
+  let gy = (y + 0.3) / 1.6 * rows
+  let c = floor(gx)
+  let r = floor(gy)
+  let inside = (c >= 0) * (c < cols) * (r >= 0) * (r < rows)
+  let bit = fract(sin(c * 12.9898 + r * 78.233 + floor(tick * (0.3 + 0.7 * fract(r * 0.37))) * 3.1 + seed) * 43758.5453) > 0.55
+  let d = max(abs(fract(gx) - 0.5), abs(fract(gy) - 0.5))
+  let read = abs(gy - fract(t * 1.7) * rows) < 0.5
+  output inside * merge((d < 0.32) * bit * (0.55 + 0.45 * read), (abs(d - 0.32) < 0.03) * 0.2, read * 0.15)
+}

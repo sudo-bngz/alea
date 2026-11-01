@@ -1,0 +1,26 @@
+// Spread — the flower lets its seeds go: each a small square leaving the
+// heart along the network, a run across then a run down or up, to a node of
+// its own, a trail behind it. What it returns: 0 dark, up to 1 light.
+
+use "lattice.alea"
+
+work Spread(count = 22, from = [0.5, 0.5]) {
+  let cw = 0.8 / 5
+  let ch = 1.58 / 10
+  // where each goes (a node of the lattice), and when it leaves
+  let to = [[0.1 + cw * floor(~between(0, 6)), -0.29 + ch * floor(~between(0, 11))] for k in range(count)]
+  let lag = [~between(0, 0.45) for k in range(count)]
+  let go(k) = ease(clamp((t - lag[k]) / 0.5, 0, 1), "in-out")
+  // across first, then along: the corner is at the destination's x and the start's y
+  let span(k) = abs(to[k].x - from.x) + abs(to[k].y - from.y) + 0.0001
+  let bend(k) = abs(to[k].x - from.x) / span(k)
+  let pos(k) = [from.x + (to[k].x - from.x) * clamp(go(k) / max(bend(k), 0.0001), 0, 1),
+                from.y + (to[k].y - from.y) * clamp((go(k) - bend(k)) / max(1 - bend(k), 0.0001), 0, 1)]
+  let trail(k) = merge(line(from.x, from.y, pos(k).x, from.y, 0.002, 0.002), line(pos(k).x, from.y, pos(k).x, pos(k).y, 0.002, 0.002))
+                 * 0.3 * (go(k) > 0)
+  let seedk(k) = square(pos(k).x, pos(k).y, 0.016 + 0.01 * (go(k) >= 1), floor(t * 20) * 45 * (go(k) < 1), 0.002) * (go(k) > 0)
+  let land(k) = (go(k) >= 1) * (abs(max(abs(x - to[k].x), abs(y - to[k].y)) - 0.03 - 0.06 * fract(t * 3 + k * 0.3)) < 0.002) * 0.5
+  let net = Lattice(shake: 0.8, speed: 4) * 0.3
+  let heart = square(from.x, from.y, 0.05 * (1 - 0.6 * t), floor(t * 10) * 22.5, 0.002)
+  output merge(net, heart, merge([merge(trail(k), seedk(k), land(k)) for k in range(count)]))
+}

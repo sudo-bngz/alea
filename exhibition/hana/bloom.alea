@@ -1,0 +1,26 @@
+// Bloom — the flower opens: square petals around the heart, in layers,
+// each petal a square turned on its point, outlined and filled from the
+// heart outwards; the whole turns by steps and trembles.
+// What it returns: 0 dark, up to 1 light.
+
+work Bloom(petals = 8, layers = 2, rate = 12, at = [0.5, 0.5], scale = 1) {
+  let tick = floor(t * rate)
+  let cx = at.x + 0.004 * sin(tick * 3.7)
+  let cy = at.y + 0.004 * sin(tick * 2.3)
+  let open = ease(t * 1.6, "back")
+  let spin = floor(t * 16) * ~between(1.5, 4)
+  let size(l) = scale * (0.2 - 0.06 * l) * (0.4 + 0.6 * open)
+  let reach(l) = scale * (0.17 - 0.06 * l) * open
+  let a(l, k) = (360 * (k + 0.5 * l) / petals + spin * (1 - 2 * (l % 2))) / 57.2958
+  let px(l, k) = cx + reach(l) * cos(a(l, k))
+  let py(l, k) = cy + reach(l) * sin(a(l, k))
+  let deg(l, k) = a(l, k) * 57.2958 + 45
+  let petal(l, k) = merge(square(px(l, k), py(l, k), size(l), deg(l, k), 0.002) * (0.25 + 0.2 * l),
+                          square(px(l, k), py(l, k), size(l), deg(l, k), 0.002) - square(px(l, k), py(l, k), size(l) - 0.008, deg(l, k), 0.002))
+  let flower = merge([petal(l, k) for l in range(layers) for k in range(petals)])
+  // the heart: a 3 × 3 of cells, blinking
+  let hx = floor((x - cx) / (0.016 * scale) + 1.5)
+  let hy = floor((y - cy) / (0.016 * scale) + 1.5)
+  let heart = (hx >= 0) * (hx < 3) * (hy >= 0) * (hy < 3) * (fract(sin(hx * 7.1 + hy * 3.3 + tick) * 433.7) > 0.3)
+  output merge(flower, heart * 1)
+}
