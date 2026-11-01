@@ -87,7 +87,7 @@ static inline int32_t alea_mul(int32_t a, int32_t b) { return (int32_t)(((int64_
 static inline int32_t alea_div(int32_t a, int32_t b)
 {
     if (b > -16 && b < 16) return 0;
-    return (int32_t)(((int64_t)a << ALEA_Q) / b);
+    return (int32_t)((int64_t)a * ALEA_ONE / b);
 }
 static inline int32_t alea_clamp(int32_t v, int32_t lo, int32_t hi) { return v < lo ? lo : v > hi ? hi : v; }
 
@@ -99,7 +99,7 @@ static inline int32_t alea_sin_q16(uint32_t ph)      /* ph: a full turn is 2^32;
     else { a = ALEA_SINE[i]; b = ALEA_SINE[i + 1]; }
     s = a + (((b - a) * (int32_t)f) >> 8);
     s = (q & 2) ? -s : s;
-    return s << 1;                                    /* Q15 -> Q16 */
+    return s * 2;                                     /* Q15 -> Q16 */
 }
 
 /* polyBLEP: the correction near a jump, t and dt as fractions of a cycle (2^32 = 1) */
@@ -264,7 +264,7 @@ static inline int32_t alea_line_read(const alea_voice_t *v, const alea_state_t *
     uint32_t len = s->len, k;
     if (!v->pool || s->at + len > v->pool_len) return 0;
     k = (head + len - (back % len)) % len;
-    return (int32_t)v->pool[s->at + k] << 3;
+    return (int32_t)v->pool[s->at + k] * 8;
 }
 
 static inline int32_t alea_env_held(uint32_t t, int32_t attack, int32_t decay, int32_t sustain)
@@ -390,7 +390,7 @@ static void alea_voice_render(const alea_vm_t *vm, alea_voice_t *v, int32_t *out
                 int32_t x = s[o->a], back;
                 if (!v->pool || st->at + len > v->pool_len) { r = x; break; }   /* no room: dry */
                 head = v->samples % len;
-                back = (int32_t)v->pool[st->at + head] << 3;                      /* lines hold Q13: ±4 */
+                back = (int32_t)v->pool[st->at + head] * 8;                       /* lines hold Q13: ±4 */
                 {
                     int32_t w = alea_clamp(x + alea_mul(back, o->k[1]), -(4 << ALEA_Q) + 8, (4 << ALEA_Q) - 8);
                     v->pool[st->at + head] = (int16_t)(w >> 3);
@@ -438,7 +438,7 @@ static void alea_voice_render(const alea_vm_t *vm, alea_voice_t *v, int32_t *out
             /* the DC blocker (15 Hz), then the output, clamped to ±8 */
             int32_t x = s[vm->nops - 1];
             /* y = x - x' + R y', R = 1 - 2 pi 15 / fs, the state in Q32 */
-            int64_t y64 = ((int64_t)(x - v->dc_x) << 16) + ((v->dc_y >> 8) * ALEA_DC_R >> 24);
+            int64_t y64 = ((int64_t)(x - v->dc_x) * 65536) + ((v->dc_y >> 8) * ALEA_DC_R >> 24);
             int32_t y = (int32_t)(y64 >> 16);
             v->dc_x = x; v->dc_y = y64;
             y = alea_clamp(y, -(8 << ALEA_Q), 8 << ALEA_Q);
