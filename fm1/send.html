@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>alea → FM-1: send a bank</title>
+<meta name="description" content="Send a bank of alea patches to an M-VAVE FM-1 running Felucca with the ALEA engine, over USB-MIDI, from the browser.">
+<style>
+  :root { --paper: #edeff3; --mount: #f8f9fb; --ink: #181b30; --muted: #565b7a; --rule: #cfd3de; --accent: #d92b6a; --ok: #2f7a5a; color-scheme: light; }
+  @media (prefers-color-scheme: dark) {
+    :root { --paper: #12142a; --mount: #1b1e38; --ink: #e7e9f2; --muted: #a2a7c6; --rule: #2d3150; --accent: #f0507f; --ok: #7fd1a8; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.55 Georgia, "Lora", serif; }
+  main { max-width: 38rem; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+  h1 { font-weight: normal; font-size: 1.9rem; margin: 0 0 .25rem; }
+  h1 b { color: var(--accent); font-weight: normal; }
+  p.lede { color: var(--muted); margin: 0 0 2rem; }
+  section { background: var(--mount); border: 1px solid var(--rule); padding: 1.1rem 1.25rem; margin: 0 0 1rem; }
+  h2 { font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: normal; margin: 0 0 .6rem; }
+  button, select, input[type=file]::file-selector-button {
+    font: inherit; font-size: .95rem; color: var(--ink); background: transparent; border: 1px solid var(--ink);
+    padding: .35rem .9rem; cursor: pointer; }
+  button.go { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .4; cursor: default; }
+  select { padding: .3rem .4rem; max-width: 100%; }
+  .row { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+  ol.bank { margin: .6rem 0 0; padding-left: 1.6rem; font-family: ui-monospace, Menlo, monospace; font-size: .9rem; columns: 2; }
+  .muted { color: var(--muted); font-size: .9rem; }
+  progress { width: 100%; height: .5rem; accent-color: var(--accent); }
+  #log { font-family: ui-monospace, Menlo, monospace; font-size: .8rem; color: var(--muted); white-space: pre-wrap; margin: .6rem 0 0; max-height: 12rem; overflow: auto; }
+  .ok { color: var(--ok); } .bad { color: var(--accent); }
+  code { font-family: ui-monospace, Menlo, monospace; font-size: .88em; }
+</style>
+</head>
+<body>
+<main>
+  <h1>alea <b>→</b> FM-1</h1>
+  <p class="lede">Sends a bank of patches written in alea to an M-VAVE FM-1 running Felucca with the ALEA engine, over USB.
+    Compile one with <code>alea bass.alea -n 8 --fm1 bass.syx</code>. Chrome or Edge; the page asks to use MIDI SysEx.</p>
+
+  <section>
+    <h2>1 · The FM-1</h2>
+    <div class="row">
+      <button id="connect">Connect</button>
+      <select id="out" hidden aria-label="MIDI output"></select>
+      <select id="in" hidden aria-label="MIDI input"></select>
+    </div>
+    <p id="dev" class="muted"></p>
+    <ol id="now" class="bank"></ol>
+  </section>
+
+  <section>
+    <h2>2 · The bank</h2>
+    <input type="file" id="file" accept=".syx,.alb">
+    <p id="info" class="muted"></p>
+    <ol id="next" class="bank"></ol>
+  </section>
+
+  <section>
+    <h2>3 · Send</h2>
+    <div class="row">
+      <button id="send" class="go" disabled>Send to the FM-1</button>
+      <button id="factory" disabled>Back to the factory bank</button>
+    </div>
+    <p class="muted">Stop the sequencer first. Sending replaces the bank the FM-1 keeps; it plays the new one at once.</p>
+    <progress id="bar" value="0" max="1" hidden></progress>
+    <div id="log"></div>
+  </section>
+</main>
+<script>
+"use strict";
+// Felucca's editor protocol: F0 7D 46 4C cmd … F7. The ALEA bank's commands (web/EDITOR_PROTOCOL.md "ALEA bank").
+const HDR = [0x7D, 0x46, 0x4C], BEGIN = 96, WRITE = 97, END = 98, LIST = 99, CHUNK = 256, MAX = 3584;
+const RC = {1: "refused (size, order or arguments)", 2: "the CRC does not match: bytes were lost on the way",
+            3: "the device is busy: stop the sequencer and try again", 4: "the flash could not be written",
+            5: "no transfer open (the device was reset?)"};
+const $ = (id) => document.getElementById(id);
+let midi, out, inp, waiting = null, bank = null, frames = null;
+
+function log(msg, cls) {
+  const d = document.createElement("div");
+  d.textContent = msg;
+  if (cls) d.className = cls;
+  $("log").append(d);
+  $("log").scrollTop = 1e9;
+}
+const v7 = (v, n) => Array.from({length: n}, (_, k) => (v >>> (7 * k)) & 0x7F);
+function pack7(bytes) {
+  const o = [];
+  for (let i = 0; i < bytes.length; i += 7) {
+    const g = bytes.subarray(i, i + 7);
+    o.push(g.reduce((m, c, k) => m | ((c >> 7) << k), 0), ...Array.from(g, (c) => c & 0x7F));
+  }
+  return o;
+}
+function crc32(b) {
+  let c = ~0;
+  for (const x of b) { c ^= x; for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xEDB88320 : c >>> 1; }
+  return ~c >>> 0;
+}
+const frame = (cmd, args) => [0xF0, ...HDR, cmd, ...args, 0xF7];
+function framesOf(b) {                       // as alea's src/fm1.rs messages()
+  const m = [frame(BEGIN, v7(b.length, 3))];
+  for (let off = 0; off < b.length; off += CHUNK) m.push(frame(WRITE, [...v7(off, 3), ...pack7(b.subarray(off, off + CHUNK))]));
+  m.push(frame(END, v7(crc32(b), 5)));
+  return m;
+}
+function unpack7(a) {
+  const o = [];
+  for (let i = 0; i < a.length; i += 8) for (let k = 1; k < 8 && i + k < a.length; k++) o.push(a[i + k] | ((a[i] >> (k - 1)) & 1) << 7);
+  return Uint8Array.from(o);
+}
+// a .syx from alea: its frames; the bank they carry, rebuilt from the WRITEs (to show its names and check the CRC)
+function parseSyx(b) {
+  const fr = [];
+  for (let i = 0; i < b.length; i++) if (b[i] === 0xF0) { const j = b.indexOf(0xF7, i); if (j < 0) break; fr.push(Array.from(b.subarray(i, j + 1))); i = j; }
+  if (!fr.length || fr.some((f) => f[1] !== HDR[0] || f[2] !== HDR[1] || f[3] !== HDR[2])) throw new Error("not a bank for the FM-1 (no ALEA messages)");
+  const writes = fr.filter((f) => f[4] === WRITE).map((f) => unpack7(Uint8Array.from(f.slice(8, -1))));
+  const bytes = new Uint8Array(writes.reduce((n, w) => n + w.length, 0));
+  writes.reduce((off, w) => (bytes.set(w, off), off + w.length), 0);
+  return bytes;
+}
+function names(b) {
+  if (b.length < 5 || String.fromCharCode(...b.subarray(0, 4)) !== "ALB1") throw new Error("not an alea bank (ALB1)");
+  const n = [];
+  let p = 5;
+  for (let k = 0; k < b[4]; k++) {
+    if (p + 20 > b.length) throw new Error("the bank is cut short");
+    n.push(String.fromCharCode(...b.subarray(p, p + 16)).replace(/\0.*$/, ""));
+    p += 20 + (b[p + 16] | b[p + 17] << 8 | b[p + 18] << 16 | b[p + 19] << 24);
+  }
+  if (p !== b.length) throw new Error("the bank's sizes don't add up");
+  return n;
+}
+function showList(el, list) { el.replaceChildren(...list.map((s) => Object.assign(document.createElement("li"), {textContent: s}))); }
+
+// one request, its reply (the same command), or an error after ms
+function ask(f, ms = 3000) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => { waiting = null; reject(new Error("no answer from the FM-1 (is the ALEA build of Felucca on it?)")); }, ms);
+    waiting = {cmd: f[4], done: (r) => { clearTimeout(t); waiting = null; resolve(r); }};
+    out.send(f);
+  });
+}
+function onMessage(e) {
+  const d = e.data;
+  if (waiting && d[0] === 0xF0 && d[1] === HDR[0] && d[2] === HDR[1] && d[3] === HDR[2] && d[4] === waiting.cmd) waiting.done(d);
+}
+function cstrings(d, from) {
+  const s = [];
+  let cur = "";
+  for (let i = from; i < d.length - 1; i++) { if (d[i] === 0) { s.push(cur); cur = ""; } else cur += String.fromCharCode(d[i]); }
+  return s;
+}
+async function refresh() {
+  try {
+    const r = await ask(frame(LIST, []), 1500);
+    $("dev").textContent = `${r[5] ? "Its bank, sent over USB" : "The factory bank"}: ${r[6]} patch${r[6] === 1 ? "" : "es"}.`;
+    showList($("now"), cstrings(r, 7));
+    $("factory").disabled = !r[5];
+    return true;
+  } catch (err) {
+    $("dev").innerHTML = "";
+    $("dev").append(err.message);
+    $("now").replaceChildren();
+    return false;
+  }
+}
+function pickPorts() {
+  const like = (p) => /fm-?1|felucca|m-?vave/i.test(p.name);
+  for (const [sel, ports] of [[$("out"), [...midi.outputs.values()]], [$("in"), [...midi.inputs.values()]]]) {
+    const keep = sel.value;
+    sel.replaceChildren(...ports.map((p) => Object.assign(document.createElement("option"), {value: p.id, textContent: p.name})));
+    sel.value = ports.some((p) => p.id === keep) ? keep : (ports.find(like) || ports[0] || {}).id || "";
+    sel.hidden = !ports.length;
+  }
+  if (inp) inp.onmidimessage = null;
+  out = midi.outputs.get($("out").value);
+  inp = midi.inputs.get($("in").value);
+  if (inp) inp.onmidimessage = onMessage;
+  updateButtons();
+  if (out && inp) refresh(); else $("dev").textContent = "No MIDI device: plug the FM-1 in over USB.";
+}
+function updateButtons() { $("send").disabled = !(out && inp && frames); }
+
+$("connect").onclick = async () => {
+  if (!navigator.requestMIDIAccess) { $("dev").textContent = "This browser has no Web MIDI: use Chrome or Edge, or alea's fm1/send.py."; return; }
+  try {
+    midi = await navigator.requestMIDIAccess({sysex: true});
+  } catch (err) {
+    $("dev").textContent = "MIDI SysEx was not allowed: " + err.message;
+    return;
+  }
+  $("connect").textContent = "Look again";
+  midi.onstatechange = pickPorts;
+  pickPorts();
+};
+$("out").onchange = $("in").onchange = pickPorts;
+
+$("file").onchange = async () => {
+  const f = $("file").files[0];
+  bank = frames = null;
+  $("next").replaceChildren();
+  updateButtons();
+  if (!f) return;
+  try {
+    const b = new Uint8Array(await f.arrayBuffer());
+    bank = /\.alb$/i.test(f.name) ? b : parseSyx(b);
+    const n = names(bank);
+    if (bank.length > MAX) throw new Error(`the bank is ${bank.length} bytes; the FM-1 keeps ${MAX}`);
+    frames = framesOf(bank);
+    $("info").textContent = `${f.name}: ${n.length} patch${n.length === 1 ? "" : "es"}, ${bank.length} bytes.`;
+    showList($("next"), n);
+  } catch (err) {
+    $("info").textContent = `${f.name}: ${err.message}.`;
+  }
+  updateButtons();
+};
+
+async function run(fr, what) {
+  $("send").disabled = $("factory").disabled = true;
+  $("bar").hidden = false;
+  $("bar").max = fr.length;
+  try {
+    for (let k = 0; k < fr.length; k++) {
+      const f = fr[k], r = await ask(f, f[4] === WRITE ? 3000 : 6000);
+      const rc = f[4] === WRITE ? r[8] : r[5];
+      if (rc) throw new Error(`${["BEGIN", "WRITE", "END"][f[4] - BEGIN]}: ${RC[rc] || "rc " + rc}`);
+      $("bar").value = k + 1;
+    }
+    log(what, "ok");
+  } catch (err) {
+    log(err.message, "bad");
+  }
+  await refresh();
+  updateButtons();
+}
+$("send").onclick = () => run(frames, "Sent: the FM-1 plays the new bank (ALEA, EDIT 1 > PATCH).");
+$("factory").onclick = () => run([frame(BEGIN, v7(0, 3))], "The FM-1 plays its factory bank again.");
+</script>
+</body>
+</html>

@@ -9,7 +9,9 @@
  *
  * A host (fm1/eng_alea.c for Felucca, fm1/test/vm_main.c on a computer):
  *   alea_vm_load(&vm, bytes, size)             once per patch: checks it, lays out the state
- *   alea_voice_init(&vm, &v, pool, pool_size)  once per voice: its state and lines (pool may be 0)
+ *   alea_voice_init(&vm, &v, words, pool, pool_size)
+ *                                              once per voice: its state (alea_voice_words(&vm) int32s at
+ *                                              words) and lines (pool_size int16s at pool; pool may be 0)
  *   alea_voice_on(&vm, &v, freq_q16, vel_q16, level_q16)
  *   alea_voice_gate(&v, 0)                     the key is released
  *   alea_voice_render(&vm, &v, out, n)         n samples, Q16, added to out[] (never overwritten)
@@ -58,8 +60,8 @@ typedef struct {
 } alea_vm_t;
 
 typedef struct {
-    int32_t slots[ALEA_MAX_OPS];
-    int32_t st[ALEA_MAX_STATES * 12];  /* per-state words: phase 1; env 3; svf 8; line 2; chorus 3 */
+    int32_t *slots;              /* the ops' outputs: vm->nops words */
+    int32_t *st;                 /* the states' words (vm->words): phase 1; env 3; svf 8; chorus 1 */
     int16_t *pool;
     uint32_t pool_len;
     int32_t freq, vel, level;    /* Q16 */
@@ -217,13 +219,17 @@ static int alea_vm_load(alea_vm_t *vm, const uint8_t *b, uint32_t n)
 }
 
 /* -------------------------------------------------------------- voices --- */
-static void alea_voice_init(const alea_vm_t *vm, alea_voice_t *v, int16_t *pool, uint32_t pool_len)
+/* the int32 words a voice of this patch keeps its state in (alea_voice_init's words) */
+static inline uint32_t alea_voice_words(const alea_vm_t *vm) { return vm->nops + vm->words; }
+
+static void alea_voice_init(const alea_vm_t *vm, alea_voice_t *v, int32_t *words, int16_t *pool, uint32_t pool_len)
 {
     memset(v, 0, sizeof *v);
+    v->slots = words;
+    v->st = words + vm->nops;
     v->pool = pool;
     v->pool_len = pool_len;
     v->seed = 0xA1EA5EEDu;
-    (void)vm;
 }
 
 static void alea_voice_on(const alea_vm_t *vm, alea_voice_t *v, int32_t freq_q16, int32_t vel_q16, int32_t level_q16)
@@ -234,7 +240,7 @@ static void alea_voice_on(const alea_vm_t *vm, alea_voice_t *v, int32_t freq_q16
     v->time_acc = 0; v->samples = 0; v->off_at = 0; v->quiet = 0;
     v->dc_x = 0; v->dc_y = 0;
     v->seed = v->seed * 1664525u + 1013904223u + 1;
-    memset(v->slots, 0, sizeof v->slots);
+    memset(v->slots, 0, vm->nops * sizeof(int32_t));
     for (i = 0; i < vm->nstates; i++) {
         const alea_state_t *s = &vm->st[i];
         if (s->kind == AST_LINE || s->kind == AST_CHORUS) {

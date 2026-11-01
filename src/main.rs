@@ -29,7 +29,8 @@ options:
       --check          parse and resolve the work without writing anything
       --web FILE       write a web page that draws a new edition on every visit
       --fm1 FILE       write the work's output synth as a patch bank for the FM-1's ALEA
-                       engine: `.syx` (SysEx, to send to the device) or `.alb` (the bank's bytes);
+                       engine: `.syx` (the SysEx messages that store it, fm1/send.html sends them)
+                       or `.alb` (the bank's bytes);
                        with -n, one patch per edition (up to 16)
 
 Piped in, an input reaches the work's `input()`. Piped out (when the standard
@@ -188,6 +189,13 @@ fn run() -> Result<(), String> {
             patches.push((name, bytes));
         }
         let bank = alea::fm1::bank(&patches);
+        if bank.len() > alea::fm1::BANK_MAX {
+            return Err(format!(
+                "the bank is {} bytes; the FM-1 keeps {} (fewer editions, or smaller patches)\n",
+                bank.len(),
+                alea::fm1::BANK_MAX
+            ));
+        }
         let is_syx = path.extension().is_some_and(|e| e.eq_ignore_ascii_case("syx"));
         let bytes = if is_syx { alea::fm1::sysex(&bank) } else { bank };
         std::fs::write(&path, &bytes).map_err(|e| format!("writing {}: {e}\n", path.display()))?;

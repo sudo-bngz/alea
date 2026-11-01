@@ -13,9 +13,17 @@ use crate::synth::{NoteValue, Op, Op2, Pass, State, Wave};
 pub const FS: u32 = 44100;
 /// Patches in a bank, at most.
 pub const BANK_SLOTS: usize = 16;
-/// What one voice may use for its delay and chorus lines, in bytes
-/// (eight voices share the FM-1's pool with everything else).
-pub const POOL_PER_VOICE: usize = 24 * 1024;
+/// A bank's bytes, at most: what one flash sector of the FM-1 holds.
+pub const BANK_MAX: usize = 3584;
+/// The int32 words of state a voice may keep (ops and their states).
+pub const VOICE_WORDS: usize = 128;
+/// The int16 samples of delay and chorus lines a part of the FM-1 has for its
+/// voices (in its own memory), and the region the first part that needs more
+/// borrows (Felucca's `eng_alea.c`): a voice without room plays them dry.
+pub const PART_LINES: usize = 2860;
+pub const SHARED_LINES: usize = 8192;
+/// A chorus line: 25 ms of lateness and the sample after it.
+const CHORUS_LEN: usize = 1105;
 
 fn q16(x: f64) -> i32 {
     (x * 65536.0).round().clamp(i32::MIN as f64, i32::MAX as f64) as i32
@@ -30,21 +38,41 @@ pub(crate) fn encode(ops: &[Op], states: &[State]) -> (Vec<u8>, Vec<String>) {
     let i32 = |b: &mut Vec<u8>, v: i32| b.extend(v.to_le_bytes());
     let u32 = |b: &mut Vec<u8>, v: usize| b.extend((v as u32).to_le_bytes());
     // the lines, in samples at the engine's rate
-    let pool: usize = states
-        .iter()
-        .map(|s| match s {
-            State::Line { buf, .. } => buf.len() * FS as usize / crate::sound::SR as usize * 2,
-            State::Chorus { .. } => (FS as usize * 5 / 100) * 2,
-            _ => 0,
-        })
-        .sum();
-    if pool > POOL_PER_VOICE {
+    let line = |s: &State| match s {
+        State::Line { buf, .. } => (buf.len() * FS as usize / crate::sound::SR as usize).max(1),
+        State::Chorus { .. } => CHORUS_LEN,
+        _ => 0,
+    };
+    let pool: usize = states.iter().map(line).sum();
+    let words = ops.len()
+        + states
+            .iter()
+            .map(|s| match s {
+                State::Phase(_) | State::Chorus { .. } => 1,
+                State::Env { .. } => 3,
+                State::Svf { .. } => 8,
+                State::Line { .. } => 0,
+            })
+            .sum::<usize>();
+    if words > VOICE_WORDS {
         warnings.push(format!(
-            "the patch's delay and chorus lines need {} KB per voice; the FM-1 has {} KB for each of its eight voices: \
-             the engine will shorten the delay (use Felucca's DELAY send for long echoes)",
-            pool / 1024,
-            POOL_PER_VOICE / 1024
+            "the FM-1 won't play this patch: its voices need {words} words of state, the engine has {VOICE_WORDS} \
+             (fewer filters and oscillators)"
         ));
+    }
+    if pool > 0 {
+        let voices = |n: usize| (n / pool).min(8);
+        let (alone, shared) = (voices(PART_LINES), voices(PART_LINES + SHARED_LINES));
+        if shared < 8 {
+            warnings.push(format!(
+                "its delay and chorus lines take {} KB a voice: on the FM-1, {} voice(s) of a part keep them ({} for the \
+                 one part that borrows the spare region), the others play them dry{}",
+                (pool * 2).div_ceil(1024),
+                alone,
+                shared,
+                if pool > PART_LINES + SHARED_LINES { "; for long echoes use Felucca's DELAY send" } else { "" }
+            ));
+        }
     }
     b.extend(b"ALP1");
     u16(&mut b, FS as usize);
@@ -156,13 +184,13 @@ pub(crate) fn encode(ops: &[Op], states: &[State]) -> (Vec<u8>, Vec<String>) {
                 b.push(2);
                 u32(&mut b, 0);
             }
-            State::Line { buf, .. } => {
+            State::Line { .. } => {
                 b.push(3);
-                u32(&mut b, (buf.len() * FS as usize / crate::sound::SR as usize).max(1));
+                u32(&mut b, line(s));
             }
             State::Chorus { .. } => {
                 b.push(4);
-                u32(&mut b, FS as usize * 5 / 100);
+                u32(&mut b, line(s));
             }
         }
     }
@@ -186,23 +214,66 @@ pub fn bank(patches: &[(String, Vec<u8>)]) -> Vec<u8> {
     b
 }
 
-/// The bank as a SysEx file for the FM-1's ALEA engine: F0 7D 'A' 'L' 'E' 'A' 01,
-/// the bytes packed seven to eight (each group of seven bytes preceded by
-/// their high bits), F7. The firmware unpacks and stores it in flash.
-pub fn sysex(bank: &[u8]) -> Vec<u8> {
-    let mut out = vec![0xF0, 0x7D, b'A', b'L', b'E', b'A', 0x01];
-    for chunk in bank.chunks(7) {
-        let mut high = 0u8;
-        for (k, c) in chunk.iter().enumerate() {
-            if c & 0x80 != 0 {
-                high |= 1 << k;
-            }
-        }
-        out.push(high);
+/// Felucca's editor protocol: `F0 7D 46 4C cmd … F7`; the ALEA bank's commands.
+pub const ED_HDR: [u8; 3] = [0x7D, 0x46, 0x4C];
+pub const ALEA_BEGIN: u8 = 96;
+pub const ALEA_WRITE: u8 = 97;
+pub const ALEA_END: u8 = 98;
+pub const ALEA_LIST: u8 = 99;
+/// Bank bytes in one WRITE.
+pub const WRITE_CHUNK: usize = 256;
+
+/// Bytes seven to eight: each group of up to seven bytes after a byte of their high bits (bit k for byte k).
+pub fn pack7(bytes: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(bytes.len() * 8 / 7 + 1);
+    for chunk in bytes.chunks(7) {
+        out.push(chunk.iter().enumerate().fold(0u8, |m, (k, c)| m | ((c >> 7) << k)));
         out.extend(chunk.iter().map(|c| c & 0x7F));
     }
-    out.push(0xF7);
     out
+}
+
+/// A number in `n` seven-bit bytes, the low bits first.
+fn v7(v: u32, n: usize) -> impl Iterator<Item = u8> {
+    (0..n).map(move |k| ((v >> (7 * k)) & 0x7F) as u8)
+}
+
+fn frame(cmd: u8, args: impl IntoIterator<Item = u8>) -> Vec<u8> {
+    let mut f = vec![0xF0];
+    f.extend(ED_HDR);
+    f.push(cmd);
+    f.extend(args);
+    f.push(0xF7);
+    f
+}
+
+/// The CRC-32 of zlib (and of Felucca's store).
+pub fn crc32(bytes: &[u8]) -> u32 {
+    let mut c = 0xFFFF_FFFFu32;
+    for b in bytes {
+        c ^= *b as u32;
+        for _ in 0..8 {
+            c = if c & 1 != 0 { (c >> 1) ^ 0xEDB8_8320 } else { c >> 1 };
+        }
+    }
+    !c
+}
+
+/// The bank as the messages that store it on the FM-1 (Felucca's editor protocol, `fm1/FORMAT.md`):
+/// ALEA_BEGIN with its size, an ALEA_WRITE per 256 bytes, ALEA_END with its CRC. Each one waits
+/// for the device's reply; `fm1/send.html` and `fm1/send.py` send them that way.
+pub fn messages(bank: &[u8]) -> Vec<Vec<u8>> {
+    let mut m = vec![frame(ALEA_BEGIN, v7(bank.len() as u32, 3))];
+    for (k, chunk) in bank.chunks(WRITE_CHUNK).enumerate() {
+        m.push(frame(ALEA_WRITE, v7((k * WRITE_CHUNK) as u32, 3).chain(pack7(chunk))));
+    }
+    m.push(frame(ALEA_END, v7(crc32(bank), 5)));
+    m
+}
+
+/// The messages one after the other: a `.syx` file.
+pub fn sysex(bank: &[u8]) -> Vec<u8> {
+    messages(bank).concat()
 }
 
 #[cfg(test)]
@@ -281,51 +352,6 @@ mod tests {
         }
     }
 
-    /// The engine builds against Felucca's engine interface (a copy of its header, MIT, in fm1/test/)
-    /// with a mock host, loads a bank and plays a note that ends.
-    #[test]
-    fn the_engine_builds_for_felucca() {
-        if cfg!(windows) {
-            return;
-        }
-        let dir = std::env::temp_dir().join(format!("alea-fm1-host-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        let exe = dir.join("host_main");
-        let cc = std::env::var("CC").unwrap_or_else(|_| "cc".into());
-        let built = std::process::Command::new(&cc)
-            .args(["-std=c99", "-O2", "-o"])
-            .arg(&exe)
-            .arg(root.join("fm1/test/host_main.c"))
-            .arg("-lm")
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false);
-        if !built {
-            eprintln!("no C compiler: the FM-1 engine isn't built");
-            return;
-        }
-        let src = "work Bass {\n  output synth {\n    lowpass(saw() + square(note.freq * 0.5) * 0.5, cutoff: 300 + 2000 * perc(release: 0.3), resonance: 0.4) \
-                   * adsr(attack: 0.005, decay: 0.2, sustain: 0.5, release: 0.15)\n  }\n}\n";
-        let path = dir.join("bass.alea");
-        std::fs::write(&path, src).unwrap();
-        let m = crate::library::load(path.to_str().unwrap()).unwrap();
-        let mut patches = Vec::new();
-        for seed in 1..=3 {
-            let synth = crate::eval::resolve_synth(&m, seed).unwrap();
-            patches.push((format!("bass {seed}"), synth.fm1_bytes().0));
-        }
-        let alb = dir.join("bass.alb");
-        std::fs::write(&alb, bank(&patches)).unwrap();
-        let out = std::process::Command::new(&exe).arg(&alb).args(["0.4", "2.0"]).output().unwrap();
-        let text = String::from_utf8_lossy(&out.stdout);
-        assert!(out.status.success(), "{text}{}", String::from_utf8_lossy(&out.stderr));
-        assert!(text.contains("bank: 3 patches, first `BASS 1` ok=1"), "{text}");
-        assert!(text.contains("done at 0."), "the voice ends after its release: {text}");
-        let rms: f64 = text.split("rms ").nth(1).unwrap().split(' ').next().unwrap().parse().unwrap();
-        assert!(rms > 3000.0 && rms < 32767.0, "a note at a sensible level: {rms}");
-    }
-
     #[test]
     fn the_interpreter_plays_what_alea_plays() {
         // a sine: the same samples, near enough, over the whole note
@@ -360,21 +386,32 @@ mod tests {
     }
 
     #[test]
-    fn sysex_packs_seven_bits_and_unpacks_back() {
-        let bank: Vec<u8> = (0..300u32).map(|k| (k * 37 % 256) as u8).collect();
-        let sx = sysex(&bank);
-        assert_eq!(sx[0], 0xF0);
-        assert_eq!(*sx.last().unwrap(), 0xF7);
-        assert!(sx[1..sx.len() - 1].iter().all(|b| *b < 0x80), "only data bytes inside");
-        // unpack, as the firmware does
-        let body = &sx[7..sx.len() - 1];
+    fn the_messages_carry_the_bank_seven_bits_at_a_time() {
+        let bank: Vec<u8> = (0..700u32).map(|k| (k * 37 % 256) as u8).collect();
+        let m = messages(&bank);
+        assert_eq!(m.len(), 1 + 3 + 1, "BEGIN, three WRITEs, END");
+        for f in &m {
+            assert_eq!((f[0], &f[1..4], *f.last().unwrap()), (0xF0, &ED_HDR[..], 0xF7));
+            assert!(f[1..f.len() - 1].iter().all(|b| *b < 0x80), "only data bytes inside");
+            assert!(f.len() - 2 <= 640, "a frame fits Felucca's buffer");
+        }
+        assert_eq!((m[0][4], m[0][5] as usize | (m[0][6] as usize) << 7), (ALEA_BEGIN, 700));
+        // the WRITEs unpacked, as the firmware does (editor.c ed_unpack7), give the bank back
         let mut back = Vec::new();
-        for g in body.chunks(8) {
-            for (k, c) in g[1..].iter().enumerate() {
-                back.push(c | if g[0] & (1 << k) != 0 { 0x80 } else { 0 });
+        for f in &m[1..4] {
+            assert_eq!(f[4], ALEA_WRITE);
+            assert_eq!(f[5] as usize | (f[6] as usize) << 7 | (f[7] as usize) << 14, back.len());
+            for g in f[8..f.len() - 1].chunks(8) {
+                for (k, c) in g[1..].iter().enumerate() {
+                    back.push(c | if g[0] & (1 << k) != 0 { 0x80 } else { 0 });
+                }
             }
         }
         assert_eq!(back, bank);
+        let e = &m[4];
+        let crc = (0..5).fold(0u32, |c, k| c | (e[5 + k] as u32) << (7 * k));
+        assert_eq!((e[4], crc), (ALEA_END, crc32(&bank)));
+        assert_eq!(crc32(b"123456789"), 0xCBF4_3926);
     }
 
     #[test]

@@ -40,4 +40,3 @@ Thumbs.db
 # the files the tour opens (28 · Files)
 !examples/tour/files/**
 fm1/test/vm_main
-fm1/test/host_main
