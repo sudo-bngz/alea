@@ -1,0 +1,13 @@
+// Hpf — the high-pass: what is below the knee goes, the lows thinned out
+// before the filter. What it returns: 0 dark, up to 1 light.
+
+work Hpf {
+  let knee = 0.12 + 0.1 * sin(t * tau)
+  let f = (x - 0.1) / 0.8
+  let gain = clamp((f - knee) / 0.12, 0, 1)
+  let curve = abs(y - (0.78 - 0.42 * gain)) < 0.006
+  let bars = merge([rect(0.1 + 0.8 * (k + 0.5) / 24, 0.78 - 0.45 * 0.9 / (k + 1) / 2 * clamp(((k + 0.5) / 24 - knee) / 0.12, 0, 1), 0.02, 0.9 / (k + 1) * clamp(((k + 0.5) / 24 - knee) / 0.12, 0, 1), 0, 0.001) for k in range(24)]) * 0.7
+  let gone = merge([rect(0.1 + 0.8 * (k + 0.5) / 24, 0.78 - 0.45 * 0.9 / (k + 1) / 2, 0.02, 0.9 / (k + 1), 0, 0.001) for k in range(24)]) * 0.15
+  let labels = merge(text("HPF", 0.5, 0.14, 0.09, 0, "mono"), text("0  1  2  3", 0.5, 1.05, 0.032, 0, "mono") * 0.6)
+  output merge(curve, bars, gone, labels)
+}
