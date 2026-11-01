@@ -1,0 +1,79 @@
+// Tunnel — inside the base: a square duct of ribs and rails rushing past,
+// gates that close in front of the ship, drones and turrets to shoot;
+// escape: the same way back, at full speed, the blast filling it behind.
+// What it returns: 0 dark, up to 1 light.
+
+work Tunnel(speed = 1, drones = 0, gates = 0, escape = 0) {
+  let cy = 0.45
+  // ── the 3D kit (the same in every scene of VEKTOR): the eye at the origin, looking along +z, y down ──
+  let seed = ~between(0, 100)
+  let hash(a, b) = fract(sin(a * 12.9898 + b * 78.233 + seed) * 43758.5453)
+  let F = 0.95
+  let sx(p) = 0.5 + F * p[0] / max(p[2], 0.05)
+  let sy(p) = cy + F * p[1] / max(p[2], 0.05)
+  let roll_(v, r) = [v[0] * cos(r) - v[1] * sin(r), v[0] * sin(r) + v[1] * cos(r), v[2]]
+  let pitch_(v, p) = [v[0], v[1] * cos(p) - v[2] * sin(p), v[1] * sin(p) + v[2] * cos(p)]
+  let yaw_(v, w) = [v[0] * cos(w) + v[2] * sin(w), v[1], -v[0] * sin(w) + v[2] * cos(w)]
+  let shift(q, at, s) = [at[0] + s * q[0], at[1] + s * q[1], at[2] + s * q[2]]
+  let place(v, r, p, w, at, s) = shift(yaw_(pitch_(roll_(v, r), p), w), at, s)
+  let lerp3(a, b, u) = [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]
+  let edge(a, b) = line(sx(a), sy(a), sx(b), sy(b), 0.0024, 0.0018) * (a[2] > 0.25) * (b[2] > 0.25) * clamp(14 / (a[2] + b[2]), 0.5, 1)
+  let wire(vs, es, r, p, w, at, s) = merge([edge(place(vs[e[0]], r, p, w, at, s), place(vs[e[1]], r, p, w, at, s)) for e in es])
+  // the models: the player's ship (nose along +z), a dart (nose along -z), a drone, a rock, a tower
+  let SHIP = [[0, 0, 1.2], [0, -0.35, -0.6], [0, 0.15, -0.6], [-1.3, 0.2, -0.7], [1.3, 0.2, -0.7], [-0.3, 0, -0.7], [0.3, 0, -0.7], [-1.35, -0.45, -0.8], [1.35, -0.45, -0.8]]
+  let SHIPE = [[0, 3], [0, 4], [0, 1], [0, 2], [3, 5], [4, 6], [5, 6], [5, 1], [6, 1], [5, 2], [6, 2], [3, 7], [4, 8], [7, 5], [8, 6]]
+  let DART = [[0, 0, -1.2], [-1, 0.1, 0.5], [1, 0.1, 0.5], [0, -0.45, 0.4], [0, 0.1, 0.7]]
+  let DARTE = [[0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [1, 4], [2, 4], [3, 4]]
+  let OCT = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]
+  let OCTE = [[0, 2], [0, 3], [0, 4], [0, 5], [1, 2], [1, 3], [1, 4], [1, 5], [2, 4], [2, 5], [3, 4], [3, 5]]
+  let ICO = [[0.0, -0.526, -0.851], [-0.526, -0.851, 0.0], [-0.851, 0.0, -0.526], [0.0, -0.526, 0.851], [-0.526, 0.851, 0.0], [-0.851, 0.0, 0.526], [0.0, 0.526, -0.851], [0.526, -0.851, 0.0], [0.851, 0.0, -0.526], [0.0, 0.526, 0.851], [0.526, 0.851, 0.0], [0.851, 0.0, 0.526]]
+  let ICOE = [[0, 1], [0, 2], [0, 6], [0, 7], [0, 8], [1, 2], [1, 3], [1, 5], [1, 7], [2, 4], [2, 5], [2, 6], [3, 5], [3, 7], [3, 9], [3, 11], [4, 5], [4, 6], [4, 9], [4, 10], [5, 9], [6, 8], [6, 10], [7, 8], [7, 11], [8, 10], [8, 11], [9, 10], [9, 11], [10, 11]]
+  let PYR = [[-1, 0, -1], [1, 0, -1], [1, 0, 1], [-1, 0, 1], [0, -3, 0]]
+  let PYRE = [[0, 1], [1, 2], [2, 3], [3, 0], [0, 4], [1, 4], [2, 4], [3, 4]]
+  // a blast at a point of space: a ring going out, sparks, a flash; age 0 to 1
+  let boom(p, age, size) = (age > 0) * (age < 1) * merge(
+      ring(sx(p), sy(p), size * F / p[2] * (0.4 + 2.2 * age), 0.004, 0.002) * (1 - age),
+      ring(sx(p), sy(p), size * F / p[2] * (0.2 + 1.2 * age), 0.003, 0.002) * (1 - age) * 0.7,
+      merge([line(sx(p) + cos(j * 1.047 + age) * size * F / p[2] * age * 0.8, sy(p) + sin(j * 1.047 + age) * size * F / p[2] * age * 0.8,
+                  sx(p) + cos(j * 1.047 + age) * size * F / p[2] * (0.3 + age * 1.6), sy(p) + sin(j * 1.047 + age) * size * F / p[2] * (0.3 + age * 1.6),
+                  0.003, 0.002) for j in range(6)]) * (1 - age),
+      glow(x: sx(p), y: sy(p), size: size * F / p[2] * 1.4) * (1 - age) * (1 - age))
+  // a laser bolt from a to b, at u (0 to 1) of its way
+  let bolt(a, b, u) = (u > 0) * (u < 1) * line(sx(lerp3(a, b, u)), sy(lerp3(a, b, u)), sx(lerp3(a, b, min(u + 0.25, 1))), sy(lerp3(a, b, min(u + 0.25, 1))), 0.005, 0.003)
+  // the stars, rushing past: streaks along the rays from the centre
+  let stars(speed, dense) = (fract(ln(distance(x, y, 0.5, cy) + 0.002) * 2.4 - t * speed + hash(floor(atan2(y - cy, x - 0.5) / 6.2832 * 110), 1) * 7) < 0.04 + 0.03 * speed)
+      * (hash(floor(atan2(y - cy, x - 0.5) / 6.2832 * 110), floor(ln(distance(x, y, 0.5, cy) + 0.002) * 2.4 - t * speed + hash(floor(atan2(y - cy, x - 0.5) / 6.2832 * 110), 1) * 7)) > 1 - dense)
+      * (abs(fract(atan2(y - cy, x - 0.5) / 6.2832 * 110) - 0.5) < 0.18) * clamp(distance(x, y, 0.5, cy) * 3, 0, 1)
+  let go = t * 3 * speed + floor(t * 6) * 0.04 * speed
+  let roll = 0.12 * sin(t * 3) + 0.15 * escape * sin(t * 9)
+  let qx = (x - 0.5) * cos(roll) + (y - cy) * sin(roll)
+  let qy = -(x - 0.5) * sin(roll) + (y - cy) * cos(roll)
+  let d = max(abs(qx) * 1.25, abs(qy)) + 0.0001                    // square, a little wider than high
+  let z = 0.22 / d
+  let ribs = (fract(z * 2 - go * 4) < 0.1) * 1
+  let side = abs(qx) * 1.25 > abs(qy)
+  let along = side * (qy / d) + (1 - side) * (qx * 1.25 / d)      // across each wall, -1 to 1
+  let rails = (abs(fract((along + 1) * 2.5) - 0.5) > 0.47) * 0.5
+  let corner = (abs(abs(qx) * 1.25 - abs(qy)) < 0.004) * 0.8
+  let lights = (fract(z * 2 - go * 4) > 0.5) * (fract(z * 2 - go * 4) < 0.56) * (abs(along) < 0.15) * (fract(t * 6) < 0.5) * 1
+  let fog = clamp(d * 5, 0.15, 1)
+  let walls = merge(ribs, rails, corner, lights) * fog
+  // gates: square frames ahead, their doors closing from the sides
+  let gz(k) = 12 - fract(t * 0.9 * speed + k * 0.5) * 12 + 1
+  let shut(k) = clamp((12 - gz(k)) / 14, 0, 0.8)
+  let gate(k) = gates * merge(edge([-1.7, -1.4, gz(k)], [1.7, -1.4, gz(k)]), edge([-1.7, 1.4, gz(k)], [1.7, 1.4, gz(k)]),
+                              edge([-1.7 + 1.7 * shut(k), -1.4, gz(k)], [-1.7 + 1.7 * shut(k), 1.4, gz(k)]),
+                              edge([1.7 - 1.7 * shut(k), -1.4, gz(k)], [1.7 - 1.7 * shut(k), 1.4, gz(k)]))
+  // drones: octahedra coming down the duct
+  let dx0 = [~between(-1.2, 1.2) for k in range(5)]
+  let dy0 = [~between(-1, 1) for k in range(5)]
+  let dz(k) = 16 - fract(t * 0.8 + k * 0.2) * 16
+  let drone(k) = drones * (dz(k) > 3) * wire(OCT, OCTE, t * 4 + k, t * 3, 0, [dx0[k], dy0[k], dz(k)], 0.35)
+  let pop(k) = drones * boom([dx0[k], dy0[k], 3 + 0.5], (3.2 - dz(k)) / 2.5, 1)
+  let sp = [0.35 * sin(t * 2.5), 0.8, 4]
+  let ship = wire(SHIP, SHIPE, -roll * 3, -0.32, 0, sp, 0.7)
+  let gun(s) = place([s * 1.2, 0.15, 0.2], -roll * 3, -0.32, 0, sp, 0.7)
+  let fire = drones * (bolt(gun(-1), [0, 0, 14], fract(t * 5)) + bolt(gun(1), [0, 0, 14], fract(t * 5 + 0.5)))
+  let blaze = escape * glow(x: 0.5, y: cy, size: 0.2 + 0.8 * t) * (0.7 + 0.3 * (fract(t * 20) < 0.5))
+  output merge(walls, merge([gate(k) for k in range(2)]), merge([drone(k) for k in range(5)]), merge([pop(k) for k in range(5)]), fire, blaze, ship)
+}

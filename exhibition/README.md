@@ -20,6 +20,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Signal** | `signal.alea` (+ `signal/`) | The path of a sound, from the oscillator to the room: DCO, noise, LFO, envelope, high-pass, filter, VCA and chorus, delay, the mix, the compressor, the lathe, the vinyl, the stylus, the speaker, the room. Fifteen works in twenty-one fast cuts, a minute, in a loop; a Detroit techno track built stage by stage with the chain. |
 | **Hana** (花) | `hana.alea` (+ `hana/`) | An electronic flower, from seed to seed, in a network: a seed calling in the grid, roots along its links, a stem of square cells, a bud of nested squares, the bloom of square petals, the seeds leaving along the links and on the wind, flowers everywhere, the petals falling apart into grain. Forty-one cuts in a minute, glitches drawn anew every edition, an IDM track in the Boards of Canada way. |
 | **Babel** | `babel.alea` (+ `babel/`) | The library that holds every book: pages of a script of twenty-five symbols rewritten on every tick, a book in three dimensions turning in the dark, the shelves, a hexagonal gallery from above, the hallways, the shaft and its stair, the mirror, and one long rise out of a gallery until the floor of galleries runs to the horizon. Forty-one cuts in a minute, a dark choir and a broken beat. |
+| **VEKTOR** | `vektor.alea` (+ `vektor/`) | A minute of a wireframe 3D shoot 'em up off a worn VHS tape, blue lines on black: the title screen, the jump, an asteroid field and squadrons of darts, a mothership broken apart, the dive onto a planet and low over its grid, the hatch of the enemy base, its ducts, the kernel shot until it comes apart, the escape, mission complete. A chiptune that goes wild at the end. |
 | **Kairo** (回路) | `kairo.alea` (+ `fonts/`) | After Kikai, a modular synthesizer that never existed: two rows of modules racked in another order each edition, patched with hanging cables. Also a Reel without drums: a slow piano waltz over a deep drone, the melody written on a staff as it plays. |
 
 ## Replaying the editions
@@ -31,6 +32,7 @@ alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
 alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
+alea vektor.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop
 alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
 alea signal.alea --seed 0xa1ea01             # the 1080×1920 Reel: 60 s, in a loop
@@ -63,6 +65,7 @@ The posted editions:
 | Signal Reel | 0xa1ea01 |
 | Hana Reel | 0xa1ea01 |
 | Babel Reel | 0xa1ea01 |
+| VEKTOR Reel | 0xa1ea01 |
 
 All images are 1080 × 1350 (4:5, Instagram's portrait format); the Reel is
 1080 × 1920 (9:16), 15 seconds, with sound.
@@ -727,6 +730,64 @@ miroir ; puis une longue montée hors d'une galerie, à travers leur alvéole,
 jusqu'à ce que le sol rejoigne l'horizon. Quarante et une coupes, un chœur
 sombre, un rythme brisé. Une minute, en boucle. Édition 0xa1ea01.
 
+## Twelfth room: VEKTOR
+
+| # | Post | Files |
+|---|---|---|
+| 20 | VEKTOR, Reel (60 s, a loop) | `20-vektor-reel.mp4` (cover: `20-vektor-reel-cover.jpg`) |
+
+**How it is made.** A game that could have run on the first 3D consoles,
+in twelve works in `vektor/`, all built on one small 3D kit written in alea
+itself (the same few lines in each): a point of space turned (roll, pitch,
+yaw), placed and projected onto the screen; a model as a list of vertices
+and a list of edges, each edge a line between two projected points; a blast
+(rings going out, sparks, a flash); a laser bolt. The models: the player's
+ship, a dart, a drone (eight faces), a rock (twenty faces, every vertex
+knocked out of true for each rock), a tower, the kernel. What is too big to
+draw by edges is drawn by the field itself: the stars rushing past, the
+planet (a sphere of meridians and parallels, worked out point by point),
+the floor (a ray from the eye meets the plane of the ground, or the walls of
+a canyon, and the grid is drawn where it meets them), the wire mountains,
+the ducts of the base. *Title*, *Warp*, *Asteroids*, *Dogfight* (a V, a
+ring or a head-on swarm; brackets lock on, lasers, bursts), *Shatter* (a
+machine's edges thrown out from its centre), *Planet*, *Ground* (towers or
+a canyon), *Hatch*, *Tunnel* (gates closing, drones; and the escape),
+*Kernel* (the core, its heart and its shield drones; the attack, closer,
+critical) and *Complete*, with a *Hud* (score counting, shield, crosshair)
+over the play. Thirty-three scenes on a timeline, in a loop, every cut drawn
+for each edition; everything goes through a VHS: scanlines, a tracking band
+rolling, the head-switching noise at the bottom, the tape's shake, `film`,
+a little `blur`, `vignette` and a strong `chroma`.
+
+The track is chiptune at 140 BPM over thirty-five bars: a pulse lead, a
+triangle bass, arpeggios a thirty-second note apart, noise drums, the shots
+and the blasts. The theme in E minor (Em, C, D, Bm) over the asteroids; on
+the planet a second theme with an echo and a wide pad, the landscape;
+underground the Phrygian dark (Em, F, Em, B) and the bass in sixteenths; at
+the kernel it goes wild: a breakbeat drawn by chance, a distorted saw
+doubling the theme an octave up, the pad, crashes, the blast; then the
+fanfare.
+
+### 20 · VEKTOR (Reel)
+
+**EN**
+
+VEKTOR — press start. A shoot 'em up in wireframe, blue lines on black,
+off a worn VHS: an asteroid field and squadrons of darts, a mothership broken
+apart, the dive onto a planet, the enemy base, its ducts, and the kernel at
+its heart, shot until it comes apart. Every rock and every dart drawn by
+chance, a chiptune that goes wild at the end. A minute, in a loop. Edition
+0xa1ea01.
+
+**FR**
+
+VEKTOR — appuyez sur start. Un shoot 'em up en fil de fer, des lignes bleues
+sur fond noir, sur une VHS usée : un champ d'astéroïdes et des escadrilles,
+un vaisseau-mère mis en pièces, la plongée vers une planète, la base
+ennemie, ses conduits, et le noyau en son cœur, abattu jusqu'à ce qu'il
+vole en éclats. Chaque rocher et chaque chasseur tirés au hasard, une
+chiptune qui s'emballe à la fin. Une minute, en boucle. Édition 0xa1ea01.
+
 ### Hashtags
 
 ```
@@ -735,6 +796,7 @@ sombre, un rythme brisé. Une minute, en boucle. Édition 0xa1ea01.
 #paris #metro #transitmap #cartography
 #reactiondiffusion #gameoflife #emergence #biology #petridish
 #lofi #lofihouse #sunset #vinyl #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
+#retrogaming #wireframe #vectorgraphics #shmup #chiptune #8bit #vhs #retro #80s
 #babel #library #infinite #hexagon #borges #3d #raycasting #choir #darkambient
 #flower #squares #network #growth #boardsofcanada #idm #tape #analog
 #synthesizer #juno #modular #signalpath #vinyl #http #dns #tcp #osi #networking #glitch #glitchart #vhs #nosignal #idm #piano #modularsynth #eurorack #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
