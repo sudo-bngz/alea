@@ -31,8 +31,8 @@ alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
 alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
-alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
-alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
+alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
+alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
 alea signal.alea --seed 0xa1ea01             # the 1080×1920 Reel: 60 s, in a loop
 alea requete.alea --seed 0xa1ea01            # the 1080×1920 Reel: 28.5 s, in a loop
 alea parasite.alea --seed 0xa1ea01          # the 1080×1920 Reel: 24 s, in a loop
