@@ -10,6 +10,7 @@ pub mod error;
 pub mod harmony;
 pub mod input;
 pub mod eval;
+pub mod fm1;
 pub mod lexer;
 pub mod library;
 pub mod media;

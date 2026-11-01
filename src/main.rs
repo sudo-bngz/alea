@@ -28,6 +28,9 @@ options:
       --sync-port P    the port the clock comes from (otherwise a new port, \"alea clock\")
       --check          parse and resolve the work without writing anything
       --web FILE       write a web page that draws a new edition on every visit
+      --fm1 FILE       write the work's output synth as a patch bank for the FM-1's ALEA
+                       engine: `.syx` (SysEx, to send to the device) or `.alb` (the bank's bytes);
+                       with -n, one patch per edition (up to 16)
 
 Piped in, an input reaches the work's `input()`. Piped out (when the standard
 output is not a terminal and no -o is given), the first render goes to it, so
@@ -70,6 +73,7 @@ fn run() -> Result<(), String> {
     let mut args = std::env::args().skip(1);
     let (mut file, mut seed, mut editions, mut out, mut check) = (None, None, 1u64, PathBuf::from("."), false);
     let mut web: Option<PathBuf> = None;
+    let mut fm1: Option<PathBuf> = None;
     let (mut out_given, mut from_input) = (false, false);
     let mut inputs: Vec<(String, PathBuf)> = Vec::new();
     let (mut midi, mut midi_port, mut looping, mut sync, mut sync_port): (bool, Option<String>, bool, bool, Option<String>) =
@@ -106,6 +110,7 @@ fn run() -> Result<(), String> {
             "--midi-ports" => return list_ports(),
             "--check" => check = true,
             "--web" => web = Some(PathBuf::from(value()?)),
+            "--fm1" => fm1 = Some(PathBuf::from(value()?)),
             "-h" | "--help" => {
                 print!("{USAGE}");
                 return Ok(());
@@ -144,7 +149,7 @@ fn run() -> Result<(), String> {
     }
     // Piped out: the first render goes to the standard output, messages to the error output.
     let to_stdout = out.as_os_str() == "-" || (!out_given && !std::io::stdout().is_terminal());
-    if to_stdout && editions > 1 {
+    if to_stdout && editions > 1 && fm1.is_none() {
         return Err("only one edition can go to the standard output: drop -n, or write files with -o DIR\n".into());
     }
     let module = library::load(&file).map_err(|e| e.display("", &file))?;
@@ -163,6 +168,31 @@ fn run() -> Result<(), String> {
         let ed = eval::resolve(&module, seed.unwrap_or(0)).map_err(show)?;
         media::validate(&ed).map_err(show)?;
         return export::export(&module, &page);
+    }
+
+    if let Some(path) = fm1 {
+        let n = editions.min(alea::fm1::BANK_SLOTS as u64);
+        if editions > n {
+            eprintln!("note: a bank holds {} patches; the first {n} editions are written", alea::fm1::BANK_SLOTS);
+        }
+        let mut patches = Vec::new();
+        for k in 0..n {
+            let s = seed.map(|b| b.wrapping_add(k)).unwrap_or_else(rand::random);
+            let synth = eval::resolve_synth(&module, s).map_err(show)?;
+            let (bytes, warnings) = synth.fm1_bytes();
+            for w in warnings {
+                eprintln!("warning: edition 0x{s:x}: {w}");
+            }
+            let name = if n == 1 { work.name.clone() } else { format!("{} {:x}", work.name, s & 0xFFF) };
+            println!("`{}` — edition 0x{s:016x} · patch `{name}`, {} ops, {} bytes", work.name, synth.op_count(), bytes.len());
+            patches.push((name, bytes));
+        }
+        let bank = alea::fm1::bank(&patches);
+        let is_syx = path.extension().is_some_and(|e| e.eq_ignore_ascii_case("syx"));
+        let bytes = if is_syx { alea::fm1::sysex(&bank) } else { bank };
+        std::fs::write(&path, &bytes).map_err(|e| format!("writing {}: {e}\n", path.display()))?;
+        println!("  {}      {} ({} bytes)", if is_syx { "sysex" } else { "bank " }, path.display(), bytes.len());
+        return Ok(());
     }
 
     if check {

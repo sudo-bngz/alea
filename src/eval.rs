@@ -1422,6 +1422,22 @@ pub fn resolve(module: &Module, seed: u64) -> Res<Edition> {
     Ok(Edition { name: module.work.name.clone(), seed, attempts: o.attempts, renders: o.renders, inputs: crate::input::used() })
 }
 
+/// The synth a work gives as its `output`, drawn as edition `seed` (for the
+/// FM-1: `alea bass.alea --fm1 bass.syx`).
+pub fn resolve_synth(module: &Module, seed: u64) -> Res<Arc<crate::synth::Synth>> {
+    crate::input::reset_used();
+    crate::timeline::reset_hint();
+    let o = draw_work(module, seed, &HashMap::new(), true, 0)?;
+    match o.output {
+        Some(Val::Synth(s)) => Ok(s),
+        Some(other) => Err(Error::bare(format!(
+            "the work's `output` is {}, not a synth: a patch for the FM-1 is a work whose output is a `synth {{ … }}`",
+            kind_of(&other)
+        ))),
+        None => Err(Error::bare("the work has no `output`: a patch for the FM-1 is a work whose output is a `synth { … }`")),
+    }
+}
+
 struct Outcome {
     renders: Vec<Render>,
     output: Option<Val>,

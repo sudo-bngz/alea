@@ -152,6 +152,10 @@ Works can use other works as parts, take a photo or a sound as input, and
 read and write pipes: `cat photo.png | alea riso.alea > print.png` prints a
 photo in three inks, with a new registration every edition.
 
+**On the FM-1.** A work whose output is a synth compiles to a patch for the
+M-VAVE FM-1: `alea bass.alea -n 8 --fm1 bass.syx` is eight editions of a bass
+in one bank, for the [ALEA engine](fm1/) of the Felucca firmware.
+
 **Scenes, and how they cross.** A timeline puts works one after another,
 each with its own time, and crosses from each to the next: `timeline([scene(Rosace(), 5),
 glitch(0.6), scene(Nocturne(), 6), fade(1.5)], loop: 1)`. Fades, wipes,
