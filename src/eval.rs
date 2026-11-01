@@ -225,6 +225,36 @@ pub enum Field {
     Grow { data: Arc<GrowData>, k: usize },
     /// `at(field, time)`: `inner` seen at another moment, `time` (itself a field).
     Retime { inner: Arc<Field>, time: Box<Field> },
+    /// `timeline([…])`: scenes one after another, with transitions.
+    Timeline(crate::timeline::Shared<Arc<Field>>),
+    /// One transition frozen at `p` of its way: `a` and `b` already seen at
+    /// their own moments (a timeline folded for one frame).
+    Blend { kind: crate::timeline::Kind, p: f64, clock: f64, seed: u64, a: Arc<Field>, b: Arc<Field> },
+}
+
+/// The timeline a field is, through the sharing a `let` adds.
+fn timeline_of(f: &Field) -> Option<crate::timeline::Shared<Arc<Field>>> {
+    match f {
+        Field::Timeline(tl) => Some(tl.clone()),
+        Field::Ref(inner) | Field::Memo { inner, .. } => timeline_of(inner),
+        _ => None,
+    }
+}
+
+/// What a transition's taps add up to, reading A and B through `read`.
+pub fn blend_taps(kind: crate::timeline::Kind, p: f64, clock: f64, seed: u64, x: f64, y: f64, read: impl Fn(bool, f64, f64) -> f64) -> f64 {
+    use crate::timeline::Source;
+    crate::timeline::taps(kind, p, x, y, clock, seed)
+        .iter()
+        .map(|t| {
+            t.weight
+                * match t.source {
+                    Source::A => read(true, t.x, t.y),
+                    Source::B => read(false, t.x, t.y),
+                    Source::Flat(v) => v,
+                }
+        })
+        .sum()
 }
 
 /// The recorded generations of a `grow` block.
@@ -356,6 +386,8 @@ impl Field {
                 // the inner field sees the time only through `time`
                 if i.t { Reads { xy: i.xy || tm.xy, t: tm.t } } else { i }
             }
+            Field::Timeline(_) => Reads { xy: true, t: true },
+            Field::Blend { a, b, .. } => Reads { xy: true, t: a.reads(memo).t || b.reads(memo).t },
         }
     }
 
@@ -376,6 +408,7 @@ impl Field {
                 Field::Memo { .. } => "memo",
                 Field::State(_) => "state", Field::Grid { .. } => "grid", Field::Grow { .. } => "grow",
                 Field::Retime { .. } => "retime", Field::Curve(_) => "curve",
+                Field::Timeline(_) => "timeline", Field::Blend { .. } => "blend",
             };
             *n.entry(k).or_default() += 1;
             match f {
@@ -418,6 +451,8 @@ impl Field {
             Field::Pattern(e) => 4 * e.len(),
             Field::Raster { .. } => 24,
             Field::Retime { inner, time } => 1 + inner.cost(memo) + time.cost(memo),
+            Field::Timeline(tl) => 8 + tl.scenes.iter().map(|s| s.source.cost(memo)).max().unwrap_or(0),
+            Field::Blend { a, b, .. } => 8 + a.cost(memo) + b.cost(memo),
             _ => 1,
         };
         c.min(CAP)
@@ -472,6 +507,17 @@ impl Field {
                     None => Field::Retime { inner: inner.clone(), time },
                 }
             }
+            Field::Timeline(tl) => match tl.at(t) {
+                crate::timeline::Moment::Scene { index, t: lt } => tl.scenes[index].source.fold_t(lt, seed, reads, done),
+                crate::timeline::Moment::Cross { a, ta, b, tb, p, kind } => Field::Blend {
+                    kind,
+                    p,
+                    clock: t * tl.length(),
+                    seed: tl.seed,
+                    a: Arc::new(tl.scenes[a].source.fold_t(ta, seed, reads, done)),
+                    b: Arc::new(tl.scenes[b].source.fold_t(tb, seed, reads, done)),
+                },
+            },
             other => other.clone(),
         }
     }
@@ -578,6 +624,17 @@ impl Field {
             Field::Grow { data, k } => data.sample(*k, p),
             Field::Curve(c) => curve_at(c, p[2]),
             Field::Retime { inner, time } => inner.eval([p[0], p[1], time.eval(p, seed)], seed),
+            Field::Timeline(tl) => match tl.at(p[2]) {
+                crate::timeline::Moment::Scene { index, t } => tl.scenes[index].source.eval([p[0], p[1], t], seed),
+                crate::timeline::Moment::Cross { a, ta, b, tb, p: q, kind } => {
+                    blend_taps(kind, q, p[2] * tl.length(), tl.seed, p[0], p[1], |first, x, y| {
+                        if first { tl.scenes[a].source.eval([x, y, ta], seed) } else { tl.scenes[b].source.eval([x, y, tb], seed) }
+                    })
+                }
+            },
+            Field::Blend { kind, p: q, clock, seed: s, a, b } => {
+                blend_taps(*kind, *q, *clock, *s, p[0], p[1], |first, x, y| if first { a.eval([x, y, p[2]], seed) } else { b.eval([x, y, p[2]], seed) })
+            }
             Field::Memo { inner, id } => {
                 let k = (*id as usize) % MEMO_SLOTS;
                 let hit = MEMO.with(|m| {
@@ -732,6 +789,10 @@ pub fn hash(vals: &[u64]) -> u64 {
 }
 
 /// Smooth 3D value noise in [-1, 1], unique to each edition.
+pub fn noise_at(x: f64, y: f64, z: f64, seed: u64) -> f64 {
+    value_noise(x, y, z, seed)
+}
+
 fn value_noise(x: f64, y: f64, z: f64, seed: u64) -> f64 {
     let (xi, yi, zi) = (x.floor(), y.floor(), z.floor());
     let smooth = |t: f64| t * t * (3.0 - 2.0 * t);
@@ -1261,6 +1322,19 @@ pub enum Val {
     Signal(Arc<crate::synth::Sig>),
     /// `synth { … }`: an instrument, for `notes`, `drone` and `arp`.
     Synth(Arc<crate::synth::Synth>),
+    /// `scene(work, seconds)`: a scene of a timeline.
+    Scene(Arc<SceneSpec>),
+    /// `fade(seconds)`, `glitch(seconds)`…: a transition of a timeline.
+    Transition(crate::timeline::Transition),
+}
+
+/// A scene before it is placed on a timeline.
+#[derive(Debug)]
+pub struct SceneSpec {
+    pub source: Val,
+    pub seconds: f64,
+    pub from: f64,
+    pub to: f64,
 }
 
 /// A function written in alea: its parameters, its body, and the names it
@@ -1289,6 +1363,8 @@ fn kind_of(v: &Val) -> &'static str {
         Val::Harmony(_) => "a progression",
         Val::Signal(_) => "a signal of a synth",
         Val::Synth(_) => "a synth",
+        Val::Scene(_) => "a scene",
+        Val::Transition(_) => "a transition",
     }
 }
 
@@ -1334,12 +1410,14 @@ pub struct Edition {
 /// as another work calling it would; the others keep their defaults.
 pub fn resolve_with(module: &Module, seed: u64, given: &HashMap<String, Val>) -> Res<Edition> {
     crate::input::reset_used();
+    crate::timeline::reset_hint();
     let o = draw_work(module, seed, given, false, 0)?;
     Ok(Edition { name: module.work.name.clone(), seed, attempts: o.attempts, renders: o.renders, inputs: crate::input::used() })
 }
 
 pub fn resolve(module: &Module, seed: u64) -> Res<Edition> {
     crate::input::reset_used();
+    crate::timeline::reset_hint();
     let o = draw_work(module, seed, &HashMap::new(), false, 0)?;
     Ok(Edition { name: module.work.name.clone(), seed, attempts: o.attempts, renders: o.renders, inputs: crate::input::used() })
 }
@@ -1504,6 +1582,7 @@ impl Resolver<'_> {
                         }
                     }
                     let (canvas, length) = crate::input::hints();
+                    let length = length.or_else(crate::timeline::hint);
                     renders.push(Render { kind: kind.clone(), span: *span, positional, named, canvas, length });
                 }
             }
@@ -2043,7 +2122,199 @@ impl Resolver<'_> {
                 e.span,
             )),
             Val::Synth(_) => Err(Error::new("a synth is an instrument: give it to `instrument:` in `notes`, `drone` or `arp`", e.span)),
+            Val::Scene(_) => Err(Error::new("a scene goes in a timeline: `timeline([scene(a, 4), fade(1), scene(b, 6)])`", e.span)),
+            Val::Transition(_) => Err(Error::new("a transition goes between two scenes of a timeline: `timeline([scene(a, 4), fade(1), scene(b, 6)])`", e.span)),
         }
+    }
+
+    /// `timeline(scenes, loop:)`, `scene(work, seconds, from:, to:)`, and the
+    /// transitions: `jump()`, `fade(seconds, through:)`, `wipe(seconds, angle:,
+    /// softness:)`, `slide(seconds, angle:)`, `glitch(seconds, amount:)`,
+    /// `morph(seconds, amount:)`, `pixels(seconds, size:)`.
+    fn timeline_fn(&mut self, name: &str, args: &[Arg], span: Span) -> Res<Val> {
+        use crate::timeline::{Kind, Scene, Timeline, Transition};
+        let names: &[&str] = match name {
+            "timeline" => &["scenes", "loop"],
+            "scene" => &["work", "seconds", "from", "to"],
+            "jump" => &[],
+            "fade" => &["seconds", "through"],
+            "wipe" => &["seconds", "angle", "softness"],
+            "slide" => &["seconds", "angle"],
+            "glitch" | "morph" => &["seconds", "amount"],
+            _ => &["seconds", "size"], // pixels
+        };
+        let slots = bind_slots(name, names, args)?;
+        let num = |r: &mut Self, k: usize, default: f64| -> Res<f64> {
+            match slots.get(k).copied().flatten() {
+                None => Ok(default),
+                Some(e) => r.scalar(e, &format!("`{}`", names[k])),
+            }
+        };
+        let seconds = |r: &mut Self| -> Res<f64> {
+            let Some(e) = slots.get(if name == "scene" { 1 } else { 0 }).copied().flatten() else {
+                return Err(Error::new(format!("`{name}` needs its length in seconds: `{name}({}0.8)`", if name == "scene" { "work, " } else { "" }), span));
+            };
+            let s = r.scalar(e, "a length in seconds")?;
+            if !(s.is_finite() && s >= 0.0 && s <= 600.0) {
+                return Err(Error::new("a length is a number of seconds, from 0 to 600", e.span));
+            }
+            Ok(s)
+        };
+        match name {
+            "jump" => Ok(Val::Transition(Transition { kind: Kind::Cut, seconds: 0.0 })),
+            "fade" => {
+                let s = seconds(self)?;
+                let through = match slots[1] {
+                    None => None,
+                    Some(e) => Some(self.scalar(e, "`through`")?),
+                };
+                Ok(Val::Transition(Transition { kind: Kind::Fade { through }, seconds: s }))
+            }
+            "wipe" => {
+                let s = seconds(self)?;
+                let angle = num(self, 1, 0.0)?.to_radians();
+                let softness = num(self, 2, 0.05)?.clamp(0.0, 0.5);
+                Ok(Val::Transition(Transition { kind: Kind::Wipe { angle, softness }, seconds: s }))
+            }
+            "slide" => {
+                let s = seconds(self)?;
+                Ok(Val::Transition(Transition { kind: Kind::Slide { angle: num(self, 1, 0.0)?.to_radians() }, seconds: s }))
+            }
+            "glitch" => {
+                let s = seconds(self)?;
+                Ok(Val::Transition(Transition { kind: Kind::Glitch { amount: num(self, 1, 0.6)?.clamp(0.0, 1.0) }, seconds: s }))
+            }
+            "morph" => {
+                let s = seconds(self)?;
+                Ok(Val::Transition(Transition { kind: Kind::Morph { amount: num(self, 1, 0.15)?.clamp(0.0, 1.0) }, seconds: s }))
+            }
+            "pixels" => {
+                let s = seconds(self)?;
+                Ok(Val::Transition(Transition { kind: Kind::Pixels { size: num(self, 1, 0.08)?.clamp(0.002, 0.5) }, seconds: s }))
+            }
+            "scene" => {
+                let Some(e) = slots[0] else { return Err(Error::new("`scene` needs a work (a field or a painting) and its seconds: `scene(Rosace(), 5)`", span)) };
+                let source = match self.lower(e)? {
+                    v @ (Val::Field(_) | Val::Paint(_)) => v,
+                    other => return Err(Error::new(format!("a scene shows a field or a painting, not {}", kind_of(&other)), e.span)),
+                };
+                let s = seconds(self)?;
+                let from = num(self, 2, 0.0)?;
+                let to = num(self, 3, 1.0)?;
+                Ok(Val::Scene(Arc::new(SceneSpec { source, seconds: s, from, to })))
+            }
+            _ => {
+                // timeline
+                let Some(e) = slots[0] else { return Err(Error::new("`timeline` needs a list of scenes and transitions", span)) };
+                let items = self.list(e)?;
+                let looping = match slots[1] {
+                    None => false,
+                    Some(l) => self.scalar(l, "`loop`")? != 0.0,
+                };
+                let mut scenes: Vec<Arc<SceneSpec>> = Vec::new();
+                let mut transitions: Vec<Transition> = Vec::new();
+                let mut pending: Option<Transition> = None;
+                for v in items.iter() {
+                    match v {
+                        Val::Scene(s) => {
+                            if !scenes.is_empty() {
+                                transitions.push(pending.take().unwrap_or(Transition { kind: Kind::Cut, seconds: 0.0 }));
+                            } else if pending.is_some() {
+                                return Err(Error::new("a timeline starts with a scene, not a transition", e.span));
+                            }
+                            scenes.push(s.clone());
+                        }
+                        Val::Transition(t) => {
+                            if pending.is_some() {
+                                return Err(Error::new("two transitions in a row: put a scene between them", e.span));
+                            }
+                            pending = Some(*t);
+                        }
+                        other => {
+                            return Err(Error::new(
+                                format!("a timeline is made of scenes and transitions, not {}: wrap a work in `scene(work, seconds)`", kind_of(other)),
+                                e.span,
+                            ));
+                        }
+                    }
+                }
+                if scenes.is_empty() {
+                    return Err(Error::new("a timeline needs at least one scene", e.span));
+                }
+                match pending {
+                    Some(t) if looping => transitions.push(t),
+                    Some(_) => return Err(Error::new("a timeline ends with a scene (or add `loop: 1`, and the last transition leads back to the first scene)", e.span)),
+                    // looping without a last transition: a jump back to the start
+                    None if looping => transitions.push(Transition { kind: Kind::Cut, seconds: 0.0 }),
+                    None => {}
+                }
+                // a transition can't be longer than the scenes it joins
+                for (k, t) in transitions.iter().enumerate() {
+                    let a = &scenes[k];
+                    let b = &scenes[(k + 1) % scenes.len()];
+                    if t.seconds > a.seconds.min(b.seconds) {
+                        return Err(Error::new(
+                            format!("the {} of {} s is longer than a scene it joins ({} s)", t.kind.name(), t.seconds, a.seconds.min(b.seconds)),
+                            e.span,
+                        ));
+                    }
+                }
+                let total: f64 = scenes.iter().map(|s| s.seconds).sum();
+                if total <= 0.0 {
+                    return Err(Error::new("a timeline of no length", e.span));
+                }
+                crate::timeline::set_hint(total);
+                let painted = scenes.iter().any(|s| matches!(s.source, Val::Paint(_)));
+                let seed = self.seed;
+                if painted {
+                    let mut srcs = Vec::new();
+                    for s in &scenes {
+                        let p = self.as_paint(s.source.clone(), e.span)?;
+                        srcs.push(Scene { source: p, seconds: s.seconds, from: s.from, to: s.to });
+                    }
+                    let tl = Timeline { scenes: srcs, transitions, looping, seed };
+                    Ok(Val::Paint(Arc::new(crate::paint::Paint::Timeline(Arc::new(tl)))))
+                } else {
+                    let srcs = scenes
+                        .iter()
+                        .map(|s| {
+                            let Val::Field(f) = &s.source else { unreachable!() };
+                            Scene { source: Arc::new(f.clone()), seconds: s.seconds, from: s.from, to: s.to }
+                        })
+                        .collect();
+                    let tl = Timeline { scenes: srcs, transitions, looping, seed };
+                    Ok(Val::Field(Field::Timeline(Arc::new(tl))))
+                }
+            }
+        }
+    }
+
+    /// `.length`, `.cues` and `.index` of a timeline (a field or a painting).
+    fn timeline_member<S>(&self, tl: &crate::timeline::Timeline<S>, name: &str, span: Span) -> Res<Val> {
+        Ok(match name {
+            "length" => Val::Field(Field::Const(tl.length())),
+            "index" => Val::Field(Field::Curve(Arc::new(tl.index_curve()))),
+            "cues" => {
+                // one event per transition, at its cut, as long as it is
+                let total = tl.length().max(1e-9);
+                let events = tl
+                    .cuts()
+                    .into_iter()
+                    .enumerate()
+                    .map(|(k, (at, _, _, tr))| Event {
+                        x: 0.1 + 0.8 * ((k as f64 * 0.618).fract()),
+                        y: 0.5,
+                        t: (at / total).min(1.0),
+                        intensity: if tr.kind == crate::timeline::Kind::Cut { 0.5 } else { 1.0 },
+                        size: (tr.seconds / total).max(0.002),
+                        pitch: None,
+                        length: Some(tr.seconds.max(0.05)),
+                    })
+                    .collect();
+                Val::Field(Field::Pattern(Arc::new(events)))
+            }
+            _ => return Err(Error::new(format!("a timeline has no `.{name}` — it has: length, cues, index"), span)),
+        })
     }
 
     pub(crate) fn scalar(&mut self, e: &Expr, what: &str) -> Res<f64> {
@@ -2088,6 +2359,9 @@ impl Resolver<'_> {
         }
         if matches!(name, "open" | "files" | "choose") {
             return self.files_fn(name, args, span);
+        }
+        if matches!(name, "timeline" | "scene" | "jump" | "fade" | "wipe" | "slide" | "glitch" | "morph" | "pixels") {
+            return self.timeline_fn(name, args, span);
         }
         if let Some(r) = self.primitive(name, args, span) {
             return r;
@@ -3178,6 +3452,14 @@ impl Resolver<'_> {
         let name = if name == "luminance" { "luma" } else { name };
         let input = match v {
             Val::Input(i) => i,
+            // a timeline, possibly behind the sharing a `let` adds
+            Val::Field(ref f) if timeline_of(f).is_some() => {
+                return self.timeline_member(&timeline_of(f).expect("checked"), name, span);
+            }
+            Val::Paint(p) if matches!(&*p, crate::paint::Paint::Timeline(_)) => {
+                let crate::paint::Paint::Timeline(tl) = &*p else { unreachable!() };
+                return self.timeline_member(tl, name, span);
+            }
             Val::Meter(m) => {
                 return Ok(Val::Field(Field::Const(match name {
                     "length" => m.length(),
@@ -3728,5 +4010,68 @@ mod files_tests {
     fn wildcards() {
         assert!(wildcard(b"*.jpg", b"a.jpg") && wildcard(b"a?c", b"abc") && wildcard(b"*", b"x"));
         assert!(!wildcard(b"*.jpg", b"a.png") && !wildcard(b"a?c", b"ac"));
+    }
+}
+
+#[cfg(test)]
+mod timeline_tests {
+    use super::*;
+
+    fn run(body: &str, seed: u64) -> Result<Edition, String> {
+        let dir = std::env::temp_dir().join(format!("alea-timeline-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(format!("w{}.alea", hash(&[body.len() as u64, seed])));
+        std::fs::write(&path, format!("work W {{\n{body}\n}}\n")).unwrap();
+        let m = crate::library::load(path.to_str().unwrap()).map_err(|e| format!("{e:?}"))?;
+        resolve(&m, seed).map_err(|e| e.msg.clone())
+    }
+
+    const FILM: &str = "  let a = circle(0.5, 0.5, 0.4, 0.002)\n  let b = square(0.5, 0.5, 0.4, 0, 0.002) * 0\n  \
+                        let film = timeline([scene(a, 2), fade(1), scene(b, 2), glitch(0.5), scene(a, 1)], loop: 1)";
+
+    #[test]
+    fn a_timeline_knows_its_length_and_sets_the_videos() {
+        let ed = run(&format!("{FILM}\n  constraint film.length == 5\n  render video(film, width: 16, audio: \"off\")"), 1).unwrap();
+        assert_eq!(ed.renders[0].length, Some(5.0), "the video takes the timeline's seconds");
+        let ed = run(&format!("{FILM}\n  render video(film, width: 16, duration: 3, audio: \"off\")"), 1).unwrap();
+        assert_eq!(ed.renders[0].length, Some(5.0), "the hint stays; `duration:` is read later and wins");
+    }
+
+    #[test]
+    fn scenes_play_and_cross() {
+        let ed = run(&format!("{FILM}\n  render image(film, width: 16)"), 1).unwrap();
+        let f = ed.renders[0].required_field(0, "f").unwrap();
+        let centre = |t: f64| f.eval([0.5, 0.5, t], 1);
+        assert!((centre(0.1) - 1.0).abs() < 1e-9, "the circle, at its centre");
+        assert!(centre(0.6).abs() < 1e-9, "the black square");
+        assert!((centre(0.4) - 0.5).abs() < 1e-9, "half way through the fade, at the cut");
+        // the frame folded for one moment gives the same values
+        let folded = f.at_time(0.4, 1);
+        assert!((folded.eval([0.5, 0.5, 0.4], 1) - 0.5).abs() < 1e-9);
+        assert!(matches!(crate::eval::timeline_of(&f).map(|tl| tl.looping), Some(true)));
+    }
+
+    #[test]
+    fn cues_and_index() {
+        let ed = run(&format!("{FILM}\n  render image(film.index, width: 16)\n  render image(film.cues, width: 16)"), 1).unwrap();
+        let idx = ed.renders[0].required_field(0, "f").unwrap();
+        assert_eq!(idx.eval([0.5, 0.5, 0.1], 1), 0.0);
+        assert_eq!(idx.eval([0.5, 0.5, 0.6], 1), 1.0);
+        assert_eq!(idx.eval([0.5, 0.5, 0.9], 1), 2.0);
+        let Field::Pattern(evs) = ed.renders[1].required_field(0, "f").unwrap() else { panic!("cues are a pattern") };
+        assert_eq!(evs.len(), 3, "two cuts, and the loop's");
+        assert!((evs[0].t - 0.4).abs() < 1e-9 && (evs[1].t - 0.8).abs() < 1e-9 && (evs[2].t - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn mistakes_are_explained() {
+        let bad = |body: &str| run(body, 1).unwrap_err();
+        assert!(bad("  let f = timeline([fade(1), scene(x, 2)])").contains("starts with a scene"));
+        assert!(bad("  let f = timeline([scene(x, 2), fade(1)])").contains("ends with a scene"));
+        assert!(bad("  let f = timeline([scene(x, 2), fade(1), fade(1), scene(y, 2)])").contains("two transitions"));
+        assert!(bad("  let f = timeline([x, scene(y, 2)])").contains("wrap a work in"));
+        assert!(bad("  let f = timeline([scene(x, 1), fade(3), scene(y, 2)])").contains("longer than a scene"));
+        assert!(bad("  let f = scene(x, 2) + 1").contains("a scene can't be used"));
+        assert!(bad("  let f = timeline([scene(x, 2), fade(1), scene(y, 2)])\n  render image(f.cuts, width: 16)").contains("length, cues, index"));
     }
 }

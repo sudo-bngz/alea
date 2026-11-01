@@ -15,6 +15,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Correspondances** | `correspondances.alea` (+ `correspondances/`) | The plan of a metro for a Paris that was never built: the real city's grammar, a new geometry every edition, and a Reel of one day of service. |
 | **Atardecer** | `atardecer.alea` | A sunset on the sea, the sun a record setting into it: grooves, a turning sheen, a label with the side it plays, the reflection broken into slats, palms in silhouette, in washed-out colours. Also a Reel of slow, lofi house. |
 | **Kikai** (機械図) | `kikai.alea` (+ `fonts/`) | The technical drawing of an analog machine that never existed: a cassette deck, a radio-cassette, a portable radio or a rhythm machine, in off-white line on washed charcoal, labelled in Japanese like a service manual. Each edition draws another machine. Also a Reel: the machine plays a techno track in the spirit of Detroit, with its acid line written below. |
+| **Parasite** | `parasite.alea` (+ `parasite/`) | A broadcast being lost: snow, someone who appears in it made of the same blocks, a desktop filling with windows, a test card counting down, the figure again. Five works on a timeline, crossed with glitches, a morph and a fade, in a loop; a drone of pulses and a burst of static at every cut. |
 | **Kairo** (回路) | `kairo.alea` (+ `fonts/`) | After Kikai, a modular synthesizer that never existed: two rows of modules racked in another order each edition, patched with hanging cables. Also a Reel without drums: a slow piano waltz over a deep drone, the melody written on a staff as it plays. |
 
 ## Replaying the editions
@@ -26,6 +27,7 @@ alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
 alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
+alea parasite.alea --seed 0xa1ea01          # the 1080×1920 Reel: 24 s, in a loop
 alea kikai.alea --seed 0xa1ea05              # the drawing, and the 1080×1920 Reel of the machine playing (about 10 minutes)
 ```
 
@@ -471,6 +473,41 @@ monte et redescend, un bourdon grave dessous, les petits clics d'une machine
 qui réfléchit. La mélodie s'écrit sur la portée à mesure qu'on l'entend.
 Dessiné, composé et synthétisé par le même programme. Édition 0xa1ea01.
 
+## Seventh room: Parasite
+
+| # | Post | Files |
+|---|---|---|
+| 15 | Parasite, Reel (24 s, a loop) | `15-parasite-reel.mp4` (cover: `15-parasite-reel-cover.jpg`) |
+
+**How it is made.** Parasite is the first work on a `timeline`. Its scenes
+are works of their own, in `parasite/`: *Static* (snow in blocks, new every
+frame), *Figure* (someone made of the same blocks in other colours, a
+screen on the chest, flickering in and out), *Windows* (a desktop that fills
+with windows, one with snow, one a scope, one blinds, one "NO SIGNAL") and
+*TestCard* (colour bars, a dial, a countdown). The timeline crosses them with
+`glitch` (slices torn sideways, blocks out of place, bursts of static, red
+and blue apart), `pixels` and `morph`, and loops: the last glitch leads back
+to the snow. The sound is the set's: a drone of pulse waves through a slow
+filter, hiss and crackle that rise in the snow, blips, chatter, and, at
+every cut, a burst of static (`film.cues`, one event per transition).
+
+### 15 · Parasite (Reel)
+
+**EN**
+
+PARASITE — a broadcast being lost. Snow; someone appears in it, made of the
+same blocks; the screen fills with windows; a test card counts down; the
+figure comes back and dissolves. Five works on a timeline, cut with glitches,
+and a sound made of the same static. The loop never ends. Edition 0xa1ea01.
+
+**FR**
+
+PARASITE — une émission qui se perd. De la neige ; quelqu'un y apparaît,
+fait des mêmes blocs ; l'écran se remplit de fenêtres ; une mire compte à
+rebours ; la silhouette revient et se dissout. Cinq œuvres sur une timeline,
+montées au glitch, et un son fait de la même neige. La boucle ne finit
+jamais. Édition 0xa1ea01.
+
 ### Hashtags
 
 ```
@@ -479,5 +516,5 @@ Dessiné, composé et synthétisé par le même programme. Édition 0xa1ea01.
 #paris #metro #transitmap #cartography
 #reactiondiffusion #gameoflife #emergence #biology #petridish
 #lofi #lofihouse #sunset #vinyl #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
-#idm #piano #modularsynth #eurorack #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
+#glitch #glitchart #vhs #nosignal #idm #piano #modularsynth #eurorack #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
 ```

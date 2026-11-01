@@ -152,6 +152,11 @@ Works can use other works as parts, take a photo or a sound as input, and
 read and write pipes: `cat photo.png | alea riso.alea > print.png` prints a
 photo in three inks, with a new registration every edition.
 
+**Scenes, and how they cross.** A timeline puts works one after another,
+each with its own time, and crosses from each to the next: `timeline([scene(Rosace(), 5),
+glitch(0.6), scene(Nocturne(), 6), fade(1.5)], loop: 1)`. Fades, wipes,
+slides, glitches, morphs, pixels; every cut can have its sound.
+
 **Files of your own.** `open("tune.mid")` reads a photo, a WAV, a text or a
 MIDI file from the work's folder; `choose(files("poems/*.txt"))` gives each
 edition its own. A MIDI file's notes keep their pitch and length: compose in

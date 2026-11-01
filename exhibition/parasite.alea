@@ -1,0 +1,70 @@
+// Parasite — a broadcast being lost. Snow; someone appears in it, made of
+// the same blocks; the screen fills with windows; a test card counts down;
+// the figure comes back and dissolves; snow again. The scenes are works of
+// their own (parasite/), put on a timeline and crossed with glitches, a
+// morph and a fade, in a loop. The sound is the set's: a drone of pulses,
+// hiss that rises in the snow, and a burst of static at every cut.
+
+use "parasite/static.alea"
+use "parasite/figure.alea"
+use "parasite/windows.alea"
+use "parasite/testcard.alea"
+
+work Parasite {
+  let blues  = ["#0a1230", "#1c3a7a", "#3f7ac4", "#9fd2f2", "#eaf6ff"]
+  let vivid  = ["#111144", "#1f5fe0", "#f0d020", "#e23a8a", "#2ad8c8", "#ffffff"]
+  let greys  = ["#05060a", "#2a2e3a", "#8d94a6", "#e4e8f0"]
+  let amber  = ["#0b0804", "#5a3a08", "#e6a019", "#fff1c8"]
+
+  let snow = paint(Static(), palette: blues, range: [0, 1])
+  let someone(figure) = overlay(
+      paint(Static(size: 0.012), palette: blues, range: [0, 1]),
+      paint(figure, palette: vivid, range: [0, 1], alpha: figure > 0.02))
+  let arriving = Figure(appear: 0.3, vanish: 0.1)
+  let leaving  = Figure(appear: 0.15, vanish: 0.45)
+  let desk = paint(Windows(), palette: greys, range: [0, 1])
+  let card = paint(TestCard(), palette: amber, range: [0, 1])
+
+  let film = timeline([
+      scene(snow, 2.5),                  glitch(0.6, amount: 0.9),
+      scene(someone(arriving), 5),       pixels(0.5, size: 0.06),
+      scene(desk, 5),                    glitch(0.8, amount: 1),
+      scene(card, 5),                    morph(1.2, amount: 0.25),
+      scene(someone(leaving), 4.5),   glitch(0.6, amount: 0.9),
+      scene(snow, 2, from: 0.5, to: 1),
+  ], loop: 1)
+
+  // ── the sound ──
+  let drone = synth {
+    let env = adsr(attack: 2, decay: 1, sustain: 1, release: 3)
+    let osc = pulse(note.freq, width: 0.18) + pulse(note.freq * 1.5, width: 0.3) * 0.4 + saw(note.freq * 0.5 * (1 + 0.004 * sine(0.3)))
+    lowpass(osc, cutoff: 120 + 380 * (0.5 + 0.5 * sine(0.07)) + 600 * note.level, resonance: 0.55) * env
+  }
+  let hiss = synth { highpass(noise(), cutoff: 1800 + 3000 * note.level, resonance: 0.25) * adsr(attack: 0.5, decay: 0.1, sustain: 1, release: 0.8) * 0.5 }
+  let burst = synth {
+    let v = note.velocity
+    sine(note.freq * (1 + 12 * perc(attack: 0.0005, release: 0.12))) * perc(attack: 0.001, release: 0.3) * v
+    + bandpass(noise(), cutoff: 2200, resonance: 0.6) * perc(attack: 0.001, release: 0.35) * v
+    + square(note.freq * 8) * perc(attack: 0.001, release: 0.03) * 0.5
+  }
+  let blip = synth { square() * perc(attack: 0.001, release: 0.045) * note.velocity }
+  let data = synth { highpass(pulse(note.freq, width: 0.1), cutoff: 2000) * perc(release: 0.012) * note.velocity }
+
+  // snow (scenes 0 and 5) is loud with hiss; the test card ticks
+  let snowy = (film.index < 0.5) + (film.index > 4.5)
+  let carded = (film.index > 2.5) * (film.index < 3.5)
+  pattern ticks = repeat 48 event(t: i / n, x: 0.5, y: 0.3, intensity: 0.7)
+  pattern chatter = repeat 90 event(t: ~uniform(0.1, 0.95), x: ~uniform(0.2, 0.8), y: ~uniform(0.2, 0.9), size: 0.001, intensity: ~between(0.2, 0.7))
+
+  let music = [
+    drone(0.4 + 0.3 * lfo(2) + x * 0, voices: 3, instrument: drone, scale: "phrygian", key: 41.2, gain: 1.2),
+    drone(0.15 + 0.85 * snowy + x * 0, voices: 1, instrument: hiss, gain: 0.5),
+    notes(film.cues, instrument: burst, scale: "chromatic", key: 55, gain: 0.6),
+    notes(euclid(5, 16, bars: meter(100, bars: 10), y: 0.75), instrument: blip, scale: "minor-pentatonic", key: 880, gain: 0.25),
+    notes(chatter, instrument: data, scale: "chromatic", key: 1760, gain: 0.3),
+    texture(0.3 + 0.7 * snowy + x * 0, kind: "crackle", gain: 0.3),
+  ]
+
+  render image(film, width: 1080, height: 1920, at: 4.2 / 24)
+  render video(film, fps: 30, width: 1080, height: 1920, sound: music, room: 0.5, echo: 0.25)
+}

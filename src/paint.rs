@@ -91,6 +91,8 @@ pub enum Paint {
     Filter { inner: Arc<Paint>, kind: FilterKind, seed: u64 },
     /// An image input in its own colours, centred, `width` wide.
     Picture { input: Arc<crate::input::Input>, width: f64 },
+    /// `timeline([…])`: scenes one after another, with transitions.
+    Timeline(crate::timeline::Shared<Arc<Paint>>),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -197,6 +199,63 @@ pub fn draw(p: &Paint, w: usize, h: usize, t: f64) -> Pixels {
             out
         }
         Paint::Filter { inner, kind, seed } => filter(draw(inner, w, h, t), w, h, t, *kind, *seed),
+        Paint::Timeline(tl) => match tl.at(t) {
+            crate::timeline::Moment::Scene { index, t: lt } => draw(&tl.scenes[index].source, w, h, lt),
+            crate::timeline::Moment::Cross { a, ta, b, tb, p, kind } => {
+                use crate::timeline::Source;
+                let fa = draw(&tl.scenes[a].source, w, h, ta);
+                let fb = draw(&tl.scenes[b].source, w, h, tb);
+                let s = w.min(h) as f64;
+                let (ox, oy) = (0.5 - w as f64 / (2.0 * s), 0.5 - h as f64 / (2.0 * s));
+                // a frame's pixel at a point of the unit square (clamped to the frame)
+                let pick = |f: &Pixels, x: f64, y: f64| -> [f32; 4] {
+                    let i = (((x - ox) * s) as i64).clamp(0, w as i64 - 1) as usize;
+                    let j = (((y - oy) * s) as i64).clamp(0, h as i64 - 1) as usize;
+                    f[j * w + i]
+                };
+                let clock = t * tl.length();
+                let mut out = Vec::with_capacity(w * h);
+                for j in 0..h {
+                    let y = oy + (j as f64 + 0.5) / s;
+                    for i in 0..w {
+                        let x = ox + (i as f64 + 0.5) / s;
+                        let mut px = [0.0f32; 4];
+                        for tap in crate::timeline::taps(kind, p, x, y, clock, tl.seed) {
+                            let wt = tap.weight as f32;
+                            match tap.source {
+                                Source::Flat(v) => {
+                                    let v = v.clamp(0.0, 1.0) as f32;
+                                    px[0] += v * wt;
+                                    px[1] += v * wt;
+                                    px[2] += v * wt;
+                                    px[3] += wt;
+                                }
+                                src => {
+                                    let f = if src == Source::A { &fa } else { &fb };
+                                    if tap.chroma > 0.0 {
+                                        // red read to one side, blue to the other
+                                        let r = pick(f, tap.x + tap.chroma, tap.y);
+                                        let g = pick(f, tap.x, tap.y);
+                                        let b = pick(f, tap.x - tap.chroma, tap.y);
+                                        px[0] += r[0] * wt;
+                                        px[1] += g[1] * wt;
+                                        px[2] += b[2] * wt;
+                                        px[3] += g[3] * wt;
+                                    } else {
+                                        let c = pick(f, tap.x, tap.y);
+                                        for k in 0..4 {
+                                            px[k] += c[k] * wt;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        out.push(px);
+                    }
+                }
+                out
+            }
+        },
         Paint::Picture { input, width } => {
             let crate::input::Kind::Image(img) = &input.kind else { return vec![[0.0; 4]; w * h] };
             let s = w.min(h) as f64;
