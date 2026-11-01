@@ -213,6 +213,9 @@ mod tests {
     /// voice, and the C interpreter through `fm1/test/vm_main.c`, as one note.
     /// None when there is no C compiler to build the harness with.
     fn both_ways(body: &str, freq: f64, vel: f64, hold: f64, total: f64) -> Option<(Vec<f64>, Vec<f64>)> {
+        if cfg!(windows) {
+            return None; // the harness writes binary to stdout, and the FM-1's toolchain is Linux anyway
+        }
         let dir = std::env::temp_dir().join(format!("alea-fm1-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -282,6 +285,9 @@ mod tests {
     /// with a mock host, loads a bank and plays a note that ends.
     #[test]
     fn the_engine_builds_for_felucca() {
+        if cfg!(windows) {
+            return;
+        }
         let dir = std::env::temp_dir().join(format!("alea-fm1-host-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
