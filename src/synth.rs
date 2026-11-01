@@ -133,6 +133,16 @@ impl Synth {
         Synth { name: name.to_string(), program: self.program.clone() }
     }
 
+    pub fn op_count(&self) -> usize {
+        self.program.ops.len()
+    }
+
+    /// The patch as bytecode for the FM-1's ALEA engine (`fm1/alea_vm.h`),
+    /// and the warnings that go with it. See `fm1/FORMAT.md`.
+    pub fn fm1_bytes(&self) -> (Vec<u8>, Vec<String>) {
+        crate::fm1::encode(&self.program.ops, &self.program.states)
+    }
+
     /// How long a note held for `hold` seconds sounds: until its release
     /// envelopes and echoes have died away, or its struck envelopes have.
     pub fn length(&self, hold: f64) -> f64 {
@@ -192,7 +202,7 @@ pub struct NoteCtx {
 
 /// One operation: it writes slot `i` (its index in the program).
 #[derive(Clone, Debug)]
-enum Op {
+pub(crate) enum Op {
     Const(f64),
     Note(NoteValue),
     Osc { wave: Wave, freq: usize, width: usize, state: usize },
@@ -209,7 +219,7 @@ enum Op {
 
 /// What an operation keeps between samples.
 #[derive(Clone, Debug)]
-enum State {
+pub(crate) enum State {
     Phase(f64),
     Env { released: Option<(f64, f64)>, level: f64 },
     Svf { ic1: f64, ic2: f64 },

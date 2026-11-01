@@ -532,6 +532,15 @@ given `sound:` layers.
 
 ---
 
+### On the FM-1
+
+`alea work.alea --fm1 FILE` compiles the work's `output` synth into a patch
+for the M-VAVE FM-1's ALEA engine ([`fm1/`](../fm1/README.md)); with
+`-n N` (up to 16), one patch per edition, in one bank. `FILE.syx` is the
+SysEx to send to the device, `FILE.alb` the bank's bytes. Every `~` in the
+synth is drawn at compile time. A delay longer than the device's pool allows
+is reported, and plays dry there.
+
 ## Timelines
 
 A timeline puts scenes one after another and crosses from each to the
