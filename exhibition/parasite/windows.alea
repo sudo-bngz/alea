@@ -1,0 +1,33 @@
+// Windows: a desktop that fills with windows, one after another, each with
+// its title bar; one shows snow, one a scope, one blinds, one a message.
+// What it returns: 0 the desk, 0.05–1 the windows' contents, 1 their frames.
+
+use "static.alea"
+
+work Windows(count = 6) {
+  // where each window opens: a cascade down the frame, with some chance
+  let size(k) = [~between(0.46, 0.6), ~between(0.3, 0.42)]
+  let at(k) = [0.04 + (0.92 - size(k).x) * (k % 2 + ~between(0, 0.3)) / 1.3, 0.02 + 0.19 * k + ~between(-0.02, 0.02)]
+  let opens(k) = progress(k / count * 0.7, k / count * 0.7 + 0.04)  // the moment it opens, over the scene
+
+  let snow = Static(size: 0.01, rate: 24)
+  let scope = 1 - smoothstep(0.004, 0.01, abs(y - 0.5 - 0.1 * sin(x * 40 + t * tau * 8) * sin(x * 7)))
+  let blinds = stripes(count: 14, angle: 90) * (0.4 + 0.6 * lfo(3))
+  let message = text("NO SIGNAL", 0.5, 0.5, 0.14, 0, "mono")
+  let bars = floor(x * 8) / 8 * 0.9 + 0.1
+  let contents = [snow, scope, blinds, message, bars, snow * 0.5 + scope * 0.5]
+
+  // a window's frame and title bar (in full ink), and its content inside
+  let fx(k) = at(k).x + size(k).x / 2
+  let fy(k) = at(k).y + size(k).y / 2
+  let outer(k) = rect(fx(k), fy(k), size(k).x, size(k).y, 0, 0.001)
+  let inner(k) = rect(fx(k), fy(k) + 0.015, size(k).x - 0.006, size(k).y - 0.036, 0, 0.001)
+  let dots(k) = merge([circle(at(k).x + 0.02 + j * 0.022, at(k).y + 0.015, 0.011, 0.001) for j in range(3)]) * 0.6
+  let shown(k) = zoom(move(contents[k % 6], x: fx(k) - 0.5, y: fy(k) + 0.015 - 0.5), by: size(k).x, x: fx(k), y: fy(k) + 0.015)
+  let window(k) = merge(cut(outer(k), inner(k)), dots(k), inner(k) * (0.05 + 0.9 * shown(k))) * opens(k)
+
+  // later windows are drawn over earlier ones
+  let desk = merge([window(k) * (1 + 0.001 * k) for k in range(count)])
+  let grid = (fract(x * 20) < 0.03 or fract(y * 20) < 0.03) * 0.03
+  output max(desk, grid)
+}

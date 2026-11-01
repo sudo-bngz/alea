@@ -20,6 +20,7 @@ pub mod prims;
 pub mod raster;
 pub mod sound;
 pub mod synth;
+pub mod timeline;
 pub mod vfs;
 
 #[cfg(feature = "native")]

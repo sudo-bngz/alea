@@ -1,0 +1,8 @@
+// Static: the snow of a television with no signal, as blocks that change
+// every frame. `size` is the block, `rate` how many times a second it changes.
+
+work Static(size = 0.012, rate = 30) {
+  let frame = floor(t * rate * 24)                       // which frame of snow (24 s of film)
+  let snow = pixelate(move(grain(1), x: fract(frame * 0.6180339) * 7, y: fract(frame * 0.7548777) * 7), size: size)
+  output snow
+}

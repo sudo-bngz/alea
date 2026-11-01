@@ -532,6 +532,33 @@ given `sound:` layers.
 
 ---
 
+## Timelines
+
+A timeline puts scenes one after another and crosses from each to the
+next. A scene is a field or a painting (a work called as a component, or
+anything drawn in the work); a timeline of fields is a field, and one with a
+painting in it is a painting.
+
+| Function | Parameters (in order) | Gives |
+|---|---|---|
+| `timeline` | `scenes` (a list of scenes and transitions, a transition between two scenes at most), `loop` (0) | the film. Each scene plays for its seconds, with its own `t` running from `from` to `to`; a transition straddles the cut, half on the scene that ends, half on the one that starts, and can't be longer than either. Two scenes with nothing between them are cut together. With `loop: 1`, the last item may be a transition: it leads back to the first scene (without one, the film jumps back), so a video of the timeline's length loops without a seam |
+| `scene` | `work` (a field or a painting), `seconds` (0–600), `from` (0), `to` (1) | a scene. `from: 0.3, to: 0.3` holds one moment of the work, a still |
+| `jump` | | no transition: a straight cut |
+| `fade` | `seconds`, `through` | a crossfade; with `through`, a fade to that flat value (0 black, 1 white) and in again |
+| `wipe` | `seconds`, `angle` (0), `softness` (0.05) | a line sweeps across the frame, in that direction (degrees; 0 is left to right, 90 top to bottom), with an edge that soft |
+| `slide` | `seconds`, `angle` (0) | the scene that ends is pushed out and the next pushed in, in that direction |
+| `glitch` | `seconds`, `amount` (0.6; 0–1) | slices torn sideways, blocks out of place, bursts of static, 24 times a second, strongest in the middle; the picture flips to the next scene slice by slice. On a painting, red and blue tear apart too |
+| `morph` | `seconds`, `amount` (0.15; 0–1) | the two scenes melt into each other: both drift along a noise flow, `amount` far, and the next seeps in through a noise, point by point |
+| `pixels` | `seconds`, `size` (0.08) | the picture breaks into blocks that grow to `size`, switch to the next scene, and shrink back |
+
+**A timeline's members:** `.length`, its seconds; `.cues`, a pattern with
+one event per transition, at its cut (`t`), as long as it is (`size`, and a
+note's length), `intensity` 1 (0.5 for a jump), to give every cut a sound;
+`.index`, which scene plays along the film, as a curve of `t` (0, 1, 2…).
+
+When a work has a timeline, a `render video` or `render sound` without a
+`duration` takes the timeline's length.
+
 ## Time and filters
 
 Functions that take `time` use `t` when it is not given.

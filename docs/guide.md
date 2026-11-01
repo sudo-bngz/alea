@@ -1120,6 +1120,43 @@ DAW, export the MIDI, and let alea draw and orchestrate it.
 never an absolute path, never `..`. A work and its files stay together, and
 a web page made with `--web` carries them.
 
+## 29. Timeline: scenes, and how they cross
+
+Everything so far moves inside one scene. A timeline puts scenes one after
+another, each with its own time, and crosses from each to the next:
+
+```alea
+let film = timeline([
+    scene(Rosace(), 5),  glitch(0.6),
+    scene(Nocturne(), 6), fade(1.5),
+    scene(Culture(), 6),  morph(1.2),
+], loop: 1)
+render video(film)                          // 17 seconds: the timeline's length
+```
+
+A scene is a work (called as a component), or anything drawn in the work, for
+a number of seconds; its `t` runs from 0 to 1 over the scene, so a looping
+work plays one loop. A transition straddles the cut, half on each side.
+`jump()` cuts; `fade` crossfades (or fades through black with `through: 0`);
+`wipe` and `slide` sweep or push in a direction; `glitch` tears the picture
+into slices and static before it flips; `morph` melts one scene into the
+next; `pixels` breaks it into blocks. With `loop: 1` the last transition
+leads back to the first scene, so the video loops without a seam.
+
+A scene can show one moment of a work (`scene(turn, 2, from: 0.5, to: 0.5)`
+holds a still), and a timeline is a value like any other: film it, paint it,
+put it in a mosaic. Its `.cues` is a pattern with one event per transition,
+so every cut can have its sound; `.index` says which scene plays.
+
+```alea
+let blip = synth { square() * perc(release: 0.08) * note.velocity }
+render video(film, sound: [notes(film.cues, instrument: blip, key: 440),
+                           drone(0.3 + 0.1 * film.index, instrument: "wind")])
+```
+
+The exhibition's *Parasite* is a timeline of five works in `parasite/`,
+crossed with glitches, a morph and a fade, in a loop.
+
 ## How values become media
 
 Every medium receives the same thing, a field, and translates it:

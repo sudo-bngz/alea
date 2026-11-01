@@ -1,0 +1,43 @@
+// 29 · Timeline: scenes one after another, and how they cross.
+//
+// timeline([scene(a, 4), fade(1), scene(b, 6), …])
+//                         a film: each scene plays for its seconds, with its
+//                         own t running from 0 to 1; a transition straddles
+//                         the cut, half on the scene that ends, half on the
+//                         one that starts. Works are scenes too: scene(Rosace(), 5).
+// scene(work, seconds, from: 0, to: 1)
+//                         what the scene shows, for how long, and which part
+//                         of the work's own time (from: 0.3, to: 0.3 holds a still)
+// jump()  fade(s, through:)  wipe(s, angle:)  slide(s, angle:)
+// glitch(s, amount:)  morph(s, amount:)  pixels(s, size:)
+//                         the transitions, each s seconds long
+// loop: 1                 the last transition leads back to the first scene,
+//                         so a video of the timeline loops without a seam
+// film.length             its seconds: `render video(film)` takes them by itself
+// film.cues               a pattern with one event per transition, to give
+//                         each a sound; film.index, which scene plays, as a curve
+
+work Timeline {
+  // four short works, each moving in its own time
+  let bloom  = ring(0.5, 0.5, 0.2 + 0.5 * t, 0.06, 0.004) * (1 - t) + glow(size: 0.5) * 0.3
+  let blinds = stripes(count: 10, angle: 90 + 40 * sin(t * tau))
+  let turn   = rotate(square(0.5, 0.5, 0.45, 0, 0.003), angle: t * 90)
+  let pond   = ripples(x: 0.3 + 0.4 * t, count: 9)
+
+  let film = timeline([
+      scene(bloom, 3),  glitch(0.6),
+      scene(blinds, 3), wipe(0.8, angle: 60),
+      scene(turn, 3),   morph(1.2),
+      scene(pond, 3),   pixels(0.8),
+      scene(turn, 2, from: 0.5, to: 0.5),   // a still: the square held mid-turn
+      slide(0.6, angle: 90),
+      scene(blinds, 2), fade(1, through: 0),
+  ], loop: 1)                                 // 16 s; the fade leads back to the bloom
+
+  // each transition gets a sound: a tick at every cut
+  let blip = synth { square() * perc(attack: 0.002, release: 0.08) * note.velocity }
+  render image(film, at: 0.19, width: 600, palette: "night")            // mid-glitch
+  render video(film, fps: 24, width: 540, palette: "night",
+               sound: [notes(film.cues, instrument: blip, scale: "pentatonic", key: 440),
+                       drone(0.3 + 0.1 * film.index, voices: 2, instrument: "wind", gain: 0.4)])
+}
