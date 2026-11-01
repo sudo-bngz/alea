@@ -19,6 +19,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Requête** | `requete.alea` (+ `requete/`) | The life of one request, layer by layer: the address typed, the name resolved down a tree, the handshake and the lock, packets finding their way across a grid of routers, bits and pulses of light on the wire, and the page building itself. Six works on a timeline, in a loop, each with its own sound. |
 | **Signal** | `signal.alea` (+ `signal/`) | The path of a sound, from the oscillator to the room: DCO, noise, LFO, envelope, high-pass, filter, VCA and chorus, delay, the mix, the compressor, the lathe, the vinyl, the stylus, the speaker, the room. Fifteen works in twenty-one fast cuts, a minute, in a loop; a Detroit techno track built stage by stage with the chain. |
 | **Hana** (花) | `hana.alea` (+ `hana/`) | An electronic flower, from seed to seed, in a network: a seed calling in the grid, roots along its links, a stem of square cells, a bud of nested squares, the bloom of square petals, the seeds leaving along the links and on the wind, flowers everywhere, the petals falling apart into grain. Forty-one cuts in a minute, glitches drawn anew every edition, an IDM track in the Boards of Canada way. |
+| **Babel** | `babel.alea` (+ `babel/`) | The library that holds every book: pages of a script of twenty-five symbols rewritten on every tick, a book in three dimensions turning in the dark, the shelves, a hexagonal gallery from above, the hallways, the shaft and its stair, the mirror, and one long rise out of a gallery until the floor of galleries runs to the horizon. Forty-one cuts in a minute, a dark choir and a broken beat. |
 | **Kairo** (回路) | `kairo.alea` (+ `fonts/`) | After Kikai, a modular synthesizer that never existed: two rows of modules racked in another order each edition, patched with hanging cables. Also a Reel without drums: a slow piano waltz over a deep drone, the melody written on a staff as it plays. |
 
 ## Replaying the editions
@@ -30,6 +31,7 @@ alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
 alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
+alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
 alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea signal.alea --seed 0xa1ea01             # the 1080×1920 Reel: 60 s, in a loop
 alea requete.alea --seed 0xa1ea01            # the 1080×1920 Reel: 28.5 s, in a loop
@@ -60,6 +62,7 @@ The posted editions:
 | Requête Reel | 0xa1ea01 |
 | Signal Reel | 0xa1ea01 |
 | Hana Reel | 0xa1ea01 |
+| Babel Reel | 0xa1ea01 |
 
 All images are 1080 × 1350 (4:5, Instagram's portrait format); the Reel is
 1080 × 1920 (9:16), 15 seconds, with sound.
@@ -670,6 +673,60 @@ s'ouvrent partout, les pétales tombent en grain, et de nouveau une graine.
 Quarante et une coupes, chaque glitch tiré au hasard, un morceau d'IDM qui
 pousse avec elle. Une minute, en boucle. Édition 0xa1ea01.
 
+## Eleventh room: Babel
+
+| # | Post | Files |
+|---|---|---|
+| 19 | Babel, Reel (60 s, a loop) | `19-babel-reel.mp4` (cover: `19-babel-reel-cover.jpg`) |
+
+**How it is made.** After the library that holds every possible book: ten
+works in `babel/`. *Page* (forty lines of a script of twenty-five symbols,
+each letter a few cells lit in a 3 × 5 grid drawn by chance for the edition,
+lines rewritten on the ticks: every page that can be), *Count* (410 pages,
+40 lines, 80 symbols, 25 symbols), *Book* (a book in three dimensions,
+ray-cast point by point: where the ray from the eye meets the box of its
+boards, its spine and its page block, which face, lit from above; a hexagon
+on its cover), *Books* (several of them turning at once), *Shelf* (a wall of
+five shelves, each spine its own width and height, under a swinging lamp),
+*Hexroom* (a gallery from above: six walls, four lined with books, two open
+onto the hallways, the shaft and its railing), *Corridor* (hexagonal
+doorways one behind the other, in perspective), *Shaft* (down the air shaft:
+railings, floors and the spiral stair into the depth), *Mirror* (the gallery
+folded sixfold) and *Infinity* (one continuous rise out of a gallery,
+through the honeycomb of them, while the camera tips forward until the
+floor of galleries runs to a lit horizon, floors below coming into view).
+Forty-one scenes, the last five pieces of that one rise; every cut drawn for
+each edition. The colours of candlelight, bone, verdigris and night, an
+oxblood for the numbers, through `film`, a heavy `vignette` and `chroma`.
+
+The track, at 76 BPM over nineteen bars: a drone on D and the rustle of
+pages turned for the script; a choir (saws through the formants of an "ah")
+in D Phrygian dominant (D, E♭, D7, Cm) and a bell out of tune with itself for
+the book; a broken half-time beat for the shelves and the gallery; rolls of
+thirty-second notes and stutters for the hallways and the shaft; for the rise,
+the kick on every beat, a swell before each stage and a last bell. Every
+page turned, every click, roll and bell is drawn by chance.
+
+### 19 · Babel (Reel)
+
+**EN**
+
+BABEL — the library that holds every book. A script of twenty-five symbols,
+rewritten on every tick; a book turning in the dark; the shelves, a
+gallery of six walls, the hallways, the shaft, the mirror; then one long
+rise out of a gallery, through the honeycomb of them, until the floor runs
+to the horizon. Forty-one cuts, a dark choir, a broken beat. A minute, in a
+loop. Edition 0xa1ea01.
+
+**FR**
+
+BABEL — la bibliothèque qui contient tous les livres. Une écriture de
+vingt-cinq symboles, réécrite à chaque battement ; un livre qui tourne dans
+le noir ; les rayons, une galerie à six murs, les couloirs, le puits, le
+miroir ; puis une longue montée hors d'une galerie, à travers leur alvéole,
+jusqu'à ce que le sol rejoigne l'horizon. Quarante et une coupes, un chœur
+sombre, un rythme brisé. Une minute, en boucle. Édition 0xa1ea01.
+
 ### Hashtags
 
 ```
@@ -678,6 +735,7 @@ pousse avec elle. Une minute, en boucle. Édition 0xa1ea01.
 #paris #metro #transitmap #cartography
 #reactiondiffusion #gameoflife #emergence #biology #petridish
 #lofi #lofihouse #sunset #vinyl #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
+#babel #library #infinite #hexagon #borges #3d #raycasting #choir #darkambient
 #flower #squares #network #growth #boardsofcanada #idm #tape #analog
 #synthesizer #juno #modular #signalpath #vinyl #http #dns #tcp #osi #networking #glitch #glitchart #vhs #nosignal #idm #piano #modularsynth #eurorack #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
 ```

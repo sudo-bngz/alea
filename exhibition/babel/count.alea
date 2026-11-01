@@ -1,0 +1,15 @@
+// Count — what a book is: 410 pages, 40 lines a page, 80 symbols a line,
+// 25 symbols; the numbers, and the script raining behind them.
+// What it returns: 0 dark, up to 1 light.
+
+use "page.alea"
+
+work Count(which = 0, rate = 16) {
+  let tick = floor(t * rate)
+  let figures = ["410", "40", "80", "25"]
+  let words = ["pages", "lines", "symbols", "symbols"]
+  let big = text(figures[which % 4], 0.5 + 0.006 * sin(tick * 3.1), 0.42, 0.34, 0, "mono")
+  let small = text(words[which % 4], 0.5, 0.72, 0.05, 0, "mono") * 0.7
+  let rain = Page(cols: 20, lines: 34, rate: 30, churn: 1) * 0.35
+  output merge(rain * (1 - big), big * (0.75 + 0.25 * (fract(tick * 0.618) > 0.2)), small)
+}

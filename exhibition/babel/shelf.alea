@@ -1,0 +1,32 @@
+// Shelf — a wall of the hexagon: five shelves, the spines of the books
+// side by side, each its own width and height, some leaning; a lamp
+// swinging its light along them, the wall passing by in jerks.
+// What it returns: 0 dark, up to 1 light.
+
+work Shelf(per = 26, rate = 8, speed = 0.12) {
+  let seed = ~between(0, 100)
+  let hash(a, b) = fract(sin(a * 12.9898 + b * 78.233 + seed) * 43758.5453)
+  let tick = floor(t * rate)
+  let pan = t * speed + floor(t * 5) * 0.013 + seed
+  let rowh = 1.6 / 5
+  let ry = (y + 0.3) / rowh
+  let row = floor(ry)
+  let fy = fract(ry)                                             // 0 the top of the shelf space, 1 the board
+  let inside = (row >= 0) * (row < 5)
+  let u = (x + pan * (1 + 0.15 * row)) * per
+  let slot = floor(u)
+  let fu = fract(u)
+  let w = 0.55 + 0.4 * hash(slot, row)
+  let h = 0.62 + 0.3 * hash(slot, row + 9)
+  let there = hash(slot, row + 20) > 0.06
+  let lean = (hash(slot, row + 30) > 0.9) * 0.25 * (1 - fy)
+  let su = fu - 0.5 + lean
+  let spine = there * (abs(su) < w / 2) * (fy > 0.9 - h) * (fy < 0.9)
+  let round = 0.55 + 0.45 * cos(su / w * 3.1)                  // the spine is rounded
+  let bands = (abs(fy - (0.9 - h * 0.85)) < 0.012) + (abs(fy - (0.9 - h * 0.15)) < 0.012)
+  let tone = 0.3 + 0.4 * hash(slot, row + 40)
+  let board = (fy > 0.9) * (fy < 0.97)
+  let lampx = 0.5 + 0.35 * sin(t * 2.1 + floor(t * 3) * 0.7)
+  let lamp = clamp(1.1 - distance(x, y, lampx, 0.3) * 1.3, 0.12, 1) * (0.85 + 0.15 * (hash(tick, 3) > 0.25))
+  output inside * merge(spine * (tone + 0.3 * bands) * round, board * 0.5) * lamp
+}

@@ -1,0 +1,14 @@
+// Mirror — the mirror in the hallway, which doubles what it shows: the
+// gallery folded sixfold into itself, the reflections trembling.
+// What it returns: 0 dark, up to 1 light.
+
+use "hexroom.alea"
+use "corridor.alea"
+
+work Mirror(sides = 6, rate = 12) {
+  let tick = floor(t * rate)
+  let inner = merge(Hexroom(size: 0.24, spin: -1), Corridor(speed: 2) * 0.6)
+  let folded = kaleidoscope(inner, sides: sides, x: 0.5 + 0.003 * sin(tick * 3.3), y: 0.5)
+  let frame = abs(distance(x, y * 0.62 + 0.19, 0.5, 0.5) - 0.42) < 0.004
+  output merge(folded * (0.75 + 0.25 * (fract(tick * 0.618) > 0.2)), frame * 0.6)
+}
