@@ -1,8 +1,9 @@
 # alea on the M-VAVE FM-1
 
 Patches written in alea, played by the FM-1: a `synth { … }` compiled to a
-small bytecode, and an engine for the [Felucca](https://github.com/hugelton/Felucca)
-firmware that plays it, one voice per note, in fixed point.
+small bytecode, and the ALEA engine of a fork of the [Felucca](https://github.com/hugelton/Felucca)
+firmware ([sudo-bngz/Felucca](https://github.com/sudo-bngz/Felucca)) that plays it, one voice
+per note, in fixed point.
 
 ```
 work Bass {
@@ -20,31 +21,41 @@ alea bass.alea --seed 7 -n 8 --fm1 bass.syx    # eight editions of the bass: eig
 ```
 
 Every `~` is drawn when the patch is compiled, so each edition is a patch of its
-own; a bank holds sixteen. Send the `.syx` to the FM-1 (any SysEx sender over
-USB-MIDI), pick the ALEA engine, and EDIT 1 > PATCH chooses one. Felucca's
-own envelope is not applied (the patch has its envelopes); its LFO → AMP, the
-sends (DIST, CHORUS, DELAY, REVERB) and the sequencer are.
+own; a bank holds sixteen (3584 bytes at most).
+
+## On the device
+
+1. Install the fork's firmware on the FM-1 (its `./build.sh` makes `build/felucca.fwsc`; Felucca's web installer
+   installs it, and its **Return to official V15** takes the FM-1 back).
+2. Open [alea.bngz.io/fm1.html](https://alea.bngz.io/fm1.html) in Chrome or Edge (or `fm1/send.html` from here),
+   connect, choose the `.syx`, send. Or `python3 fm1/send.py bass.syx` (`pip install mido python-rtmidi`).
+3. On the FM-1, pick the ALEA engine (PRESETS, the ENG knob: after the other engines) and choose the patch
+   with EDIT 1 > PATCH. Without a bank sent, ALEA plays its four factory patches (BASS, PAD, BELL, STAB:
+   `examples/fm1/`).
+
+Felucca's own envelope is not applied (the patch has its envelopes); its LFO → AMP,
+the sends (DIST, CHORUS, DELAY, REVERB), the arpeggiator and the sequencer are. The
+pitch is Felucca's: glide, bend and unison detune reach the patch.
+
+What fits: a voice keeps at most 128 words of state (a filter takes 9 with its op,
+an envelope 4); a part has room for 2860 samples of delay and chorus lines, and the
+first ALEA part that needs more borrows 8192 more. A chorus takes 1105 samples a
+voice: on one part all eight voices keep theirs, on a second part two do and the
+others play it dry. A long `delay` won't fit: use Felucca's DELAY send for echoes.
+`alea --fm1` warns about both.
 
 ## What is here
 
 | File | |
 |---|---|
-| `alea_vm.h` | the interpreter (MIT): loads a patch, plays a voice; no float, no division per sample; `ALEA_FS` is the host's rate |
+| `alea_vm.h` | the interpreter (MIT): loads a patch, plays a voice; no float; `ALEA_FS` is the host's rate. The fork has a copy in `firmware/src/alea/` |
 | `alea_vm_tables.h` | its tables, made by `gen_tables.py` for 44100 Hz (`python3 fm1/gen_tables.py 48000 > …` for another rate) |
-| `eng_alea.c` | the Felucca engine (GPL-3.0): the bank in flash, the voices, their pool, EDIT 1 > PATCH |
-| `FORMAT.md` | the bytecode, the bank and the SysEx |
-| `test/vm_main.c` | plays a patch on a computer: `cargo test` builds it and checks the interpreter against alea's own voice, sample by sample for a sine, by loudness along the note for a bass, a bell with echoes and a hat |
-| `test/host_main.c` | a mock of Felucca's host: `cargo test` builds `eng_alea.c` against `felucca_engine.h` (a copy of Felucca-Engines' header, MIT) and plays a bank |
+| `FORMAT.md` | the bytecode, the bank and the messages that store it |
+| `send.html`, `send.py` | send a bank to the FM-1 (Web MIDI; Python with mido), each message after the device's answer |
+| `test/vm_main.c` | plays a patch on a computer: `cargo test` builds it and checks the interpreter against alea's own voice, sample by sample for a sine, by loudness along the note for a bass, a bell with echoes and a chorus, and a hat |
 
-## Into the firmware
-
-In a fork of Felucca:
-
-1. Copy `alea_vm.h`, `alea_vm_tables.h` and `eng_alea.c` into `firmware/src/`.
-2. `engines.c`: include `eng_alea.c` with the other engines and add `&ENG_ALEA` to `ENGINES[]` (and 1 to `NENGINES`).
-3. The bank in flash: a sector like the FM6 voice bank's (`storage.c`, `fm6_vbank.c`): `alea_bank_bytes()` and `alea_bank_size()` return it, `alea_bank_boot()` runs at boot and after a write.
-4. The SysEx: in the MIDI input, a message starting `F0 7D 41 4C 45 41 01` is a bank: `alea_sysex_unpack` the body into a buffer, write it to the sector, `alea_bank_boot()`.
-5. `ALEA_POOL_WORDS` (12 K int16 a voice by default, 192 KB for eight voices in `.pool`): lower it if the pool is short; a patch's delay longer than it plays dry, and the compiler warns.
-6. Build (`./build.sh`), test in the browser build first (the engine has no float, so it compiles for WebAssembly as it is), then flash with the installer. Have the recovery dongle at hand.
-
-The compiler side lives in alea (`src/fm1.rs`, `alea --fm1`); the engine side belongs in the fork.
+The compiler is `src/fm1.rs` (`alea --fm1`). The engine, its bank in flash and the
+editor commands are in the fork (`firmware/src/eng_alea.c`, `alea_bank.c`,
+`editor_alea.c`), with their tests (`tests/alea_test.c`): the bank written over
+simulated flash with power cuts, and the engine's voice checked sample for sample
+against `alea_vm.h`.

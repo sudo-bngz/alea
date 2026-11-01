@@ -6,7 +6,7 @@ name: Site
 on:
   push:
     branches: [main]
-    paths: ["site/**", "web/**", "src/**", "docs/**", "examples/**", "exhibition/**", ".github/workflows/pages.yml"]
+    paths: ["site/**", "fm1/send.html", "web/**", "src/**", "docs/**", "examples/**", "exhibition/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:

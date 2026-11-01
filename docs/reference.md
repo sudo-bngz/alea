@@ -536,10 +536,12 @@ given `sound:` layers.
 
 `alea work.alea --fm1 FILE` compiles the work's `output` synth into a patch
 for the M-VAVE FM-1's ALEA engine ([`fm1/`](../fm1/README.md)); with
-`-n N` (up to 16), one patch per edition, in one bank. `FILE.syx` is the
-SysEx to send to the device, `FILE.alb` the bank's bytes. Every `~` in the
-synth is drawn at compile time. A delay longer than the device's pool allows
-is reported, and plays dry there.
+`-n N` (up to 16), one patch per edition, in one bank (3584 bytes at most).
+`FILE.syx` holds the messages that store the bank on the device (send them
+with [alea.bngz.io/fm1.html](https://alea.bngz.io/fm1.html) or
+`fm1/send.py`), `FILE.alb` the bank's bytes. Every `~` in the synth is drawn
+at compile time. A patch too big for a voice, and delay or chorus lines that
+only some voices will have room for (the others play them dry), are reported.
 
 ## Timelines
 
