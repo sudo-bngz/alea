@@ -154,7 +154,9 @@ photo in three inks, with a new registration every edition.
 
 **On the FM-1.** A work whose output is a synth compiles to a patch for the
 M-VAVE FM-1: `alea bass.alea -n 8 --fm1 bass.syx` is eight editions of a bass
-in one bank, for the [ALEA engine](fm1/) of the Felucca firmware.
+in one bank, for the [ALEA engine](fm1/) of a fork of the Felucca firmware
+([sudo-bngz/Felucca](https://github.com/sudo-bngz/Felucca)), sent from
+[alea.bngz.io/fm1.html](https://alea.bngz.io/fm1.html).
 
 **Scenes, and how they cross.** A timeline puts works one after another,
 each with its own time, and crosses from each to the next: `timeline([scene(Rosace(), 5),

@@ -68,6 +68,7 @@ def main():
     out.mkdir()
     for f in ["index.html", "site.css", "site.js", "CNAME", "favicon.svg"]:
         shutil.copy(site / f, out / f)
+    shutil.copy(root / "fm1" / "send.html", out / "fm1.html")   # a bank of patches to the M-VAVE FM-1, over Web MIDI
 
     # the engine, and the work drawn live on the home page
     shutil.copy(web / "engine.js", out / "engine.js")

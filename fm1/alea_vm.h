@@ -9,7 +9,9 @@
  *
  * A host (fm1/eng_alea.c for Felucca, fm1/test/vm_main.c on a computer):
  *   alea_vm_load(&vm, bytes, size)             once per patch: checks it, lays out the state
- *   alea_voice_init(&vm, &v, pool, pool_size)  once per voice: its state and lines (pool may be 0)
+ *   alea_voice_init(&vm, &v, words, pool, pool_size)
+ *                                              once per voice: its state (alea_voice_words(&vm) int32s at
+ *                                              words) and lines (pool_size int16s at pool; pool may be 0)
  *   alea_voice_on(&vm, &v, freq_q16, vel_q16, level_q16)
  *   alea_voice_gate(&v, 0)                     the key is released
  *   alea_voice_render(&vm, &v, out, n)         n samples, Q16, added to out[] (never overwritten)
@@ -18,7 +20,9 @@
 #ifndef ALEA_VM_H
 #define ALEA_VM_H
 #include <stdint.h>
+#ifndef ALEA_NO_STRING_H                 /* (a freestanding host, Felucca: its own memset / memcpy / memcmp) */
 #include <string.h>
+#endif
 
 #ifndef ALEA_FS
 #define ALEA_FS 44100u
@@ -58,8 +62,8 @@ typedef struct {
 } alea_vm_t;
 
 typedef struct {
-    int32_t slots[ALEA_MAX_OPS];
-    int32_t st[ALEA_MAX_STATES * 12];  /* per-state words: phase 1; env 3; svf 8; line 2; chorus 3 */
+    int32_t *slots;              /* the ops' outputs: vm->nops words */
+    int32_t *st;                 /* the states' words (vm->words): phase 1; env 3; svf 8; chorus 1 */
     int16_t *pool;
     uint32_t pool_len;
     int32_t freq, vel, level;    /* Q16 */
@@ -85,7 +89,7 @@ static inline int32_t alea_mul(int32_t a, int32_t b) { return (int32_t)(((int64_
 static inline int32_t alea_div(int32_t a, int32_t b)
 {
     if (b > -16 && b < 16) return 0;
-    return (int32_t)(((int64_t)a << ALEA_Q) / b);
+    return (int32_t)((int64_t)a * ALEA_ONE / b);
 }
 static inline int32_t alea_clamp(int32_t v, int32_t lo, int32_t hi) { return v < lo ? lo : v > hi ? hi : v; }
 
@@ -97,7 +101,7 @@ static inline int32_t alea_sin_q16(uint32_t ph)      /* ph: a full turn is 2^32;
     else { a = ALEA_SINE[i]; b = ALEA_SINE[i + 1]; }
     s = a + (((b - a) * (int32_t)f) >> 8);
     s = (q & 2) ? -s : s;
-    return s << 1;                                    /* Q15 -> Q16 */
+    return s * 2;                                     /* Q15 -> Q16 */
 }
 
 /* polyBLEP: the correction near a jump, t and dt as fractions of a cycle (2^32 = 1) */
@@ -217,13 +221,17 @@ static int alea_vm_load(alea_vm_t *vm, const uint8_t *b, uint32_t n)
 }
 
 /* -------------------------------------------------------------- voices --- */
-static void alea_voice_init(const alea_vm_t *vm, alea_voice_t *v, int16_t *pool, uint32_t pool_len)
+/* the int32 words a voice of this patch keeps its state in (alea_voice_init's words) */
+static inline uint32_t alea_voice_words(const alea_vm_t *vm) { return vm->nops + vm->words; }
+
+static void alea_voice_init(const alea_vm_t *vm, alea_voice_t *v, int32_t *words, int16_t *pool, uint32_t pool_len)
 {
     memset(v, 0, sizeof *v);
+    v->slots = words;
+    v->st = words + vm->nops;
     v->pool = pool;
     v->pool_len = pool_len;
     v->seed = 0xA1EA5EEDu;
-    (void)vm;
 }
 
 static void alea_voice_on(const alea_vm_t *vm, alea_voice_t *v, int32_t freq_q16, int32_t vel_q16, int32_t level_q16)
@@ -234,7 +242,7 @@ static void alea_voice_on(const alea_vm_t *vm, alea_voice_t *v, int32_t freq_q16
     v->time_acc = 0; v->samples = 0; v->off_at = 0; v->quiet = 0;
     v->dc_x = 0; v->dc_y = 0;
     v->seed = v->seed * 1664525u + 1013904223u + 1;
-    memset(v->slots, 0, sizeof v->slots);
+    memset(v->slots, 0, vm->nops * sizeof(int32_t));
     for (i = 0; i < vm->nstates; i++) {
         const alea_state_t *s = &vm->st[i];
         if (s->kind == AST_LINE || s->kind == AST_CHORUS) {
@@ -258,7 +266,7 @@ static inline int32_t alea_line_read(const alea_voice_t *v, const alea_state_t *
     uint32_t len = s->len, k;
     if (!v->pool || s->at + len > v->pool_len) return 0;
     k = (head + len - (back % len)) % len;
-    return (int32_t)v->pool[s->at + k] << 3;
+    return (int32_t)v->pool[s->at + k] * 8;
 }
 
 static inline int32_t alea_env_held(uint32_t t, int32_t attack, int32_t decay, int32_t sustain)
@@ -384,7 +392,7 @@ static void alea_voice_render(const alea_vm_t *vm, alea_voice_t *v, int32_t *out
                 int32_t x = s[o->a], back;
                 if (!v->pool || st->at + len > v->pool_len) { r = x; break; }   /* no room: dry */
                 head = v->samples % len;
-                back = (int32_t)v->pool[st->at + head] << 3;                      /* lines hold Q13: ±4 */
+                back = (int32_t)v->pool[st->at + head] * 8;                       /* lines hold Q13: ±4 */
                 {
                     int32_t w = alea_clamp(x + alea_mul(back, o->k[1]), -(4 << ALEA_Q) + 8, (4 << ALEA_Q) - 8);
                     v->pool[st->at + head] = (int16_t)(w >> 3);
@@ -432,7 +440,7 @@ static void alea_voice_render(const alea_vm_t *vm, alea_voice_t *v, int32_t *out
             /* the DC blocker (15 Hz), then the output, clamped to ±8 */
             int32_t x = s[vm->nops - 1];
             /* y = x - x' + R y', R = 1 - 2 pi 15 / fs, the state in Q32 */
-            int64_t y64 = ((int64_t)(x - v->dc_x) << 16) + ((v->dc_y >> 8) * ALEA_DC_R >> 24);
+            int64_t y64 = ((int64_t)(x - v->dc_x) * 65536) + ((v->dc_y >> 8) * ALEA_DC_R >> 24);
             int32_t y = (int32_t)(y64 >> 16);
             v->dc_x = x; v->dc_y = y64;
             y = alea_clamp(y, -(8 << ALEA_Q), 8 << ALEA_Q);

@@ -13,6 +13,7 @@ int main(int argc, char **argv)
 {
     static uint8_t buf[1 << 20];
     static int16_t pool[1 << 18];
+    static int32_t words[ALEA_MAX_OPS + ALEA_MAX_STATES * 12];
     static int32_t out[256];
     alea_vm_t vm;
     alea_voice_t v;
@@ -35,7 +36,7 @@ int main(int argc, char **argv)
     freq = atof(argv[2]); vel = atof(argv[3]);
     hold = (uint32_t)(atof(argv[4]) * ALEA_FS); total = (uint32_t)(atof(argv[5]) * ALEA_FS);
     if (argc > 6) level = atof(argv[6]);
-    alea_voice_init(&vm, &v, pool, sizeof pool / sizeof pool[0]);
+    alea_voice_init(&vm, &v, words, pool, sizeof pool / sizeof pool[0]);
     alea_voice_on(&vm, &v, (int32_t)(freq * 65536), (int32_t)(vel * 65536), (int32_t)(level * 65536));
     fprintf(stderr, "ops %u states %u words %u pool %u release %.3f struck %.3f\n", vm.nops, vm.nstates, vm.words, vm.pool,
             vm.release_q16 / 65536.0, vm.struck_q16 / 65536.0);
