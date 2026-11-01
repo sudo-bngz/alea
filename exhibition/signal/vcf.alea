@@ -1,0 +1,22 @@
+// Vcf — the filter: the harmonics of the sound as bars, a low-pass curve
+// that sweeps across them, the resonance a peak at its knee; what is past
+// the cutoff fades. What it returns: 0 dark, up to 1 light.
+
+work Vcf(harmonics = 24, resonance = 0.6) {
+  let cutoff = 0.25 + 0.6 * (0.5 - 0.5 * cos(t * tau))         // sweeps up and back
+  let left = 0.1
+  let w = 0.8
+  let bar(k) = rect(left + w * (k + 0.5) / harmonics, 0.78 - 0.5 * 0.9 / (k + 1) / 2, w / harmonics * 0.6, 0.9 / (k + 1), 0, 0.001)
+  // the curve: flat, a bump at the cutoff, then falling 24 dB per octave
+  let f = (x - left) / w
+  let gain = (f < cutoff) * (1 + resonance * 1.2 * exp(-((f - cutoff) * 14) ^ 2)) + (f >= cutoff) * exp(-(f - cutoff) * 9) * (1 + resonance * 1.2)
+  let curve = abs(y - (0.78 - 0.42 * clamp(gain, 0, 1.6))) < 0.006
+  let bars = merge([bar(k) * (0.25 + 0.75 * clamp((gain * (left + w * (k + 0.5) / harmonics) * 0 + 1) * ((left + w * (k + 0.5) / harmonics - left) / w < cutoff), 0, 1)) for k in range(harmonics)])
+  let bright = merge([bar(k) * 0.9 * (abs((k + 0.5) / harmonics - cutoff) < 0.05) for k in range(harmonics)])
+  let knob(u0, v0, a, words) = merge(ring(u0, v0, 0.09, 0.006, 0.002) * 0.5, line(u0, v0, u0 + 0.035 * cos(a), v0 + 0.035 * sin(a), 0.006, 0.002),
+                                     text(words, u0, v0 + 0.09, 0.024, 0, "mono") * 0.6)
+  let knobs = merge(knob(0.2, 1.05, -2.3 + 4.6 * cutoff, "freq"), knob(0.4, 1.05, -2.3 + 4.6 * resonance, "res"), knob(0.6, 1.05, 0.9, "env"), knob(0.8, 1.05, -0.4, "lfo"))
+  let labels = merge(text("VCF", 0.5, 0.14, 0.09, 0, "mono"), text("24 dB / oct   low-pass", 0.5, 0.22, 0.024, 0, "mono") * 0.6,
+                     text("HPF", 0.08, 0.9, 0.024, 0, "mono", "left") * 0.5 + line(0.16, 0.9, 0.3, 0.9, 0.003, 0.002) * 0.4)
+  output merge(bars, bright, curve, knobs, labels)
+}

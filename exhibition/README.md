@@ -17,6 +17,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Kikai** (機械図) | `kikai.alea` (+ `fonts/`) | The technical drawing of an analog machine that never existed: a cassette deck, a radio-cassette, a portable radio or a rhythm machine, in off-white line on washed charcoal, labelled in Japanese like a service manual. Each edition draws another machine. Also a Reel: the machine plays a techno track in the spirit of Detroit, with its acid line written below. |
 | **Parasite** | `parasite.alea` (+ `parasite/`) | A broadcast being lost: snow, someone who appears in it made of the same blocks, a desktop filling with windows, a test card counting down, the figure again. Five works on a timeline, crossed with glitches, a morph and a fade, in a loop; a drone of pulses and a burst of static at every cut. |
 | **Requête** | `requete.alea` (+ `requete/`) | The life of one request, layer by layer: the address typed, the name resolved down a tree, the handshake and the lock, packets finding their way across a grid of routers, bits and pulses of light on the wire, and the page building itself. Six works on a timeline, in a loop, each with its own sound. |
+| **Signal** | `signal.alea` (+ `signal/`) | The path of a sound, from the oscillator to the room: DCO, LFO, envelope, filter, VCA and chorus, the mix, the vinyl, the speaker. Eight works on a timeline, a minute, in a loop; a Detroit techno track built stage by stage with the chain. |
 | **Kairo** (回路) | `kairo.alea` (+ `fonts/`) | After Kikai, a modular synthesizer that never existed: two rows of modules racked in another order each edition, patched with hanging cables. Also a Reel without drums: a slow piano waltz over a deep drone, the melody written on a staff as it plays. |
 
 ## Replaying the editions
@@ -28,6 +29,7 @@ alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
 alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
+alea signal.alea --seed 0xa1ea01             # the 1080×1920 Reel: 60 s, in a loop
 alea requete.alea --seed 0xa1ea01            # the 1080×1920 Reel: 28.5 s, in a loop
 alea parasite.alea --seed 0xa1ea01          # the 1080×1920 Reel: 24 s, in a loop
 alea kikai.alea --seed 0xa1ea05              # the drawing, and the 1080×1920 Reel of the machine playing (about 10 minutes)
@@ -551,6 +553,50 @@ réseau ; sur le fil, des bits et de la lumière ; et de retour en haut, la
 page se construit. Une œuvre par couche, sur une timeline, chacune avec son
 propre son. Édition 0xa1ea01.
 
+## Ninth room: Signal
+
+| # | Post | Files |
+|---|---|---|
+| 17 | Signal, Reel (60 s, a loop) | `17-signal-reel.mp4` (cover: `17-signal-reel-cover.jpg`) |
+
+**How it is made.** One work per stage of a synthesizer voice of the Juno
+kind, in `signal/`, and of what comes after: *Dco* (the saw, the pulse with
+its width breathing, the sub an octave below), *Lfo* (a triangle a few
+times a second, and what it does to the pitch and the pulse width), *Env*
+(attack, decay, sustain, release drawn as the line it is, a dot running it
+on every beat), *Vcf* (the harmonics as bars, the low-pass curve sweeping
+across them, the resonance a peak at the knee), *Vca* (the wave shaped by
+the envelope, then the chorus: the same wave twice, a little late and apart,
+one for each ear), *Mix* (the desk, meters jumping with what plays), *Vinyl*
+(the record turning, its grooves wobbling with the beat, the arm) and
+*Speaker* (the cone, and rings of pressure leaving it on every kick).
+
+The track is built the same way, at 128 BPM over thirty-two bars: while the
+DCO is on screen, a raw saw + pulse + sub holds A1, straight out; the LFO
+makes it waver; the envelope makes notes of it (a bassline drawn for each
+edition) and the kick comes in; the filter opens over the bassline and the
+hats join; the chorus widens the stabs (a minor ninth, a major ninth a third
+below); the full mix brings a lead; the record adds its crackle and a little
+wow; a riser lifts the room; and the last beat fades through black into the
+oscillator again. Every instrument is a synth written in the work, in the
+Juno way: saw + pulse + sub, a resonant low-pass, an envelope, chorus.
+
+### 17 · Signal (Reel)
+
+**EN**
+
+SIGNAL — the path of a sound, from the oscillator to the room. The DCO, the
+LFO, the envelope, the filter, the VCA and the chorus, the mix, the vinyl,
+the speaker: one work per stage, and the track is built with them, stage by
+stage, Detroit techno at 128. A minute, in a loop. Edition 0xa1ea01.
+
+**FR**
+
+SIGNAL — le chemin d'un son, de l'oscillateur à la salle. Le DCO, le LFO,
+l'enveloppe, le filtre, le VCA et le chorus, le mix, le vinyle, l'enceinte :
+une œuvre par étage, et le morceau se construit avec eux, étage par étage,
+techno de Detroit à 128. Une minute, en boucle. Édition 0xa1ea01.
+
 ### Hashtags
 
 ```
@@ -559,5 +605,5 @@ propre son. Édition 0xa1ea01.
 #paris #metro #transitmap #cartography
 #reactiondiffusion #gameoflife #emergence #biology #petridish
 #lofi #lofihouse #sunset #vinyl #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
-#http #dns #tcp #osi #networking #glitch #glitchart #vhs #nosignal #idm #piano #modularsynth #eurorack #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
+#synthesizer #juno #modular #signalpath #vinyl #http #dns #tcp #osi #networking #glitch #glitchart #vhs #nosignal #idm #piano #modularsynth #eurorack #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
 ```
