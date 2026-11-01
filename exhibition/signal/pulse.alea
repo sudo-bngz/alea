@@ -1,0 +1,18 @@
+// Pulse — the kick: square rings leaving the centre on every beat, the
+// centre jumping with it; a faint grid shaken by it.
+// at: the beat of the track the scene starts on; beats: how many it lasts.
+// What it returns: 0 dark, up to 1 light.
+
+work Pulse(at = 0, beats = 4, kick = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0], level = 1) {
+  let pick(l, j) = sum([l[k] * (j == k) for k in range(16)])     // l[j] for a j that moves (a list is indexed by fixed numbers only)
+  let b = at + t * beats                                       // the beat of the track, now
+  let env = exp(-fract(b) * 6) * level
+  let jit = 0.006 * sin(floor(b * 4) * 7.7) * env
+  let d = max(abs(x - 0.5 - jit), abs(y - 0.5)) / (0.7 + 0.3 * env)
+  let rings = (abs(fract(d * 3 - fract(b) * 1.5) - 0.5) > 0.44) * clamp(1.3 - d, 0, 1) * (0.4 + 0.6 * env)
+  let core = (d < 0.07 + 0.1 * env) * 1
+  let shell = (abs(d - 0.2 - 0.06 * env) < 0.006) * 0.8
+  let grid = ((abs(fract(x * 12) - 0.5) > 0.48) + (abs(fract(y * 12) - 0.5) > 0.48)) * 0.08 * (1 + 2 * env)
+  let ghost = pick(kick, floor(b * 4) % 16) * (fract(b * 4) < 0.3) * (abs(d - 0.45) < 0.01) * 0.6
+  output merge(rings, core, shell, grid, ghost)
+}

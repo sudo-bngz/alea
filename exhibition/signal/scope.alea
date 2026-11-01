@@ -1,0 +1,20 @@
+// Scope — the bass on an oscilloscope: the wave of the note playing (the
+// riff the track plays), its height the note's envelope, three traces
+// behind it fading. Drawn between top and bottom.
+// What it returns: 0 dark, up to 1 light.
+
+work Scope(at = 0, beats = 4, top = -0.3, bottom = 1.3, riff = [0, 0, 12, 0, 7, 0, 10, 0, 0, 3, 0, 5, 0, 7, 12, 0],
+           gate = [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1]) {
+  let pick(l, j) = sum([l[k] * (j == k) for k in range(16)])     // l[j] for a j that moves (a list is indexed by fixed numbers only)
+  let b = at + t * beats
+  let step = floor(b * 4) % 16
+  let env = exp(-fract(b * 4) * 4) * pick(gate, step)
+  let mid = (top + bottom) / 2
+  let half = (bottom - top) / 2
+  let cycles = 2 * exp(pick(riff, step) * 0.0578)                     // the higher the note, the more cycles across
+  let wave(lag) = mid + half * 0.75 * (env * exp(-lag * 2) + 0.05) * (sin(6.2832 * (x * cycles + t * 3 - lag * 0.3)) + 0.45 * sin(12.566 * (x * cycles + t * 3 - lag * 0.3)) + 0.2 * sin(18.85 * (x * cycles + t * 3 - lag * 0.3))) * 0.6
+  let trace(lag) = (abs(y - wave(lag)) < 0.006 + 0.004 * env) * exp(-lag * 1.5)
+  let frame = ((abs(y - top) < 0.002) + (abs(y - bottom) < 0.002) + (abs(y - mid) < 0.001) * 0.4) * 0.4
+  let grat = (y > top) * (y < bottom) * (abs(fract(x * 10) - 0.5) > 0.49) * 0.12
+  output merge(trace(0), trace(0.25) * 0.6, trace(0.5) * 0.4, trace(0.75) * 0.25, frame, grat)
+}

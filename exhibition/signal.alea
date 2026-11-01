@@ -1,140 +1,272 @@
-// Signal — the path of a sound, from the oscillator to the room. Twenty-one
-// scenes, cut fast, one per stage of a synthesizer voice of the Juno kind
-// and of what comes after: the DCO, noise, the LFO, the envelope, the
-// high-pass, the filter, the VCA and the chorus, the delay, the mix, the
-// compressor, the lathe, the vinyl, the stylus, the speaker, the room. On a
-// timeline, in a loop.
+// Signal — a minute of Detroit techno, seen as it is made: the kick as square
+// rings, the drum machine's sixteen steps, the bass on an oscilloscope, the
+// chord stabs and their echoes, the lead on a piano roll, the mix as a
+// spectrum, the strings as slow interference, a machine's voice as a
+// Lissajous figure; and, between them, over and over, the three at once on a
+// split screen (drums, bass, lead). Sixty scenes of one to four beats on
+// a timeline, every one starting on a beat and bouncing with the kick, crossed
+// by glitches, pixels and morphs drawn anew for each edition. What the
+// screens show is what plays: the patterns are drawn once, for the edition,
+// and both the sound and the pictures read them.
 //
-// The track is built the same way, stage by stage: a raw oscillator alone;
-// then the LFO moves it; then the envelope makes notes of it and the kick
-// comes in; the filter opens; the chorus widens the stabs; the full mix;
-// the record, with its crackle; the room. Detroit techno at 128 BPM,
-// thirty-two bars, a minute.
+// The track, at 128 BPM over thirty-two bars, in A minor, is built a layer
+// at a time, the Detroit way: strings and a clap echoing alone; the 909 kick
+// and the hats; the bass sequence and the electro percussion (rim, clave);
+// the chord stabs (Am9, Fmaj9) through a dotted delay, open hats and the
+// cowbell; the lead and the toms; the break (no kick, the strings open, Dm9
+// and Em9, a machine's voice, a riser, a snare roll); the drop with
+// everything, congas, the ride, the lead an octave up, the bass driven; and
+// the way out, layer after layer gone.
 
-use "signal/dco.alea"
-use "signal/lfo.alea"
-use "signal/env.alea"
-use "signal/vcf.alea"
-use "signal/vca.alea"
-use "signal/mix.alea"
-use "signal/vinyl.alea"
-use "signal/speaker.alea"
-use "signal/noise.alea"
-use "signal/hpf.alea"
-use "signal/delay.alea"
-use "signal/comp.alea"
-use "signal/lathe.alea"
-use "signal/needle.alea"
-use "signal/room.alea"
+use "signal/pulse.alea"
+use "signal/grid.alea"
+use "signal/scope.alea"
+use "signal/roll.alea"
+use "signal/chords.alea"
+use "signal/spectrum.alea"
+use "signal/strings.alea"
+use "signal/voice.alea"
+use "signal/split.alea"
 
 work Signal {
-  let ink(piece, colours) = paint(piece, palette: colours, range: [0, 1])
-  let film = timeline([
-      scene(ink(Dco(), ["#07090c", "#2b3d4f", "#8ec8e8", "#f4fbff"]), 3),             glitch(0.3, amount: 0.8),
-      scene(ink(Dco(cycles: 16), ["#07090c", "#2b3d4f", "#8ec8e8", "#f4fbff"]), 1.5),  pixels(0.3, size: 0.05),
-      scene(ink(Noise(), ["#0a0a0a", "#3a3a3a", "#bcbcbc", "#ffffff"]), 2),            glitch(0.3, amount: 1),
-      scene(ink(Lfo(), ["#0a0812", "#3b2a6a", "#b58cf0", "#f6f0ff"]), 3),              wipe(0.4, angle: 0, softness: 0.1),
-      scene(ink(Lfo(rate: 7), ["#0a0812", "#3b2a6a", "#b58cf0", "#f6f0ff"]), 1.5),     morph(0.5, amount: 0.2),
-      scene(ink(Env(), ["#0c0a05", "#5c4a14", "#f2c84b", "#fff8dc"]), 3),              pixels(0.3, size: 0.06),
-      scene(ink(Env(attack: 0.01, decay: 0.4, sustain: 0.2, beats: 20), ["#0c0a05", "#5c4a14", "#f2c84b", "#fff8dc"]), 1.5), glitch(0.4, amount: 0.9),
-      scene(ink(Hpf(), ["#06100c", "#145a3a", "#4ae0a0", "#e6fff4"]), 2),              slide(0.3, angle: 90),
-      scene(ink(Vcf(), ["#06100c", "#145a3a", "#4ae0a0", "#e6fff4"]), 3.5),            morph(0.6, amount: 0.25),
-      scene(ink(Vcf(resonance: 0.95), ["#06100c", "#145a3a", "#4ae0a0", "#e6fff4"]), 2), glitch(0.4, amount: 0.9),
-      scene(ink(Vca(), ["#100608", "#6a1a2e", "#f06080", "#ffe8ee"]), 3),              pixels(0.3, size: 0.04),
-      scene(ink(Delay(), ["#0a0612", "#3a2060", "#b080ff", "#f4ecff"]), 2.5),          glitch(0.3, amount: 0.8),
-      scene(ink(Mix(), ["#07070a", "#333344", "#c8c8d8", "#ffffff"]), 3),              wipe(0.3, angle: 90, softness: 0.05),
-      scene(ink(Comp(), ["#0c0a05", "#5c4a14", "#f2c84b", "#fff8dc"]), 2),             slide(0.3, angle: 0),
-      scene(ink(Mix(beats: 20), ["#07070a", "#333344", "#c8c8d8", "#ffffff"]), 2, from: 0.5, to: 1), glitch(0.4, amount: 1),
-      scene(ink(Lathe(), ["#030303", "#232323", "#9a9a9a", "#f2efe6"]), 4.5),          pixels(0.4, size: 0.08),
-      scene(ink(Vinyl(), ["#030303", "#232323", "#9a9a9a", "#f2efe6"]), 5.5),          morph(0.6, amount: 0.3),
-      scene(ink(Needle(), ["#030303", "#232323", "#9a9a9a", "#f2efe6"]), 2.5),         glitch(0.4, amount: 0.9),
-      scene(ink(Speaker(), ["#050405", "#3a2a1a", "#e8a050", "#fff2dc"]), 6.5),        fade(0.6),
-      scene(ink(Room(), ["#050405", "#3a2a1a", "#e8a050", "#fff2dc"]), 3),             glitch(0.5, amount: 1),
-      scene(ink(Speaker(beats: 12), ["#050405", "#3a2a1a", "#e8a050", "#fff2dc"]), 2.5, from: 0.5, to: 1), fade(0.6, through: 0),
-  ], loop: 1)                                                  // 60 s in all
+  // ── the patterns of the edition: drawn once, played by the track and shown by the screens ──
+  let kick  = [(k % 4 == 0) + (k % 4 == 3) * (k > 8) * (~between(0, 1) < 0.25) for k in range(16)]
+  let clap  = [(k == 4) + (k == 12) for k in range(16)]
+  let hat   = [(k % 4 == 2) + (k % 2 == 1) * (~between(0, 1) < 0.35) for k in range(16)]
+  let perc  = [(k % 4 != 0) * (~between(0, 1) < 0.32) for k in range(16)]
+  let riff  = [choose { 4: 0 | 2: 12 | 1: 7 | 1: 10 | 1: 3 | 1: 5 | 1: 15 } for k in range(16)]
+  let rgate = [(k % 4 == 0) + (k % 4 != 0) * (~between(0, 1) < 0.7) for k in range(16)]
+  let lead  = [choose { 0 | 3 | 5 | 7 | 10 | 12 | 15 } for k in range(16)]
+  let lgate = [~between(0, 1) < 0.7 for k in range(16)]
+  let stabs = [(k == choose { 0 | 3 }) + (k % 4 != 0) * (~between(0, 1) < 0.22) for k in range(16)]
+  let bells_ = [(k % 2 == 1) * (~between(0, 1) < 0.25) for k in range(16)]
+  let skins = [(~between(0, 1) < 0.4) for k in range(16)]
+  let chord0 = [0, 3, 7, 10, 14]
 
-  // ── the voice, of the Juno kind: saw + pulse + sub, a resonant low-pass, an envelope, chorus ──
+  // ── the pictures: warm, faded colours; a little grain; the scanlines of an old monitor ──
+  let rust    = ["#100a06", "#5a2412", "#e07a3a", "#f8e6cc"]
+  let teal    = ["#061012", "#124a50", "#58c8c0", "#e8fbf6"]
+  let violet  = ["#0c0812", "#3a1e5a", "#b07ae0", "#f4ecff"]
+  let mustard = ["#0e0c05", "#5a4a10", "#e8c040", "#fff6d8"]
+  let red     = ["#120606", "#601414", "#f05040", "#ffe4dc"]
+  let beat = 60 / 128
+  let ink(f, colours) = paint(f * (0.86 + 0.14 * (fract(y * 300) < 0.5)), palette: colours, range: [0, 1])
+  let xf(s) = choose { 5: glitch(s, amount: ~between(0.6, 1)) | 2: pixels(s, size: ~between(0.03, 0.08)) | 2: morph(s, amount: ~between(0.15, 0.3)) | 1: jump() }
+
+  let reel = timeline([
+      // the pad alone, the clap's echo (bars 0–2)
+      scene(ink(Strings(at: 0, beats: 4, bright: 0.2), teal), 4 * beat), xf(0.18),
+      scene(ink(Pulse(at: 4, beats: 2, level: 0.3), teal), 2 * beat), xf(0.18),
+      scene(ink(Strings(at: 6, beats: 2, bright: 0.4), teal), 2 * beat), xf(0.18),
+      // the kick, the hats (bars 2–4)
+      scene(ink(Pulse(at: 8, beats: 2), rust), 2 * beat), xf(0.18),
+      scene(ink(Grid(at: 10, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc), rust), 2 * beat), xf(0.18),
+      scene(ink(Pulse(at: 12, beats: 1), rust), 1 * beat), xf(0.12),
+      scene(ink(Grid(at: 13, beats: 1, kick: kick, clap: clap, hat: hat, perc: perc), rust), 1 * beat), xf(0.12),
+      scene(ink(Pulse(at: 14, beats: 2), rust), 2 * beat), xf(0.18),
+      // the bass, the electro percussion (bars 4–8)
+      scene(ink(Scope(at: 16, beats: 3, riff: riff, gate: rgate), mustard), 3 * beat), xf(0.18),
+      scene(ink(Split(at: 19, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), mustard), 2 * beat), xf(0.18),
+      scene(ink(Grid(at: 21, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc), rust), 2 * beat), xf(0.18),
+      scene(ink(Scope(at: 23, beats: 2, riff: riff, gate: rgate), mustard), 2 * beat), xf(0.18),
+      scene(ink(Split(at: 25, beats: 1, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), mustard), 1 * beat), xf(0.12),
+      scene(ink(Pulse(at: 26, beats: 2), rust), 2 * beat), xf(0.18),
+      scene(ink(Scope(at: 28, beats: 2, riff: riff, gate: rgate), mustard), 2 * beat), xf(0.18),
+      scene(ink(Split(at: 30, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), mustard), 2 * beat), xf(0.18),
+      // the chord stabs, the open hats, the cowbell (bars 8–12)
+      scene(ink(Chords(at: 32, beats: 3, hits: stabs, notes: chord0), violet), 3 * beat), xf(0.18),
+      scene(ink(Split(at: 35, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), violet), 2 * beat), xf(0.18),
+      scene(ink(Spectrum(at: 37, beats: 2), violet), 2 * beat), xf(0.18),
+      scene(ink(Chords(at: 39, beats: 2, hits: stabs, notes: chord0), violet), 2 * beat), xf(0.18),
+      scene(ink(Grid(at: 41, beats: 1, kick: kick, clap: clap, hat: hat, perc: perc), rust), 1 * beat), xf(0.12),
+      scene(ink(Split(at: 42, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), violet), 2 * beat), xf(0.18),
+      scene(ink(Chords(at: 44, beats: 2, hits: stabs, notes: chord0), violet), 2 * beat), xf(0.18),
+      scene(ink(Spectrum(at: 46, beats: 2), violet), 2 * beat), xf(0.18),
+      // the lead, the toms (bars 12–16)
+      scene(ink(Roll(at: 48, beats: 3, lead: lead, gate: lgate), red), 3 * beat), xf(0.18),
+      scene(ink(Split(at: 51, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), red), 2 * beat), xf(0.18),
+      scene(ink(Roll(at: 53, beats: 2, lead: lead, gate: lgate), red), 2 * beat), xf(0.18),
+      scene(ink(Scope(at: 55, beats: 1, riff: riff, gate: rgate), mustard), 1 * beat), xf(0.12),
+      scene(ink(Split(at: 56, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), red), 2 * beat), xf(0.18),
+      scene(ink(Roll(at: 58, beats: 2, lead: lead, gate: lgate), red), 2 * beat), xf(0.18),
+      scene(ink(Spectrum(at: 60, beats: 2), red), 2 * beat), xf(0.18),
+      scene(ink(Split(at: 62, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), red), 2 * beat), xf(0.18),
+      // the break: no kick, the strings open, the voice (bars 16–20)
+      scene(ink(Strings(at: 64, beats: 4, bright: 0.7), teal), 4 * beat), xf(0.18),
+      scene(ink(Chords(at: 68, beats: 4, hits: stabs, notes: chord0), violet), 4 * beat), xf(0.18),
+      scene(ink(Voice(at: 72, beats: 3), teal), 3 * beat), xf(0.18),
+      scene(ink(Strings(at: 75, beats: 3, bright: 1), teal), 3 * beat), xf(0.18),
+      scene(ink(Split(at: 78, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), teal), 2 * beat), xf(0.18),
+      // the drop: everything, congas, the ride (bars 20–28)
+      scene(ink(Pulse(at: 80, beats: 2), rust), 2 * beat), xf(0.18),
+      scene(ink(Split(at: 82, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), mustard), 2 * beat), xf(0.18),
+      scene(ink(Roll(at: 84, beats: 2, lead: lead, gate: lgate), red), 2 * beat), xf(0.18),
+      scene(ink(Grid(at: 86, beats: 1, kick: kick, clap: clap, hat: hat, perc: perc), rust), 1 * beat), xf(0.12),
+      scene(ink(Scope(at: 87, beats: 1, riff: riff, gate: rgate), mustard), 1 * beat), xf(0.12),
+      scene(ink(Split(at: 88, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), violet), 2 * beat), xf(0.18),
+      scene(ink(Chords(at: 90, beats: 2, hits: stabs, notes: chord0), violet), 2 * beat), xf(0.18),
+      scene(ink(Spectrum(at: 92, beats: 2), red), 2 * beat), xf(0.18),
+      scene(ink(Pulse(at: 94, beats: 1), rust), 1 * beat), xf(0.12),
+      scene(ink(Split(at: 95, beats: 1, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), teal), 1 * beat), xf(0.12),
+      scene(ink(Roll(at: 96, beats: 2, lead: lead, gate: lgate), red), 2 * beat), xf(0.18),
+      scene(ink(Voice(at: 98, beats: 2), teal), 2 * beat), xf(0.18),
+      scene(ink(Split(at: 100, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), mustard), 2 * beat), xf(0.18),
+      scene(ink(Grid(at: 102, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc), rust), 2 * beat), xf(0.18),
+      scene(ink(Scope(at: 104, beats: 2, riff: riff, gate: rgate), mustard), 2 * beat), xf(0.18),
+      scene(ink(Chords(at: 106, beats: 2, hits: stabs, notes: chord0), violet), 2 * beat), xf(0.18),
+      scene(ink(Split(at: 108, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), red), 2 * beat), xf(0.18),
+      scene(ink(Spectrum(at: 110, beats: 2), violet), 2 * beat), xf(0.18),
+      // the way out (bars 28–32)
+      scene(ink(Pulse(at: 112, beats: 4), rust), 4 * beat), xf(0.18),
+      scene(ink(Strings(at: 116, beats: 4, bright: 0.5), teal), 4 * beat), xf(0.18),
+      scene(ink(Grid(at: 120, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc), rust), 2 * beat), xf(0.18),
+      scene(ink(Split(at: 122, beats: 2, kick: kick, clap: clap, hat: hat, perc: perc, riff: riff, rgate: rgate, lead: lead, lgate: lgate), mustard), 2 * beat), xf(0.18),
+      scene(ink(Pulse(at: 124, beats: 4, level: 0.6), rust), 4 * beat), fade(0.4, through: 0),
+  ], loop: 1)                                                                    // 128 beats: 60 s
+  let look = chroma(vignette(film(reel, amount: 0.07), amount: 0.45), amount: 0.8)
+
+  // ── the instruments, all written here ──
   let m = meter(128, bars: 32)
-  let wobble(f) = f * (1 + 0.0025 * sine(0.4))                 // the record, a little unsteady
-  let raw = synth {                                            // the DCO alone, straight out
-    (saw() + pulse(note.freq, width: 0.3) * 0.7 + square(note.freq * 0.5) * 0.5) * adsr(attack: 1.5, decay: 0.5, sustain: 1, release: 2) * 0.5
+  let kick909 = synth {
+    drive(sine(note.freq * (1 + 5 * perc(attack: 0.0005, release: 0.035))) * perc(attack: 0.001, release: 0.42)
+          + noise() * perc(attack: 0.0005, release: 0.004) * 0.35, amount: 0.35)
   }
-  let moved = synth {                                          // the LFO on it: vibrato, and the filter wavering
-    let vib = 1 + 0.012 * sine(5.5)
-    lowpass(saw(note.freq * vib) + pulse(note.freq * vib, width: 0.3) * 0.7 + square(note.freq * 0.5) * 0.5,
-            cutoff: 500 + 400 * sine(0.5), resonance: 0.3) * adsr(attack: 1, decay: 0.5, sustain: 1, release: 2) * 0.5
+  let clapper = synth {
+    let hands = perc(attack: 0.0005, release: 0.012) + perc(attack: 0.011, release: 0.012) + perc(attack: 0.022, release: 0.22) * 0.8
+    bandpass(noise(), cutoff: 1200, resonance: 0.35) * hands * note.velocity
   }
-  let bass = synth {                                           // the envelope makes notes: the bassline
-    let env = adsr(attack: 0.003, decay: 0.18, sustain: 0.45, release: 0.1)
-    let f = wobble(note.freq)
-    drive(lowpass(saw(f) + pulse(f, width: 0.25) * 0.5 + square(f * 0.5) * 0.6, cutoff: 180 + 1800 * perc(release: 0.2) * note.velocity + 500 * note.level, resonance: 0.55) * env, amount: 0.3)
-  }
-  let stab = synth {                                           // the stabs, through the chorus
-    let env = adsr(attack: 0.004, decay: 0.2, sustain: 0.25, release: 0.3)
-    let f = wobble(note.freq)
-    chorus(lowpass(saw(f) + pulse(f * 1.002, width: 0.4) * 0.6 + square(f * 0.5) * 0.3, cutoff: 600 + 3000 * perc(release: 0.3), resonance: 0.35) * env, depth: 0.7, rate: 0.6)
-  }
-  let lead = synth {
-    let env = adsr(attack: 0.01, decay: 0.3, sustain: 0.5, release: 0.4)
-    let f = wobble(note.freq) * (1 + 0.006 * sine(5.5) * adsr(attack: 0.4, decay: 0.01, sustain: 1, release: 0.5))
-    delay(chorus(lowpass(pulse(f, width: 0.45) + saw(f * 0.5) * 0.4, cutoff: 1800 + 1500 * perc(release: 0.4), resonance: 0.3) * env, depth: 0.5),
-          time: 60 / 128 * 0.75, feedback: 0.4, mix: 0.35)
-  }
-  let kick = synth {
-    drive(sine(note.freq * (1 + 5 * perc(attack: 0.0005, release: 0.035))) * perc(attack: 0.001, release: 0.4) + noise() * perc(attack: 0.0005, release: 0.004) * 0.3, amount: 0.35)
-  }
-  let clap = synth {
+  let clapecho = synth {                                          // the intro's clap, thrown into a long echo
     let hands = perc(attack: 0.0005, release: 0.012) + perc(attack: 0.011, release: 0.012) + perc(attack: 0.022, release: 0.2) * 0.8
-    bandpass(noise(), cutoff: 1300, resonance: 0.35) * hands * note.velocity
+    delay(bandpass(noise(), cutoff: 1400, resonance: 0.4) * hands, time: 60 / 128 * 0.75, feedback: 0.6, mix: 0.55)
   }
-  let hat  = synth { highpass(noise(), cutoff: 8000, resonance: 0.2) * perc(release: 0.035) * note.velocity }
-  let open = synth { highpass(noise(), cutoff: 7000, resonance: 0.3) * perc(release: 0.28) * note.velocity }
-  let riser = synth { lowpass(noise(), cutoff: 300 + 6000 * adsr(attack: 3.5, decay: 0.01, sustain: 1, release: 0.3), resonance: 0.5) * adsr(attack: 3.5, decay: 0.01, sustain: 1, release: 0.3) * 0.5 }
+  let closed = synth { highpass(noise(), cutoff: 8500, resonance: 0.2) * perc(release: 0.035) * note.velocity }
+  let opened = synth { highpass(noise(), cutoff: 7000, resonance: 0.3) * perc(release: 0.26) * note.velocity }
+  let ride = synth { (highpass(noise(), cutoff: 6000, resonance: 0.2) * 0.6 + sine(3100) * 0.15 + sine(4700) * 0.1) * perc(release: 0.5) * note.velocity }
+  let rim = synth { (bandpass(noise(), cutoff: 2600, resonance: 0.6) * 0.6 + sine(1700) * 0.5) * perc(attack: 0.0005, release: 0.03) * note.velocity }
+  let cowbell = synth { bandpass(square(540) + square(800), cutoff: 900, resonance: 0.5) * perc(attack: 0.001, release: 0.2) * 0.6 * note.velocity }
+  let tom = synth { sine(note.freq * (1 + 0.8 * perc(attack: 0.001, release: 0.08))) * perc(attack: 0.001, release: 0.3) * note.velocity }
+  let conga = synth { sine(note.freq * (1 + 0.3 * perc(release: 0.03))) * perc(attack: 0.001, release: 0.16) * note.velocity }
+  let bass = synth {
+    let env = adsr(attack: 0.003, decay: 0.16, sustain: 0.35, release: 0.08)
+    lowpass(saw(note.freq) + square(note.freq * 0.5) * 0.6, cutoff: 160 + 1300 * perc(release: 0.14) * note.velocity, resonance: 0.45) * env
+  }
+  let bassdrive = synth {
+    let env = adsr(attack: 0.003, decay: 0.16, sustain: 0.4, release: 0.08)
+    drive(lowpass(saw(note.freq) + square(note.freq * 0.5) * 0.6, cutoff: 220 + 2000 * perc(release: 0.16) * note.velocity, resonance: 0.55) * env, amount: 0.45)
+  }
+  let stab = synth {
+    let env = adsr(attack: 0.003, decay: 0.18, sustain: 0.2, release: 0.25)
+    delay(chorus(lowpass(saw(note.freq) + pulse(note.freq * 1.003, width: 0.4) * 0.7, cutoff: 700 + 3200 * perc(release: 0.22), resonance: 0.35) * env,
+                 depth: 0.7, rate: 0.6), time: 60 / 128 * 0.75, feedback: 0.45, mix: 0.4)
+  }
+  let stabdub = synth {                                           // the break's stabs: darker, into a longer echo
+    let env = adsr(attack: 0.005, decay: 0.3, sustain: 0.2, release: 0.4)
+    delay(lowpass(saw(note.freq) + pulse(note.freq * 1.004, width: 0.45) * 0.7, cutoff: 500 + 1200 * perc(release: 0.4), resonance: 0.5) * env,
+          time: 60 / 128 * 1.5, feedback: 0.7, mix: 0.55)
+  }
+  let strings = synth {
+    let f = note.freq * (1 + 0.003 * sine(0.3))
+    chorus(lowpass(saw(f) + saw(f * 1.006) + saw(f * 0.995), cutoff: 900 + 500 * sine(0.07), resonance: 0.15)
+           * adsr(attack: 1.2, decay: 1, sustain: 0.85, release: 2.5) * 0.2, depth: 0.9, rate: 0.35)
+  }
+  let lush = synth {                                              // the strings of the break and the drop, opened
+    let f = note.freq * (1 + 0.003 * sine(0.3))
+    chorus(lowpass(saw(f) + saw(f * 1.006) + saw(f * 0.995) + saw(f * 2.002) * 0.3, cutoff: 2600 + 900 * sine(0.11), resonance: 0.2)
+           * adsr(attack: 0.8, decay: 1, sustain: 0.85, release: 2.5) * 0.2, depth: 1, rate: 0.4)
+  }
+  let leadsoft = synth {
+    delay(lowpass(pulse(note.freq, width: 0.35) + saw(note.freq * 1.005) * 0.4, cutoff: 600 + 1400 * perc(release: 0.1), resonance: 0.6)
+          * adsr(attack: 0.002, decay: 0.12, sustain: 0.3, release: 0.1), time: 60 / 128 * 0.75, feedback: 0.4, mix: 0.35)
+  }
+  let leadopen = synth {
+    delay(drive(lowpass(pulse(note.freq, width: 0.35) + saw(note.freq * 1.005) * 0.5, cutoff: 1200 + 3800 * perc(release: 0.14), resonance: 0.65)
+                * adsr(attack: 0.002, decay: 0.14, sustain: 0.35, release: 0.1), amount: 0.3), time: 60 / 128 * 0.75, feedback: 0.45, mix: 0.35)
+  }
+  let robot = synth {                                             // a machine's voice: saws through two formants that slide
+    let src = saw(note.freq) + saw(note.freq * 1.01)
+    (bandpass(src, cutoff: 500 + 600 * perc(release: 0.25), resonance: 0.7) + bandpass(src, cutoff: 1500 + 900 * perc(release: 0.15), resonance: 0.7) * 0.6)
+      * adsr(attack: 0.01, decay: 0.2, sustain: 0.5, release: 0.15) * 0.5
+  }
+  let riser = synth {
+    lowpass(noise(), cutoff: 300 + 7000 * adsr(attack: 7, decay: 0.01, sustain: 1, release: 0.3), resonance: 0.5) * adsr(attack: 7, decay: 0.01, sustain: 1, release: 0.3) * 0.5
+  }
+  let crash = synth { highpass(noise(), cutoff: 5000, resonance: 0.2) * perc(attack: 0.001, release: 1.8) * 0.5 }
 
-  // ── the arrangement: 32 bars, 128 sixteenths; the scenes begin at bars 0, 3.7, 6.9, 10.7, 14.9, 18.7, 22.4, 27.2 ──
-  let s16 = 128
-  let clock = t * 60
-  let during(a, b) = (clock >= a) * (clock < b)
+  // ── the arrangement: 32 bars of sixteenths ──
+  let s16 = 512
   let semi(s) = 1 - (s + 0.5) / 36
-  // the raw oscillator holds A1 while the DCO is on screen; moved while the LFO is
-  let drone1 = drone(during(0, 6.5) * 0.9 + x * 0, voices: 1, instrument: raw, scale: "chromatic", key: 55, gain: 0.8)
-  let drone2 = drone(during(6.5, 11) * 0.9 + x * 0, voices: 1, instrument: moved, scale: "chromatic", key: 55, gain: 0.8)
-  // from the envelope on (bar 7): the bassline, one bar drawn, and the kick
-  let riff = [choose { 5: 0 | 2: 12 | 1: 3 | 1: 7 | 1: 10 | 1: 15 } for k in range(16)]
-  let gate = [~between(0, 1) < 0.72 for k in range(16)]
-  pattern line = repeat s16 event(t: i / n, x: 0.5, y: semi(riff[i % 16]), size: 0.006,
-      intensity: gate[i % 16] * (i >= 28) * (0.5 + 0.3 * (i % 4 == 0) + 0.2 * (i >= 60)))
-  pattern kicks = repeat 32 event(t: i / 32, x: 0.5, y: 0.99, intensity: (i >= 7) * (i < 31))
-  pattern hats  = repeat s16 event(t: i / n, x: 0.5 + 0.25 * sin(i * 1.7), y: 0.5, intensity: (i >= 44) * ((i % 4 == 2) * 0.9 + (i % 4 != 2) * (0.25 + 0.2 * (i % 2))))
-  pattern opens = repeat 32 event(t: (i * 4 + 2) / s16, x: 0.62, y: 0.5, intensity: 0.5 * (i >= 11))
-  pattern claps = repeat 16 event(t: (i * 8 + 4) / s16, x: 0.5, y: 0.5, intensity: 0.8 * (i >= 7))
-  // the stabs, from the chorus on (bar 15): a minor ninth and a major ninth a third below
-  let hits = choose { [3, 6, 10] | [2, 7, 10, 14] | [0, 3, 6, 11] }
-  let nh = count(hits)
-  let chords = [[0, 3, 7, 10, 14], [-4, 0, 3, 7, 10]]
-  pattern stabs = repeat 17 * nh * 5 event(
-      t: ((floor(i / (5 * nh)) + 15) * 16 + hits[floor(i / 5) % nh]) / (s16 * 4),
-      x: 0.3 + 0.1 * (i % 5), y: semi(12 + chords[floor(i / (10 * nh)) % 2][i % 5]), size: 0.01,
-      intensity: 0.6 * (floor(i / (5 * nh)) + 15 < 31))
-  // the lead, from the mix on (bar 19): long notes on the chord
-  pattern tune = repeat 12 event(t: (19 * 16 + i * 16) / (s16 * 4), x: 0.5, y: semi(24 + [0, 3, 7, 10, 7, 3, 0, 10, 7, 14, 10, 7][i]), size: 0.08, intensity: 0.6 * (i < 11))
-  pattern rise = repeat 1 event(t: 27.5 / 32, x: 0.5, y: 0.5, size: 0.17, intensity: 0.7)
-  pattern fx = repeat 12 event(t: ~uniform(0.2, 0.95), x: ~uniform(0.2, 0.8), y: ~uniform(0.3, 0.9), size: 0.01, intensity: ~between(0.2, 0.5))
+  let bar(j) = floor(j / 16)
+  let st(j) = j % 16
+  let during(j, a, b) = (bar(j) >= a) * (bar(j) < b)
+  // the chords, two bars each: Am9 and Fmaj9; in the break Dm9 and Em9 (semitones above A2)
+  let am9 = [12, 15, 19, 22, 26]
+  let fmaj9 = [8, 12, 15, 19, 22]
+  let dm9 = [5, 8, 12, 15, 19]
+  let em9 = [7, 10, 14, 17, 21]
+  let chordof(bb) = during(bb * 16, 16, 20) * ((floor(bb / 2) % 2 == 0) * dm9 + (floor(bb / 2) % 2 == 1) * em9)
+                  + (1 - during(bb * 16, 16, 20)) * ((floor(bb / 2) % 2 == 0) * am9 + (floor(bb / 2) % 2 == 1) * fmaj9)
+  let rootof(bb) = during(bb * 16, 16, 20) * ((floor(bb / 2) % 2 == 0) * 5 + (floor(bb / 2) % 2 == 1) * 7) + (1 - during(bb * 16, 16, 20)) * (floor(bb / 2) % 2 == 1) * 8
+
+  pattern pads = repeat 16 * 5 event(t: floor(i / 5) * 32 / s16, x: 0.25 + 0.12 * (i % 5), y: semi(chordof(floor(i / 5) * 2)[i % 5] - 12), size: 0.146,
+      intensity: 0.5 * (1 - during(floor(i / 5) * 32, 16, 28)))
+  pattern lushes = repeat 16 * 5 event(t: floor(i / 5) * 32 / s16, x: 0.25 + 0.12 * (i % 5), y: semi(chordof(floor(i / 5) * 2)[i % 5] - 12), size: 0.146,
+      intensity: 0.5 * during(floor(i / 5) * 32, 16, 28))
+  pattern intro = repeat s16 event(t: i / s16, x: 0.6, y: 0.5, intensity: during(i, 0, 2) * (st(i) == 12) * 0.8 + during(i, 28, 32) * (st(i) == 12) * 0.6)
+  pattern kicks = repeat s16 event(t: i / s16, x: 0.5, y: 0.99, intensity: (during(i, 2, 16) + during(i, 20, 32)) * kick[i % 16] * (1 - (bar(i) == 31) * (st(i) > 8)))
+  pattern claps = repeat s16 event(t: i / s16, x: 0.5, y: 0.5, intensity: (during(i, 4, 16) + during(i, 20, 28)) * clap[i % 16] * 0.8
+                                                                          + during(i, 19, 20) * (st(i) >= 8) * 0.12 * (st(i) - 7))
+  pattern hats = repeat s16 event(t: i / s16, x: 0.5 + 0.25 * sin(i * 1.7), y: 0.5, intensity: (during(i, 2, 16) + during(i, 20, 30)) * hat[i % 16] * (0.35 + 0.35 * (st(i) % 4 == 2)))
+  pattern opens = repeat s16 event(t: i / s16, x: 0.62, y: 0.5, intensity: (during(i, 8, 16) + during(i, 20, 28)) * (st(i) % 8 == 6) * 0.45)
+  pattern rides = repeat s16 event(t: i / s16, x: 0.4, y: 0.5, intensity: during(i, 20, 28) * (st(i) % 2 == 0) * (0.25 + 0.15 * (st(i) % 4 == 2)))
+  pattern rims = repeat s16 event(t: i / s16, x: 0.3, y: 0.5, intensity: (during(i, 4, 16) + during(i, 20, 28)) * perc[i % 16] * 0.55)
+  pattern bells = repeat s16 event(t: i / s16, x: 0.7, y: 0.5, intensity: (during(i, 8, 16) + during(i, 20, 28)) * bells_[i % 16] * 0.4)
+  pattern toms = repeat s16 event(t: i / s16, x: 0.3 + 0.03 * st(i), y: semi(10 - (st(i) - 12) * 3), size: 0.01,
+      intensity: (during(i, 12, 16) + during(i, 20, 28)) * (bar(i) % 4 == 3) * (st(i) >= 12) * (~between(0, 1) < 0.7) * 0.7)
+  pattern congas = repeat s16 event(t: i / s16, x: ~between(0.3, 0.7), y: semi(choose { 19 | 24 | 26 }), size: 0.006,
+      intensity: during(i, 20, 28) * skins[i % 16] * (st(i) % 4 != 0) * 0.5)
+  pattern basses = repeat s16 event(t: i / s16, x: 0.5, y: semi(rootof(bar(i)) + riff[i % 16]), size: 0.006,
+      intensity: (during(i, 4, 16) + during(i, 28, 30)) * rgate[i % 16] * (0.65 + 0.35 * (st(i) % 4 == 0)))
+  pattern basses2 = repeat s16 event(t: i / s16, x: 0.5, y: semi(rootof(bar(i)) + riff[i % 16]), size: 0.006,
+      intensity: during(i, 20, 28) * rgate[i % 16] * (0.7 + 0.3 * (st(i) % 4 == 0)))
+  pattern stabhits = repeat s16 * 5 event(t: floor(i / 5) / s16, x: 0.3 + 0.1 * (i % 5), y: semi(chordof(bar(floor(i / 5)))[i % 5]), size: 0.01,
+      intensity: (during(floor(i / 5), 8, 16) + during(floor(i / 5), 20, 28)) * stabs[floor(i / 5) % 16] * 0.4)
+  pattern dubhits = repeat s16 * 5 event(t: floor(i / 5) / s16, x: 0.3 + 0.1 * (i % 5), y: semi(chordof(bar(floor(i / 5)))[i % 5]), size: 0.02,
+      intensity: during(floor(i / 5), 16, 20) * (st(floor(i / 5)) == 0) * (bar(floor(i / 5)) % 2 == 0) * 0.45)
+  pattern leads = repeat s16 event(t: i / s16, x: 0.5, y: semi(12 + lead[i % 16]), size: 0.006,
+      intensity: during(i, 12, 16) * lgate[i % 16] * 0.55)
+  pattern leads2 = repeat s16 event(t: i / s16, x: 0.5, y: semi(12 + lead[i % 16] + 12 * during(i, 24, 28)), size: 0.006,
+      intensity: during(i, 20, 28) * lgate[i % 16] * 0.55)
+  pattern voice = repeat s16 event(t: i / s16, x: ~between(0.3, 0.7), y: semi(choose { 12 | 15 | 19 }), size: 0.008,
+      intensity: (during(i, 16, 20) * (~between(0, 1) < 0.12) + during(i, 20, 28) * (st(i) == 14) * (bar(i) % 2 == 1)) * 0.6)
+  pattern rise = repeat 1 event(t: 18 * 16 / s16, x: 0.5, y: 0.5, size: 0.146, intensity: 0.7)
+  pattern crashes = repeat 3 event(t: [2, 20, 28][i] * 16 / s16, x: 0.5, y: 0.5, size: 0.1, intensity: 0.6)
 
   let music = [
-    drone1, drone2,
-    notes(line,  instrument: bass, scale: "chromatic", key: 55, tempo: m.tempo, swing: 0.53, gain: 1.1),
-    notes(kicks, instrument: kick, scale: "chromatic", key: 43.65, tempo: m.tempo, gain: 2),
-    notes(claps, instrument: clap, tempo: m.tempo, gain: 0.55),
-    notes(hats,  instrument: hat, tempo: m.tempo, swing: 0.54, gain: 0.35),
-    notes(opens, instrument: open, tempo: m.tempo, gain: 0.3),
-    notes(stabs, instrument: stab, scale: "chromatic", key: 110, tempo: m.tempo, gain: 0.5),
-    notes(tune,  instrument: lead, scale: "chromatic", key: 110, tempo: m.tempo, gain: 0.4),
-    notes(rise,  instrument: riser, gain: 0.5),
-    notes(fx,    instrument: open, tempo: m.tempo, gain: 0.15),
-    texture(0.1 + 0.9 * during(40, 51) + x * 0, kind: "crackle", gain: 0.35),
+    notes(pads,     instrument: strings, scale: "chromatic", key: 110, tempo: m.tempo, gain: 0.9),
+    notes(lushes,   instrument: lush, scale: "chromatic", key: 110, tempo: m.tempo, gain: 0.9),
+    notes(intro,    instrument: clapecho, tempo: m.tempo, gain: 0.6),
+    notes(kicks,    instrument: kick909, scale: "chromatic", key: 43.65, tempo: m.tempo, gain: 2),
+    notes(claps,    instrument: clapper, tempo: m.tempo, gain: 0.6),
+    notes(hats,     instrument: closed, tempo: m.tempo, swing: 0.54, gain: 0.4),
+    notes(opens,    instrument: opened, tempo: m.tempo, gain: 0.3),
+    notes(rides,    instrument: ride, tempo: m.tempo, swing: 0.54, gain: 0.3),
+    notes(rims,     instrument: rim, tempo: m.tempo, swing: 0.54, gain: 0.45),
+    notes(bells,    instrument: cowbell, tempo: m.tempo, swing: 0.54, gain: 0.35),
+    notes(toms,     instrument: tom, scale: "chromatic", key: 82.4, tempo: m.tempo, gain: 0.7),
+    notes(congas,   instrument: conga, scale: "chromatic", key: 110, tempo: m.tempo, swing: 0.54, gain: 0.5),
+    notes(basses,   instrument: bass, scale: "chromatic", key: 55, tempo: m.tempo, swing: 0.53, gain: 1.2),
+    notes(basses2,  instrument: bassdrive, scale: "chromatic", key: 55, tempo: m.tempo, swing: 0.53, gain: 1.1),
+    notes(stabhits, instrument: stab, scale: "chromatic", key: 110, tempo: m.tempo, swing: 0.53, gain: 0.45),
+    notes(dubhits,  instrument: stabdub, scale: "chromatic", key: 110, tempo: m.tempo, gain: 0.5),
+    notes(leads,    instrument: leadsoft, scale: "chromatic", key: 220, tempo: m.tempo, swing: 0.53, gain: 0.4),
+    notes(leads2,   instrument: leadopen, scale: "chromatic", key: 220, tempo: m.tempo, swing: 0.53, gain: 0.4),
+    notes(voice,    instrument: robot, scale: "chromatic", key: 110, tempo: m.tempo, gain: 0.4),
+    notes(rise,     instrument: riser, gain: 0.5),
+    notes(crashes,  instrument: crash, gain: 0.35),
+    notes(reel.cues, instrument: rim, gain: 0.08),
+    texture(0.3 + x * 0, kind: "crackle", gain: 0.15),
   ]
 
-  render image(film, width: 1080, height: 1920, at: 24 / 60)
-  render video(film, fps: 30, width: 1080, height: 1920, sound: music, room: 0.3, echo: 0.15)
+  render image(look, width: 1080, height: 1920, at: 41.5 / 60)          // the cover: the split screen, drums, bass, lead
+  render video(look, fps: 30, width: 1080, height: 1920, sound: music, room: 0.25, echo: 0.1)
 }

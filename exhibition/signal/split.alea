@@ -1,0 +1,21 @@
+// Split — the three at once, stacked: the drum machine on top, the bass on
+// the oscilloscope in the middle, the lead on its piano roll below, the
+// lines between them flashing on the beat.
+// What it returns: 0 dark, up to 1 light.
+
+use "grid.alea"
+use "scope.alea"
+use "roll.alea"
+
+work Split(at = 0, beats = 2, kick = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0], clap = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+           hat = [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0], perc = [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0],
+           riff = [0, 0, 12, 0, 7, 0, 10, 0, 0, 3, 0, 5, 0, 7, 12, 0], rgate = [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1],
+           lead = [0, 3, 7, 3, 10, 7, 12, 7, 0, 5, 7, 3, 15, 12, 10, 7], lgate = [1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0]) {
+  let b = at + t * beats
+  let env = exp(-fract(b) * 6)
+  let drums = Grid(at: at, beats: beats, top: -0.33, bottom: 0.15, kick: kick, clap: clap, hat: hat, perc: perc)
+  let bass = Scope(at: at, beats: beats, top: 0.25, bottom: 0.75, riff: riff, gate: rgate)
+  let tune = Roll(at: at, beats: beats, top: 0.85, bottom: 1.33, lead: lead, gate: lgate)
+  let seams = ((abs(y - 0.2) < 0.003) + (abs(y - 0.8) < 0.003)) * (0.3 + 0.7 * env)
+  output merge(drums * (y < 0.2), bass * (y > 0.2) * (y < 0.8), tune * (y > 0.8), seams)
+}
