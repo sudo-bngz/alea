@@ -1,0 +1,19 @@
+// Page — back at the top: the response arrives, the page builds itself,
+// block by block, in the browser: a title, lines of text, a picture, the
+// status in the corner. What it returns: 0 dark, up to 1 light.
+
+work Page {
+  let win = cut(rect(0.5, 0.62, 0.86, 1.1, 0, 0.002), rect(0.5, 0.62 + 0.02, 0.86 - 0.008, 1.1 - 0.048, 0, 0.002))
+  let dots = merge([circle(0.1 + j * 0.03, 0.09, 0.013, 0.001) for j in range(3)]) * 0.6
+  let status = text("200 OK", 0.84, 0.09, 0.026, 0, "mono") * smoothstep(0.02, 0.1, t) * 0.8
+  // the blocks arrive one after another, from a little below their place
+  let arrive(k) = smoothstep(0.1 + k * 0.07, 0.2 + k * 0.07, t)
+  let drop(k) = 0.04 * (1 - arrive(k))
+  let title = text("ALEA", 0.17, 0.26 + drop(0), 0.1, 0, "sans", "left") * arrive(0)
+  let sub   = text("a language where every run is a new edition", 0.17, 0.34 + drop(1), 0.026, 0, "mono", "left") * arrive(1) * 0.7
+  let lines = merge([rect(0.17 + 0.3 * ~between(0.5, 1), 0.44 + k * 0.045 + drop(2 + k), 0.6 * ~between(0.5, 1), 0.014, 0, 0.001) * arrive(2 + k) * 0.5 for k in range(5)])
+  let picture = rect(0.5, 0.92 + drop(7), 0.66, 0.3, 0, 0.002) * arrive(7)
+  let inside = overlap(picture, ripples(x: 0.5, y: 0.92, count: 7) * 0.5 + 0.3)
+  let foot = text("edition 0xa1ea01", 0.5, 1.13 + drop(8), 0.024, 0, "mono") * arrive(8) * 0.6
+  output merge(win, dots, status, title, sub, lines, max(picture * 0.3, inside), foot)
+}
