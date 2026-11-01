@@ -17,7 +17,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Kikai** (機械図) | `kikai.alea` (+ `fonts/`) | The technical drawing of an analog machine that never existed: a cassette deck, a radio-cassette, a portable radio or a rhythm machine, in off-white line on washed charcoal, labelled in Japanese like a service manual. Each edition draws another machine. Also a Reel: the machine plays a techno track in the spirit of Detroit, with its acid line written below. |
 | **Parasite** | `parasite.alea` (+ `parasite/`) | A broadcast being lost: snow, someone who appears in it made of the same blocks, a desktop filling with windows, a test card counting down, the figure again. Five works on a timeline, crossed with glitches, a morph and a fade, in a loop; a drone of pulses and a burst of static at every cut. |
 | **Requête** | `requete.alea` (+ `requete/`) | The life of one request, layer by layer: the address typed, the name resolved down a tree, the handshake and the lock, packets finding their way across a grid of routers, bits and pulses of light on the wire, and the page building itself. Six works on a timeline, in a loop, each with its own sound. |
-| **Signal** | `signal.alea` (+ `signal/`) | The path of a sound, from the oscillator to the room: DCO, LFO, envelope, filter, VCA and chorus, the mix, the vinyl, the speaker. Eight works on a timeline, a minute, in a loop; a Detroit techno track built stage by stage with the chain. |
+| **Signal** | `signal.alea` (+ `signal/`) | The path of a sound, from the oscillator to the room: DCO, noise, LFO, envelope, high-pass, filter, VCA and chorus, delay, the mix, the compressor, the lathe, the vinyl, the stylus, the speaker, the room. Fifteen works in twenty-one fast cuts, a minute, in a loop; a Detroit techno track built stage by stage with the chain. |
 | **Kairo** (回路) | `kairo.alea` (+ `fonts/`) | After Kikai, a modular synthesizer that never existed: two rows of modules racked in another order each edition, patched with hanging cables. Also a Reel without drums: a slow piano waltz over a deep drone, the melody written on a staff as it plays. |
 
 ## Replaying the editions
@@ -560,16 +560,21 @@ propre son. Édition 0xa1ea01.
 | 17 | Signal, Reel (60 s, a loop) | `17-signal-reel.mp4` (cover: `17-signal-reel-cover.jpg`) |
 
 **How it is made.** One work per stage of a synthesizer voice of the Juno
-kind, in `signal/`, and of what comes after: *Dco* (the saw, the pulse with
-its width breathing, the sub an octave below), *Lfo* (a triangle a few
+kind, in `signal/`, and of what comes after, cut fast (scenes of 1.5 to 6.5
+seconds, transitions of 0.3 to 0.6, mostly glitches, pixels and morphs; a
+few stages come back zoomed or faster): *Dco* (the saw, the pulse with its
+width breathing, the sub an octave below), *Noise*, *Lfo* (a triangle a few
 times a second, and what it does to the pitch and the pulse width), *Env*
 (attack, decay, sustain, release drawn as the line it is, a dot running it
-on every beat), *Vcf* (the harmonics as bars, the low-pass curve sweeping
-across them, the resonance a peak at the knee), *Vca* (the wave shaped by
-the envelope, then the chorus: the same wave twice, a little late and apart,
-one for each ear), *Mix* (the desk, meters jumping with what plays), *Vinyl*
-(the record turning, its grooves wobbling with the beat, the arm) and
-*Speaker* (the cone, and rings of pressure leaving it on every kick).
+on every beat), *Hpf*, *Vcf* (the harmonics as bars, the low-pass curve
+sweeping across them, the resonance a peak at the knee), *Vca* (the wave
+shaped by the envelope, then the chorus: the same wave twice, a little late
+and apart, one for each ear), *Delay* (a hit and its repeats), *Mix* (the
+desk, meters jumping with what plays), *Comp* (the gain-reduction meter
+diving on every kick), *Lathe* (the head cutting the groove), *Vinyl* (the
+record turning, its grooves wobbling with the beat, the arm), *Needle* (the
+stylus in the groove, close up), *Speaker* (the cone, and rings of pressure
+leaving it on every kick) and *Room* (the floor).
 
 The track is built the same way, at 128 BPM over thirty-two bars: while the
 DCO is on screen, a raw saw + pulse + sub holds A1, straight out; the LFO
@@ -586,15 +591,17 @@ Juno way: saw + pulse + sub, a resonant low-pass, an envelope, chorus.
 **EN**
 
 SIGNAL — the path of a sound, from the oscillator to the room. The DCO, the
-LFO, the envelope, the filter, the VCA and the chorus, the mix, the vinyl,
-the speaker: one work per stage, and the track is built with them, stage by
+noise, the LFO, the envelope, the filters, the VCA and the chorus, the delay,
+the mix, the compressor, the lathe, the vinyl, the stylus, the speaker, the
+floor: one work per stage, twenty-one cuts, and the track is built with them, stage by
 stage, Detroit techno at 128. A minute, in a loop. Edition 0xa1ea01.
 
 **FR**
 
-SIGNAL — le chemin d'un son, de l'oscillateur à la salle. Le DCO, le LFO,
-l'enveloppe, le filtre, le VCA et le chorus, le mix, le vinyle, l'enceinte :
-une œuvre par étage, et le morceau se construit avec eux, étage par étage,
+SIGNAL — le chemin d'un son, de l'oscillateur à la salle. Le DCO, le bruit,
+le LFO, l'enveloppe, les filtres, le VCA et le chorus, le délai, le mix, le
+compresseur, la graveuse, le vinyle, la pointe, l'enceinte, la piste : une
+œuvre par étage, vingt et une coupes, et le morceau se construit avec eux, étage par étage,
 techno de Detroit à 128. Une minute, en boucle. Édition 0xa1ea01.
 
 ### Hashtags

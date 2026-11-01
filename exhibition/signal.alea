@@ -1,7 +1,9 @@
-// Signal — the path of a sound, from the oscillator to the room. Eight
-// scenes, one per stage of a synthesizer voice of the Juno kind and of
-// what comes after: the DCO, the LFO, the envelope, the filter, the VCA and
-// the chorus, the mix, the vinyl, the speaker. On a timeline, in a loop.
+// Signal — the path of a sound, from the oscillator to the room. Twenty-one
+// scenes, cut fast, one per stage of a synthesizer voice of the Juno kind
+// and of what comes after: the DCO, noise, the LFO, the envelope, the
+// high-pass, the filter, the VCA and the chorus, the delay, the mix, the
+// compressor, the lathe, the vinyl, the stylus, the speaker, the room. On a
+// timeline, in a loop.
 //
 // The track is built the same way, stage by stage: a raw oscillator alone;
 // then the LFO moves it; then the envelope makes notes of it and the kick
@@ -17,19 +19,39 @@ use "signal/vca.alea"
 use "signal/mix.alea"
 use "signal/vinyl.alea"
 use "signal/speaker.alea"
+use "signal/noise.alea"
+use "signal/hpf.alea"
+use "signal/delay.alea"
+use "signal/comp.alea"
+use "signal/lathe.alea"
+use "signal/needle.alea"
+use "signal/room.alea"
 
 work Signal {
   let ink(piece, colours) = paint(piece, palette: colours, range: [0, 1])
   let film = timeline([
-      scene(ink(Dco(), ["#07090c", "#2b3d4f", "#8ec8e8", "#f4fbff"]), 7),         slide(0.6, angle: 90),
-      scene(ink(Lfo(), ["#0a0812", "#3b2a6a", "#b58cf0", "#f6f0ff"]), 6),         wipe(0.7, angle: 0, softness: 0.1),
-      scene(ink(Env(), ["#0c0a05", "#5c4a14", "#f2c84b", "#fff8dc"]), 7),         pixels(0.6, size: 0.06),
-      scene(ink(Vcf(), ["#06100c", "#145a3a", "#4ae0a0", "#e6fff4"]), 8),         morph(1, amount: 0.2),
-      scene(ink(Vca(), ["#100608", "#6a1a2e", "#f06080", "#ffe8ee"]), 7),         slide(0.6, angle: 0),
-      scene(ink(Mix(), ["#07070a", "#333344", "#c8c8d8", "#ffffff"]), 7),         glitch(0.7, amount: 0.7),
-      scene(ink(Vinyl(), ["#030303", "#232323", "#9a9a9a", "#f2efe6"]), 9),       fade(1.2),
-      scene(ink(Speaker(), ["#050405", "#3a2a1a", "#e8a050", "#fff2dc"]), 9),     fade(1, through: 0),
-  ], loop: 1)
+      scene(ink(Dco(), ["#07090c", "#2b3d4f", "#8ec8e8", "#f4fbff"]), 3),             glitch(0.3, amount: 0.8),
+      scene(ink(Dco(cycles: 16), ["#07090c", "#2b3d4f", "#8ec8e8", "#f4fbff"]), 1.5),  pixels(0.3, size: 0.05),
+      scene(ink(Noise(), ["#0a0a0a", "#3a3a3a", "#bcbcbc", "#ffffff"]), 2),            glitch(0.3, amount: 1),
+      scene(ink(Lfo(), ["#0a0812", "#3b2a6a", "#b58cf0", "#f6f0ff"]), 3),              wipe(0.4, angle: 0, softness: 0.1),
+      scene(ink(Lfo(rate: 7), ["#0a0812", "#3b2a6a", "#b58cf0", "#f6f0ff"]), 1.5),     morph(0.5, amount: 0.2),
+      scene(ink(Env(), ["#0c0a05", "#5c4a14", "#f2c84b", "#fff8dc"]), 3),              pixels(0.3, size: 0.06),
+      scene(ink(Env(attack: 0.01, decay: 0.4, sustain: 0.2, beats: 20), ["#0c0a05", "#5c4a14", "#f2c84b", "#fff8dc"]), 1.5), glitch(0.4, amount: 0.9),
+      scene(ink(Hpf(), ["#06100c", "#145a3a", "#4ae0a0", "#e6fff4"]), 2),              slide(0.3, angle: 90),
+      scene(ink(Vcf(), ["#06100c", "#145a3a", "#4ae0a0", "#e6fff4"]), 3.5),            morph(0.6, amount: 0.25),
+      scene(ink(Vcf(resonance: 0.95), ["#06100c", "#145a3a", "#4ae0a0", "#e6fff4"]), 2), glitch(0.4, amount: 0.9),
+      scene(ink(Vca(), ["#100608", "#6a1a2e", "#f06080", "#ffe8ee"]), 3),              pixels(0.3, size: 0.04),
+      scene(ink(Delay(), ["#0a0612", "#3a2060", "#b080ff", "#f4ecff"]), 2.5),          glitch(0.3, amount: 0.8),
+      scene(ink(Mix(), ["#07070a", "#333344", "#c8c8d8", "#ffffff"]), 3),              wipe(0.3, angle: 90, softness: 0.05),
+      scene(ink(Comp(), ["#0c0a05", "#5c4a14", "#f2c84b", "#fff8dc"]), 2),             slide(0.3, angle: 0),
+      scene(ink(Mix(beats: 20), ["#07070a", "#333344", "#c8c8d8", "#ffffff"]), 2, from: 0.5, to: 1), glitch(0.4, amount: 1),
+      scene(ink(Lathe(), ["#030303", "#232323", "#9a9a9a", "#f2efe6"]), 4.5),          pixels(0.4, size: 0.08),
+      scene(ink(Vinyl(), ["#030303", "#232323", "#9a9a9a", "#f2efe6"]), 5.5),          morph(0.6, amount: 0.3),
+      scene(ink(Needle(), ["#030303", "#232323", "#9a9a9a", "#f2efe6"]), 2.5),         glitch(0.4, amount: 0.9),
+      scene(ink(Speaker(), ["#050405", "#3a2a1a", "#e8a050", "#fff2dc"]), 6.5),        fade(0.6),
+      scene(ink(Room(), ["#050405", "#3a2a1a", "#e8a050", "#fff2dc"]), 3),             glitch(0.5, amount: 1),
+      scene(ink(Speaker(beats: 12), ["#050405", "#3a2a1a", "#e8a050", "#fff2dc"]), 2.5, from: 0.5, to: 1), fade(0.6, through: 0),
+  ], loop: 1)                                                  // 60 s in all
 
   // ── the voice, of the Juno kind: saw + pulse + sub, a resonant low-pass, an envelope, chorus ──
   let m = meter(128, bars: 32)
@@ -71,11 +93,12 @@ work Signal {
 
   // ── the arrangement: 32 bars, 128 sixteenths; the scenes begin at bars 0, 3.7, 6.9, 10.7, 14.9, 18.7, 22.4, 27.2 ──
   let s16 = 128
-  let stage(k) = (film.index > k - 0.5) * (film.index < k + 0.5)
+  let clock = t * 60
+  let during(a, b) = (clock >= a) * (clock < b)
   let semi(s) = 1 - (s + 0.5) / 36
   // the raw oscillator holds A1 while the DCO is on screen; moved while the LFO is
-  let drone1 = drone(stage(0) * 0.9 + x * 0, voices: 1, instrument: raw, scale: "chromatic", key: 55, gain: 0.8)
-  let drone2 = drone(stage(1) * 0.9 + x * 0, voices: 1, instrument: moved, scale: "chromatic", key: 55, gain: 0.8)
+  let drone1 = drone(during(0, 6.5) * 0.9 + x * 0, voices: 1, instrument: raw, scale: "chromatic", key: 55, gain: 0.8)
+  let drone2 = drone(during(6.5, 11) * 0.9 + x * 0, voices: 1, instrument: moved, scale: "chromatic", key: 55, gain: 0.8)
   // from the envelope on (bar 7): the bassline, one bar drawn, and the kick
   let riff = [choose { 5: 0 | 2: 12 | 1: 3 | 1: 7 | 1: 10 | 1: 15 } for k in range(16)]
   let gate = [~between(0, 1) < 0.72 for k in range(16)]
@@ -109,7 +132,7 @@ work Signal {
     notes(tune,  instrument: lead, scale: "chromatic", key: 110, tempo: m.tempo, gain: 0.4),
     notes(rise,  instrument: riser, gain: 0.5),
     notes(fx,    instrument: open, tempo: m.tempo, gain: 0.15),
-    texture(0.1 + 0.9 * stage(6) + x * 0, kind: "crackle", gain: 0.35),
+    texture(0.1 + 0.9 * during(40, 51) + x * 0, kind: "crackle", gain: 0.35),
   ]
 
   render image(film, width: 1080, height: 1920, at: 24 / 60)
