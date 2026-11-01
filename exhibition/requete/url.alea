@@ -1,0 +1,20 @@
+// Url — layer 7, application: the address typed into the bar, letter by
+// letter, a cursor blinking, then Enter: the bar flashes and the request
+// leaves as a line of light. What it returns: 0 dark, up to 1 light.
+
+work Url(address = "alea.bngz.io/exhibition", letters = 23) {
+  let barw = 0.86
+  let bar  = cut(rect(0.5, 0.5, barw, 0.11, 0, 0.002), rect(0.5, 0.5, barw - 0.008, 0.11 - 0.008, 0, 0.002))
+  let lock = merge(ring(0.1, 0.5, 0.028, 0.005, 0.001), rect(0.1, 0.512, 0.034, 0.024, 0, 0.001))
+  // the letters appear from the left, as if typed; the cursor at the edge
+  let typed = clamp((t - 0.08) / 0.55, 0, 1)
+  let words = text(address, 0.15, 0.5, 0.045, 0, "mono", "left")
+  let edge  = 0.15 + 0.012 + 0.0265 * letters * typed
+  let cursor = rect(edge + 0.012, 0.5, 0.02, 0.05, 0, 0.001) * (fract(t * 10) < 0.5) * (t < 0.72)
+  // Enter: the bar flashes, and the request leaves downwards
+  let flash = (t > 0.72) * exp(-(t - 0.72) * 14) * 0.6
+  let leaving = (t > 0.74) * line(0.5, 0.5, 0.5, 0.5 + (t - 0.74) * 4, 0.006, 0.002) * (1 - smoothstep(0.74, 1, t) * 0.5)
+  let method = text("GET /exhibition HTTP/1.1", 0.5, 0.7, 0.028, 0, "mono") * smoothstep(0.78, 0.9, t)
+  let host   = text("Host: alea.bngz.io", 0.5, 0.75, 0.028, 0, "mono") * smoothstep(0.84, 0.96, t)
+  output merge(bar, lock, words * (x < edge), cursor, leaving, method, host) + flash * rect(0.5, 0.5, barw, 0.11, 0, 0.01)
+}
