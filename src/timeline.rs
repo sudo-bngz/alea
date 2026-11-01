@@ -12,7 +12,7 @@
 //! (B), and how much of each to take (`taps`). A field evaluates A and B
 //! there; a painting reads the pixels of A's and B's frames there.
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::eval::hash;
 
@@ -269,18 +269,22 @@ pub fn taps(kind: Kind, p: f64, x: f64, y: f64, clock: f64, seed: u64) -> Vec<Ta
 
 // ── the default length of a video or a sound: the last timeline built ──
 
-static HINT: Mutex<Option<f64>> = Mutex::new(None);
+// (one per thread: it belongs to the evaluation that set it, and works are drawn on several threads at once: tests,
+// the plugin's instances)
+thread_local! {
+    static HINT: std::cell::Cell<Option<f64>> = const { std::cell::Cell::new(None) };
+}
 
 pub fn set_hint(seconds: f64) {
-    *HINT.lock().unwrap() = Some(seconds);
+    HINT.with(|h| h.set(Some(seconds)));
 }
 
 pub fn hint() -> Option<f64> {
-    *HINT.lock().unwrap()
+    HINT.with(|h| h.get())
 }
 
 pub fn reset_hint() {
-    *HINT.lock().unwrap() = None;
+    HINT.with(|h| h.set(None));
 }
 
 /// A timeline shared between the field and the painting worlds.
