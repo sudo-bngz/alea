@@ -1,0 +1,27 @@
+// Bits — layers 2 and 1, link and physical: the frame as a stream of
+// ones and zeros going by, the signal they make on the wire, and the pulses
+// of light down the fibre. What it returns: 0 dark, up to 1 light.
+
+work Bits {
+  // the bits: a hash of their position, scrolling left at a steady rate
+  let k = floor(x * 28 + t * 56)
+  let bit = (fract(sin(k * 12.9898 + 7) * 43758.5453) > 0.5)
+  let cell = fract(x * 28 + t * 56)
+  // the signal: high for a 1, low for a 0, with its edges
+  let level = 0.5 - 0.12 * bit
+  let trace = (abs(y - level) < 0.006) + (cell < 0.03) * (y > 0.38) * (y < 0.5)
+  // the digits going by: a "1" and a "0" at every cell, the right one shown
+  let one  = text("1", 0.5, 0.2, 0.05, 0, "mono")
+  let zero = text("0", 0.5, 0.2, 0.05, 0, "mono")
+  let digits = merge([max(move(one, x: (j - 13.5 - fract(t * 56)) / 28, y: 0) * (fract(sin((j + floor(t * 56)) * 12.9898 + 7) * 43758.5453) > 0.5),
+                          move(zero, x: (j - 13.5 - fract(t * 56)) / 28, y: 0) * (fract(sin((j + floor(t * 56)) * 12.9898 + 7) * 43758.5453) <= 0.5))
+                      for j in range(29)]) * 0.8
+  let preamble = text("preamble 10101010  ·  frame 1518 bytes  ·  fcs", 0.5, 0.08, 0.024, 0, "mono") * 0.6
+  // the fibre: pulses of light running down a long curve
+  let fibre = [[0.1, 0.72], [0.4, 0.66], [0.6, 0.86], [0.9, 0.8], [0.7, 1.1], [0.3, 1.02], [0.15, 1.25]]
+  let cable = path(fibre, 0.012, 0.004) * 0.25
+  let pulses = merge([glow(x: along(fibre, fract(t * 2 + p / 9) * length(fibre)).x,
+                           y: along(fibre, fract(t * 2 + p / 9) * length(fibre)).y, size: 0.1) for p in range(9)]) * 0.9
+  let label = text("1 0 1 1 0 0 1 0   →   light", 0.5, 1.36, 0.026, 0, "mono") * 0.6
+  output merge(trace, digits, preamble, cable, pulses, label)
+}

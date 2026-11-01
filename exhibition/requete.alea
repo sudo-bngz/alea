@@ -1,0 +1,71 @@
+// Requête — the life of one request. An address is typed; the name becomes
+// a number; two machines shake hands and lock the line; the request is cut
+// into packets that find their way across the network; on the wire, bits
+// and pulses of light; and back at the top, the page builds itself. Six
+// works, one per layer, on a timeline, each crossed into the next, in a
+// loop. The sound is each layer's: keys, blips, three tones, pulses, a
+// modem's song, and a chord when the page resolves.
+
+use "requete/url.alea"
+use "requete/dns.alea"
+use "requete/handshake.alea"
+use "requete/packets.alea"
+use "requete/bits.alea"
+use "requete/page.alea"
+
+work Requete {
+  let ink(piece, colours) = paint(piece, palette: colours, range: [0, 1])
+  let film = timeline([
+      scene(ink(Url(), ["#07080c", "#2a3a4a", "#dfe9f2", "#ffffff"]), 4.5),         pixels(0.5, size: 0.05),
+      scene(ink(Dns(), ["#030905", "#0f4a2a", "#49d68a", "#d9ffe8"]), 5),           slide(0.6, angle: 90),
+      scene(ink(Handshake(), ["#0b0703", "#5a3310", "#f0a030", "#fff0d0"]), 5),     wipe(0.7, angle: 0, softness: 0.08),
+      scene(ink(Packets(), ["#03060e", "#153a7a", "#4fa8ff", "#e6f3ff"]), 5.5),     glitch(0.7, amount: 0.8),
+      scene(ink(Bits(), ["#0a0410", "#5a1a6e", "#e86ad0", "#fff0fa"]), 4),          morph(1, amount: 0.2),
+      scene(ink(Page(), ["#f4f1ea", "#c9c2b4", "#4a4640", "#14120f"]), 5),          fade(1, through: 0),
+  ], loop: 1)
+
+  // ── the sound, each layer's own ──
+  let key   = synth { bandpass(noise(), cutoff: 2600, resonance: 0.6) * perc(attack: 0.001, release: 0.025) * note.velocity + sine(note.freq) * perc(release: 0.03) * 0.3 }
+  let blip  = synth { sine(note.freq) * perc(attack: 0.003, release: 0.18) * note.velocity + sine(note.freq * 2) * perc(release: 0.08) * 0.3 }
+  let tone  = synth { lowpass(square(note.freq), cutoff: 1800) * adsr(attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.15) * 0.6 }
+  let pulseS = synth { sine(note.freq * (1 + 0.5 * perc(release: 0.02))) * perc(attack: 0.001, release: 0.06) * note.velocity }
+  let modem = synth {
+    let sw = 0.5 + 0.5 * square(11.5)           // the carrier jumps between two tones, eleven times a second
+    sine(note.freq * (1 + 0.6 * sw)) * 0.6 + sine(note.freq * 2.4 * (1.5 - 0.5 * sw)) * 0.3
+  }
+  let chord = synth {
+    let env = adsr(attack: 0.4, decay: 0.6, sustain: 0.8, release: 2.5)
+    chorus(lowpass(saw(note.freq) + saw(note.freq * 1.004) + sine(note.freq * 0.5), cutoff: 1200, resonance: 0.15) * env, depth: 0.6)
+  }
+  let hum   = synth { lowpass(saw(note.freq) + pulse(note.freq * 0.5, width: 0.2), cutoff: 180 + 220 * note.level, resonance: 0.4) * adsr(attack: 2, decay: 1, sustain: 1, release: 3) }
+  let burst = synth { highpass(noise(), cutoff: 3000, resonance: 0.5) * perc(attack: 0.001, release: 0.2) * note.velocity * 0.6 }
+
+  // the scenes' moments, in seconds: url 0, dns 4.5, handshake 9.5, packets 14.5, bits 19.5, page 23.5; 28.5 in all
+  let L = 28.5
+  pattern keys = repeat 23 event(t: (4.5 * (0.08 + 0.55 * i / 22)) / L, x: 0.3 + 0.4 * (i % 2), y: ~between(0.4, 0.7), intensity: ~between(0.5, 1))
+  pattern asks = repeat 4 event(t: (4.5 + 5 * (i / 3 * 0.55)) / L, x: 0.4 + 0.2 * (i % 2), y: 0.6 - i * 0.12, intensity: 0.7)
+  pattern answer = repeat 3 event(t: (4.5 + 5 * (0.64 + i * 0.03)) / L, x: 0.5, y: 0.3 - i * 0.1, intensity: 0.8)
+  pattern tones = repeat 3 event(t: (9.5 + 5 * [0.04, 0.24, 0.44][i]) / L, x: 0.25 + 0.5 * (i % 2), y: [0.8, 0.4, 0.8][i], size: 0.03, intensity: 0.8)
+  pattern lock = repeat 3 event(t: (9.5 + 5 * 0.9) / L, x: 0.5, y: 0.7 - i * 0.15, size: 0.08, intensity: 0.6)
+  pattern hops = repeat 60 event(t: (14.5 + 5.5 * (0.05 + floor(i / 10) * 0.08 + 0.5 * (i % 10) / 10)) / L, x: 0.2 + 0.6 * (i % 10) / 9,
+                                 y: ~between(0.3, 0.8), intensity: 0.5 + 0.4 * ((i % 10) == 9))
+  pattern builds = repeat 9 event(t: (23.5 + 5 * (0.1 + i * 0.07)) / L, x: 0.3 + 0.05 * i, y: 0.8 - i * 0.06, size: 0.1, intensity: 0.5)
+  pattern okay = repeat 3 event(t: (23.5 + 5 * 0.78) / L, x: 0.5, y: [0.55, 0.4, 0.25][i], size: 0.2, intensity: 0.7)
+
+  let music = [
+    drone(0.3 + 0.2 * lfo(2) + x * 0, voices: 2, instrument: hum, scale: "minor", key: 36.7, gain: 0.8),
+    notes(keys, instrument: key, scale: "chromatic", key: 1200, gain: 0.5),
+    notes(asks, instrument: blip, scale: "pentatonic", key: 660, gain: 0.6),
+    notes(answer, instrument: blip, scale: "pentatonic", key: 1320, gain: 0.5),
+    notes(tones, instrument: tone, scale: "major", key: 220, gain: 0.55),
+    notes(lock, instrument: chord, scale: "major", key: 110, gain: 0.35),
+    notes(hops, instrument: pulseS, scale: "pentatonic", key: 880, gain: 0.45),
+    drone((film.index > 3.5) * (film.index < 4.5) * 0.8 + x * 0, voices: 1, instrument: modem, scale: "chromatic", key: 1070, gain: 0.35),
+    notes(builds, instrument: blip, scale: "major", key: 440, gain: 0.4),
+    notes(okay, instrument: chord, scale: "major", key: 220, gain: 0.5),
+    notes(film.cues, instrument: burst, scale: "chromatic", key: 100, gain: 0.5),
+  ]
+
+  render image(film, width: 1080, height: 1920, at: 16.5 / 28.5)
+  render video(film, fps: 30, width: 1080, height: 1920, sound: music, room: 0.45, echo: 0.2)
+}
