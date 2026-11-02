@@ -1,13 +1,13 @@
 // alea — the introduction: alea speaks. A minute, calm and typographic, ink
 // and one red on paper, the opposite of the other rooms: a cursor; a voice
-// (alea's own `say`, no recording) that says what alea is while its words
+// (`say` through a neural engine, voices/kokoro.py) that says what alea is while its words
 // are typed below as it speaks; the lines of a small work typed key by key,
 // and what they make: a flower, a tune, a voice; then the `~` lighting up,
 // chance, and the flower redrawn on every beat, a new edition each time; one
 // idea splitting into 4, 16, 64, 256 editions, all different, while the
-// voice sings; the name, and the address. Every flower, every edition, the
-// voice's pitch and grain, and the tune are drawn for each edition of the
-// Reel itself.
+// voice sings, in alea's own voice this time (the one that can sing); the
+// name, and the address. Every flower, every edition, the sung voice's pitch
+// and grain, and the tune are drawn for each edition of the Reel itself.
 
 use "intro/flower.alea"
 
@@ -16,23 +16,26 @@ work Intro {
   let total = 60
   let T = t * total
 
-  // ── the voice: one voice for the whole minute, drawn once ──
+  // ── the voices: a person's (Kokoro, a neural voice, through voices/kokoro.py)
+  // for what is said; alea's own, drawn once, for what is sung ──
+  let ENGINE = "../voices/kokoro.py"
+  let VOICE = "af_heart"
   let pitch = ~between(96, 122)
   let size = ~between(0.94, 1.04)
   let rough = ~between(0.05, 0.2)
-  let v1 = say("Hello.", at: 0.9, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
-  let v2 = say("I am alea.", at: v1.end + 0.25, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
-  let v3 = say("You write a few lines of code.", at: 7.6, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
-  let v4 = say("And I draw.", at: 14.2, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
-  let v5 = say("I sing.", at: v4.end + 0.7, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
-  let v6 = say("I speak.", at: v5.end + 0.7, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
-  let v7 = say("But every time I run, chance decides.", at: 20.6, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
-  let v8 = say("Nothing comes out the same.", at: v7.end + 1.6, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
-  let v9 = say("One idea.", at: 32.4, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
-  let v10 = say("A thousand editions.", at: v9.end + 0.8, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
+  let v1 = say("Hello.", at: 0.9, engine: ENGINE, voice: VOICE, speed: 0.92, gain: 2.2)
+  let v2 = say("I am alea.", at: v1.end + 0.25, engine: ENGINE, voice: VOICE, speed: 0.92, gain: 2.2)
+  let v3 = say("You write a few lines of code.", at: 7.6, engine: ENGINE, voice: VOICE, speed: 0.92, gain: 2.2)
+  let v4 = say("And I draw.", at: 14.2, engine: ENGINE, voice: VOICE, speed: 0.92, gain: 2.2)
+  let v5 = say("I sing.", at: v4.end + 0.7, engine: ENGINE, voice: VOICE, speed: 0.92, gain: 2.2)
+  let v6 = say("I speak.", at: v5.end + 0.7, engine: ENGINE, voice: VOICE, speed: 0.92, gain: 2.2)
+  let v7 = say("But every time I run, chance decides.", at: 20.6, engine: ENGINE, voice: VOICE, speed: 0.92, gain: 2.2)
+  let v8 = say("Nothing comes out the same.", at: v7.end + 1.6, engine: ENGINE, voice: VOICE, speed: 0.92, gain: 2.2)
+  let v9 = say("One idea.", at: 32.4, engine: ENGINE, voice: VOICE, speed: 0.92, gain: 2.2)
+  let v10 = say("A thousand editions.", at: v9.end + 0.8, engine: ENGINE, voice: VOICE, speed: 0.92, gain: 2.2)
   let v11 = say("I never make the same thing twice.", at: 40.6, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6, melody: [7, 5, 3, 5, 7, 10, 12, 10], speed: 0.9)
-  let v12 = say("I am alea.", at: 50.2, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
-  let v13 = say("Run me again.", at: v12.end + 0.9, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
+  let v12 = say("I am alea.", at: 50.2, engine: ENGINE, voice: VOICE, speed: 0.92, gain: 2.2)
+  let v13 = say("Run me again.", at: v12.end + 0.9, engine: ENGINE, voice: VOICE, speed: 0.92, gain: 2.2)
 
   // ── the paper: 0 paper, 0.333 grey, 0.667 ink, 1 red ──
   let GREY = 0.333

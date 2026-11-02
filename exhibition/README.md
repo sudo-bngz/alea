@@ -22,7 +22,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Babel** | `babel.alea` (+ `babel/`) | The library that holds every book: pages of a script of twenty-five symbols rewritten on every tick, a book in three dimensions turning in the dark, the shelves, a hexagonal gallery from above, the hallways, the shaft and its stair, the mirror, and one long rise out of a gallery until the floor of galleries runs to the horizon. Forty-one cuts in a minute, a dark choir and a broken beat. |
 | **VEKTOR** | `vektor.alea` (+ `vektor/`) | A minute of a wireframe 3D shoot 'em up off a worn VHS tape, blue lines on black: the title screen, the jump, an asteroid field and squadrons of darts, a mothership broken apart, the dive onto a planet and low over its grid, the hatch of the enemy base, its ducts, the kernel shot until it comes apart, the escape, mission complete. A chiptune that goes wild at the end. |
 | **RING 0** | `ring0.alea` (+ `ring0/`) | How the kernel of an operating system works, abstract and on the beat: the boot log, the shell, processes in their time slices, the rings of protection, system calls through the gate, interrupts climbing from the devices, the disk and the bus, pages and their frames, the run queue, the fork, and the three layers at once; then the halt, an old screen switched off. Fifty-five cuts in a minute, glitches drawn anew every edition, an IDM track of clicks, metal and wood in the Autechre way. |
-| **alea speaks** | `intro.alea` (+ `intro/`) | The introduction, and the opposite of the other rooms: calm, ink and one red on paper. alea's own voice (`say`, no recording) says what it is while its words are typed as it speaks; a small work typed key by key, and what it makes, a flower, a tune, a voice; then chance: the `~` lights up and the flower is redrawn on every beat; one idea splitting into 4, 16, 64, 256 editions while the voice sings; the name and the address. |
+| **alea speaks** | `intro.alea` (+ `intro/`) | The introduction, and the opposite of the other rooms: calm, ink and one red on paper. A voice (`say`, through a neural engine) says what alea is while its words are typed as it speaks; a small work typed key by key, and what it makes, a flower, a tune, a voice; then chance: the `~` lights up and the flower is redrawn on every beat; one idea splitting into 4, 16, 64, 256 editions while the voice sings; the name and the address. |
 | **Kairo** (回路) | `kairo.alea` (+ `fonts/`) | After Kikai, a modular synthesizer that never existed: two rows of modules racked in another order each edition, patched with hanging cables. Also a Reel without drums: a slow piano waltz over a deep drone, the melody written on a staff as it plays. |
 
 ## Replaying the editions
@@ -34,7 +34,7 @@ alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
 alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
-alea intro.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
+alea intro.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes; needs voices/kokoro.py: pip install sherpa-onnx numpy)
 alea ring0.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea vektor.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 45 minutes)
 alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
@@ -861,9 +861,12 @@ bois. Une minute, en boucle. Édition 0xa1ea01.
 `intro/flower.alea`: a flower drawn from nothing but the number of its
 edition (three to nine petals, their turn, how sharp they are, a hole, a
 heart, a red one now and then), so that a grid of 256 editions costs no more
-than one. The voice is alea's own `say`: formant synthesis, no recording,
-its pitch, size and grain drawn for the edition; its `.words` and
-`.syllables` drive everything that moves with it: the captions typed word by
+than one. What is said is said by Kokoro, a neural voice, through
+`say(engine: "../voices/kokoro.py", voice: "af_heart")` (it runs locally;
+the model is fetched once from GitHub, see `voices/README.md`); what is sung
+is sung by alea's own voice, the only one that can, its pitch, size and
+grain drawn for the edition. A voice's `.words` and `.syllables` drive
+everything that moves with it: the captions typed word by
 word as they are said (for a Reel watched without sound), the name typed as
 it is spoken, the line of the voice when it says *I speak*. The code on
 screen is typed forty keys a second; the `~` in it turn red when chance is
@@ -875,7 +878,8 @@ The track, at 90 BPM: a pad (A minor 9, F major 7, C major 7, G 6), a
 kalimba that answers the voice on its syllables, a glass note for each new
 edition, a soft beat once chance comes in, sixteenths and a bass while the
 editions multiply, bells at each split; then only the pad, the name and the
-address. The voice sings *I never make the same thing twice* over the 256.
+address. alea's own voice sings *I never make the same thing twice* over the
+256.
 
 ### 22 · alea speaks (Reel)
 
