@@ -1764,14 +1764,90 @@ impl Utterance {
     /// seconds (an outside voice's).
     pub fn scaled_to(&self, duration: f64) -> Utterance {
         let own = self.duration.max(1e-6);
-        let k = duration / own;
+        self.warped(&[(0.0, 0.0), (own, duration)])
+    }
+
+    /// Time mapped through a piecewise line: (own time, new time) points.
+    fn warped(&self, map: &[(f64, f64)]) -> Utterance {
+        let f = |t: f64| -> f64 {
+            if t <= map[0].0 {
+                return map[0].1;
+            }
+            for w in map.windows(2) {
+                if t <= w[1].0 {
+                    let a = (t - w[0].0) / (w[1].0 - w[0].0).max(1e-9);
+                    return w[0].1 + (w[1].1 - w[0].1) * a;
+                }
+            }
+            map[map.len() - 1].1
+        };
         Utterance {
-            segs: self.segs.iter().map(|s| Seg { start: s.start * k, dur: s.dur * k, ..*s }).collect(),
-            f0: self.f0.iter().map(|&(t, r)| (t * k, r)).collect(),
-            words: self.words.iter().map(|&(a, b)| (a * k, b * k)).collect(),
-            syllables: self.syllables.iter().map(|&t| t * k).collect(),
-            duration,
+            segs: self.segs.iter().map(|s| Seg { start: f(s.start), dur: f(s.start + s.dur) - f(s.start), ..*s }).collect(),
+            f0: self.f0.iter().map(|&(t, r)| (f(t), r)).collect(),
+            words: self.words.iter().map(|&(a, b)| (f(a), f(b))).collect(),
+            syllables: self.syllables.iter().map(|&t| f(t)).collect(),
+            duration: map[map.len() - 1].1,
         }
+    }
+
+    /// The words and syllables fitted onto a sound of the same text said by
+    /// someone else: the sound's pauses (its silences of 90 ms or more) are
+    /// matched to the text's punctuation, and each stretch between them is
+    /// scaled on its own; when they don't match, the whole is scaled at once.
+    pub fn fitted_to(&self, sound: &[f64]) -> Utterance {
+        let duration = sound.len() as f64 / SR;
+        // the text's pauses: the long silences in the plan (punctuation, not the gaps between words)
+        let pauses: Vec<(f64, f64)> =
+            self.segs.iter().filter(|s| PHONEMES[s.ph].class == Class::Pause && s.dur > 0.1).map(|s| (s.start, s.start + s.dur)).collect();
+        if pauses.is_empty() {
+            return self.scaled_to(duration);
+        }
+        // the sound's: 10 ms frames under -32 dB of its peak, runs of 90 ms or more, well inside
+        let frame = (0.01 * SR) as usize;
+        let rms: Vec<f64> = sound.chunks(frame).map(|c| (c.iter().map(|x| x * x).sum::<f64>() / c.len().max(1) as f64).sqrt()).collect();
+        let peak = rms.iter().cloned().fold(0.0f64, f64::max).max(1e-9);
+        let quiet: Vec<bool> = rms.iter().map(|&r| r < peak * 10f64.powf(-32.0 / 20.0)).collect();
+        let mut gaps: Vec<(f64, f64)> = Vec::new();
+        let mut k = 0;
+        while k < quiet.len() {
+            if quiet[k] {
+                let start = k;
+                while k < quiet.len() && quiet[k] {
+                    k += 1;
+                }
+                let (a, b) = (start as f64 * 0.01, k as f64 * 0.01);
+                if b - a >= 0.09 && a > 0.1 && b < duration - 0.1 {
+                    gaps.push((a, b));
+                }
+            } else {
+                k += 1;
+            }
+        }
+        // the text's pauses at the end (a final full stop) have no sound to match: drop them
+        let inner: Vec<(f64, f64)> = pauses.iter().cloned().filter(|p| p.1 < self.duration - 0.06).collect();
+        // each silence of the sound takes the nearest punctuation not yet taken (a
+        // voice doesn't stop at every comma), in order, if it is near enough
+        let k = duration / self.duration.max(1e-6);
+        let mut map = vec![(0.0, 0.0)];
+        let mut next = 0;
+        for g in &gaps {
+            let centre = (g.0 + g.1) * 0.5;
+            let best = (next..inner.len()).min_by(|&a, &b| {
+                let da = ((inner[a].0 + inner[a].1) * 0.5 * k - centre).abs();
+                let db = ((inner[b].0 + inner[b].1) * 0.5 * k - centre).abs();
+                da.total_cmp(&db)
+            });
+            if let Some(i) = best {
+                let p = inner[i];
+                if ((p.0 + p.1) * 0.5 * k - centre).abs() < 0.45 {
+                    map.push((p.0, g.0));
+                    map.push((p.1, g.1));
+                    next = i + 1;
+                }
+            }
+        }
+        map.push((self.duration, duration));
+        self.warped(&map)
     }
 }
 

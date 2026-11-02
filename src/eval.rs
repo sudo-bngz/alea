@@ -3749,8 +3749,7 @@ impl Resolver<'_> {
                 let program = if program.exists() { program } else { std::path::PathBuf::from(&name) };
                 let ask = crate::speech::Ask { program: &program, text: &text, lang, voice: &voice, speed, pitch, size };
                 let sound = crate::speech::ask(&ask).map_err(|e| Error::new(e, espan))?;
-                let duration = sound.len() as f64 / crate::sound::SR;
-                (utterance.scaled_to(duration), Some(Arc::new(sound)))
+                (utterance.fitted_to(&sound), Some(Arc::new(sound)))
             }
         };
         let utterance = Arc::new(utterance);
