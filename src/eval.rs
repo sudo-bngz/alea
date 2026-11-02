@@ -2358,6 +2358,9 @@ impl Resolver<'_> {
         if matches!(name, "drone" | "notes" | "texture" | "cc") {
             return self.sound_layer(name, args, span);
         }
+        if name == "say" {
+            return self.say(args, span);
+        }
         if matches!(name, "paint" | "mosaic" | "place" | "overlay") {
             return self.painting(name, args, span);
         }
@@ -3466,6 +3469,22 @@ impl Resolver<'_> {
         }
         const SOUND: &[&str] = &["level", "bass", "mid", "treble", "pulse", "beats", "duration"];
         let name = if name == "luminance" { "luma" } else { name };
+        if let Val::Sound(l) = &v {
+            if let crate::sound::Layer::Speech { speech, .. } = l.as_ref() {
+                let u = &speech.utterance;
+                let at = speech.at;
+                let times = |v: Vec<f64>| Val::List(Arc::new(v.into_iter().map(|x| Val::Field(Field::Const(x))).collect()));
+                return Ok(match name {
+                    "duration" => Val::Field(Field::Const(u.duration)),
+                    "start" => Val::Field(Field::Const(at)),
+                    "end" => Val::Field(Field::Const(at + u.duration)),
+                    "words" => times(u.words.iter().map(|w| at + w.0).collect()),
+                    "ends" => times(u.words.iter().map(|w| at + w.1).collect()),
+                    "syllables" => times(u.syllables.iter().map(|s| at + s).collect()),
+                    _ => return Err(Error::new(format!("a voice has no `.{name}` — it has: duration, start, end, words, ends, syllables"), span)),
+                });
+            }
+        }
         let input = match v {
             Val::Input(i) => i,
             // a timeline, possibly behind the sharing a `let` adds
@@ -3627,6 +3646,87 @@ impl Resolver<'_> {
                 }
             }
         })
+    }
+
+    /// `say(text, …)`: a voice reading a text.
+    fn say(&mut self, args: &[Arg], span: Span) -> Res<Val> {
+        use crate::speech::{Lang, Speech, Timbre};
+        const NAMES: &[&str] = &["text", "at", "lang", "pitch", "speed", "size", "rough", "breath", "pan", "gain", "melody"];
+        let mut slots: Vec<Option<&Expr>> = vec![None; NAMES.len()];
+        let mut named_seen = false;
+        for (k, a) in args.iter().enumerate() {
+            let slot = match &a.name {
+                None if named_seen => return Err(Error::new("unnamed arguments must come before named ones", a.val.span)),
+                None => k,
+                Some(n) => {
+                    named_seen = true;
+                    NAMES.iter().position(|p| p == n).ok_or_else(|| {
+                        Error::new(format!("`say` has no parameter `{n}` — it has: {}", NAMES.join(", ")), a.val.span)
+                    })?
+                }
+            };
+            if slot >= NAMES.len() {
+                return Err(Error::new(format!("`say` takes at most {} arguments: {}", NAMES.len(), NAMES.join(", ")), a.val.span));
+            }
+            slots[slot] = Some(&a.val);
+        }
+        let Some(first) = slots[0] else {
+            return Err(Error::new("`say` needs a text: `say(\"hello\")`", span));
+        };
+        let text = match self.lower(first)? {
+            Val::Str(s) => s,
+            other => return Err(Error::new(format!("`say` reads a text, not {}", kind_of(&other)), first.span)),
+        };
+        let number = |r: &mut Self, k: usize, default: f64, lo: f64, hi: f64| -> Res<f64> {
+            match slots[k] {
+                None => Ok(default),
+                Some(e) => {
+                    let v = r.scalar(e, NAMES[k])?;
+                    if !(lo..=hi).contains(&v) {
+                        return Err(Error::new(format!("`{}` goes from {lo} to {hi}", NAMES[k]), e.span));
+                    }
+                    Ok(v)
+                }
+            }
+        };
+        let at = number(self, 1, 0.0, 0.0, 3600.0)?;
+        let lang = match slots[2] {
+            None => Lang::En,
+            Some(e) => match self.lower(e)? {
+                Val::Str(s) => Lang::parse(&s).ok_or_else(|| Error::new("`lang` is \"en\" or \"fr\"", e.span))?,
+                _ => return Err(Error::new("`lang` is \"en\" or \"fr\"", e.span)),
+            },
+        };
+        let pitch = match slots[3] {
+            None => 110.0,
+            Some(e) => self.key_of(Some(e), 110.0, 40.0, 600.0)?,
+        };
+        let speed = number(self, 4, 1.0, 0.25, 4.0)?;
+        let size = number(self, 5, 1.0, 0.5, 1.6)?;
+        let rough = number(self, 6, 0.0, 0.0, 1.0)?;
+        let breath = number(self, 7, 0.1, 0.0, 1.0)?;
+        let pan = number(self, 8, 0.5, 0.0, 1.0)?;
+        let gain = number(self, 9, 1.0, 0.0, 10.0)?;
+        let melody = match slots[10] {
+            None => vec![],
+            Some(e) => match self.lower(e)? {
+                Val::List(l) => {
+                    let mut m = Vec::with_capacity(l.len());
+                    for v in l.iter() {
+                        match v {
+                            Val::Field(Field::Const(x)) => m.push(*x),
+                            _ => return Err(Error::new("`melody` is a list of semitones, one per syllable: [0, 3, 7]", e.span)),
+                        }
+                    }
+                    m
+                }
+                _ => return Err(Error::new("`melody` is a list of semitones, one per syllable: [0, 3, 7]", e.span)),
+            },
+        };
+        let utterance = Arc::new(crate::speech::plan(&text, lang, speed, &melody));
+        let seed = hash(&[self.seed, 0x5a7, text.len() as u64, (at * 1000.0) as u64]);
+        let speech = Arc::new(Speech { utterance, at, timbre: Timbre { pitch, size, rough, breath }, pan, seed });
+        Ok(Val::Sound(Arc::new(crate::sound::Layer::Speech { speech, gain })))
     }
 
     /// `drone(field, …)`, `notes(pattern, …)`, `texture(field, …)`: layers of sound.

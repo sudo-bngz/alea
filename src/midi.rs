@@ -224,7 +224,7 @@ pub fn score(layers: &[Arc<Layer>], duration: f64, tempo: Option<f64>, name: &st
                     }
                 }
             }
-            Layer::Texture { .. } | Layer::Clip { .. } => {}
+            Layer::Texture { .. } | Layer::Clip { .. } | Layer::Speech { .. } => {}
         }
     }
     // in time order; at the same moment, controllers and programs first,
