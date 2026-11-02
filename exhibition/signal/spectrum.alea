@@ -1,0 +1,18 @@
+// Spectrum — the whole mix as bars, low to high, mirrored about the
+// middle, jumping with the kick and the hats, peaks falling slowly.
+// What it returns: 0 dark, up to 1 light.
+
+work Spectrum(at = 0, beats = 4, count = 28) {
+  let seed = ~between(0, 100)
+  let b = at + t * beats
+  let kenv = exp(-fract(b) * 5)
+  let henv = exp(-fract(b * 2 + 0.5) * 9)
+  let u = x * count
+  let c = floor(u)
+  let f = c / count                                               // the band, 0 low to 1 high
+  let h = (0.55 * (1 - f) * kenv + 0.35 * f * henv + 0.25 * (0.5 + 0.5 * noise(c * 0.7, b * 3, seed)) * (1 - 0.5 * f)) * 0.75
+  let bar = (abs(fract(u) - 0.5) < 0.38) * (abs(y - 0.5) < h)
+  let seg = abs(fract((y - 0.5) * 60) - 0.5) < 0.38
+  let peak = (abs(fract(u) - 0.5) < 0.38) * (abs(abs(y - 0.5) - (h + 0.03 + 0.05 * (1 - fract(b)))) < 0.004)
+  output merge(bar * seg * (0.4 + 0.6 * abs(y - 0.5) / max(h, 0.01)), peak * 0.8)
+}

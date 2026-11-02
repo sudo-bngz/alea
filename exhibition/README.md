@@ -17,7 +17,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Kikai** (機械図) | `kikai.alea` (+ `fonts/`) | The technical drawing of an analog machine that never existed: a cassette deck, a radio-cassette, a portable radio or a rhythm machine, in off-white line on washed charcoal, labelled in Japanese like a service manual. Each edition draws another machine. Also a Reel: the machine plays a techno track in the spirit of Detroit, with its acid line written below. |
 | **Parasite** | `parasite.alea` (+ `parasite/`) | A broadcast being lost: snow, someone who appears in it made of the same blocks, a desktop filling with windows, a test card counting down, the figure again. Five works on a timeline, crossed with glitches, a morph and a fade, in a loop; a drone of pulses and a burst of static at every cut. |
 | **Requête** | `requete.alea` (+ `requete/`) | The life of one request, layer by layer: the address typed, the name resolved down a tree, the handshake and the lock, packets finding their way across a grid of routers, bits and pulses of light on the wire, and the page building itself. Six works on a timeline, in a loop, each with its own sound. |
-| **Signal** | `signal.alea` (+ `signal/`) | The path of a sound, from the oscillator to the room: DCO, noise, LFO, envelope, high-pass, filter, VCA and chorus, delay, the mix, the compressor, the lathe, the vinyl, the stylus, the speaker, the room. Fifteen works in twenty-one fast cuts, a minute, in a loop; a Detroit techno track built stage by stage with the chain. |
+| **Signal** | `signal.alea` (+ `signal/`) | Detroit techno, seen as it is made: the kick as rings, the drum machine's steps, the bass on a scope, the chord stabs and their echoes, the lead on a piano roll, the three at once on a split screen; sixty cuts on the beat, the track built a layer at a time. |
 | **Hana** (花) | `hana.alea` (+ `hana/`) | An electronic flower, from seed to seed, in a network: a seed calling in the grid, roots along its links, a stem of square cells, a bud of nested squares, the bloom of square petals, the seeds leaving along the links and on the wind, flowers everywhere, the petals falling apart into grain. Forty-one cuts in a minute, glitches drawn anew every edition, an IDM track in the Boards of Canada way. |
 | **Babel** | `babel.alea` (+ `babel/`) | The library that holds every book: pages of a script of twenty-five symbols rewritten on every tick, a book in three dimensions turning in the dark, the shelves, a hexagonal gallery from above, the hallways, the shaft and its stair, the mirror, and one long rise out of a gallery until the floor of galleries runs to the horizon. Forty-one cuts in a minute, a dark choir and a broken beat. |
 | **VEKTOR** | `vektor.alea` (+ `vektor/`) | A minute of a wireframe 3D shoot 'em up off a worn VHS tape, blue lines on black: the title screen, the jump, an asteroid field and squadrons of darts, a mothership broken apart, the dive onto a planet and low over its grid, the hatch of the enemy base, its ducts, the kernel shot until it comes apart, the escape, mission complete. A chiptune that goes wild at the end. |
@@ -35,7 +35,7 @@ alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel
 alea vektor.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 45 minutes)
 alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
-alea signal.alea --seed 0xa1ea01             # the 1080×1920 Reel: 60 s, in a loop
+alea signal.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop
 alea requete.alea --seed 0xa1ea01            # the 1080×1920 Reel: 28.5 s, in a loop
 alea parasite.alea --seed 0xa1ea01          # the 1080×1920 Reel: 24 s, in a loop
 alea kikai.alea --seed 0xa1ea05              # the drawing, and the 1080×1920 Reel of the machine playing (about 10 minutes)
@@ -571,50 +571,54 @@ propre son. Édition 0xa1ea01.
 |---|---|---|
 | 17 | Signal, Reel (60 s, a loop) | `17-signal-reel.mp4` (cover: `17-signal-reel-cover.jpg`) |
 
-**How it is made.** One work per stage of a synthesizer voice of the Juno
-kind, in `signal/`, and of what comes after, cut fast (scenes of 1.5 to 6.5
-seconds, transitions of 0.3 to 0.6, mostly glitches, pixels and morphs; a
-few stages come back zoomed or faster): *Dco* (the saw, the pulse with its
-width breathing, the sub an octave below), *Noise*, *Lfo* (a triangle a few
-times a second, and what it does to the pitch and the pulse width), *Env*
-(attack, decay, sustain, release drawn as the line it is, a dot running it
-on every beat), *Hpf*, *Vcf* (the harmonics as bars, the low-pass curve
-sweeping across them, the resonance a peak at the knee), *Vca* (the wave
-shaped by the envelope, then the chorus: the same wave twice, a little late
-and apart, one for each ear), *Delay* (a hit and its repeats), *Mix* (the
-desk, meters jumping with what plays), *Comp* (the gain-reduction meter
-diving on every kick), *Lathe* (the head cutting the groove), *Vinyl* (the
-record turning, its grooves wobbling with the beat, the arm), *Needle* (the
-stylus in the groove, close up), *Speaker* (the cone, and rings of pressure
-leaving it on every kick) and *Room* (the floor).
+**How it is made.** Detroit techno, seen as it is made, in nine works in
+`signal/`, all abstract: *Pulse* (the kick as square rings leaving the
+centre), *Grid* (the drum machine: sixteen steps, a row each for the kick,
+the clap, the hats and the percussion, the playhead running), *Scope* (the
+bass on an oscilloscope, the wave of the note playing, its traces fading),
+*Chords* (the stabs, a column per voice of the chord, their echoes drifting
+off), *Roll* (the lead on a piano roll), *Spectrum* (the mix as mirrored
+bars), *Strings* (slow interference, the pads), *Voice* (a machine's voice as
+a Lissajous figure changing on every beat) and *Split* (the three at once,
+stacked: drums, bass, lead). What the screens show is what plays: the kick,
+clap, hat and percussion patterns, the bass riff, the lead, the stabs are
+drawn once for the edition, and both the sound and the pictures read them.
+Sixty scenes of one to four beats, each starting on a beat of the track and
+bouncing with the kick, with the split screen coming back between the
+others; every cut drawn for each edition (glitches most of all, pixels,
+morphs, jumps). Faded warm colours (rust, teal, mustard, violet, red),
+scanlines, `film`, `vignette` and `chroma`.
 
-The track is built the same way, at 128 BPM over thirty-two bars: while the
-DCO is on screen, a raw saw + pulse + sub holds A1, straight out; the LFO
-makes it waver; the envelope makes notes of it (a bassline drawn for each
-edition) and the kick comes in; the filter opens over the bassline and the
-hats join; the chorus widens the stabs (a minor ninth, a major ninth a third
-below); the full mix brings a lead; the record adds its crackle and a little
-wow; a riser lifts the room; and the last beat fades through black into the
-oscillator again. Every instrument is a synth written in the work, in the
-Juno way: saw + pulse + sub, a resonant low-pass, an envelope, chorus.
+The track, at 128 BPM over thirty-two bars in A minor, is built a layer at a
+time, the Detroit way: strings and a clap echoing alone; the 909 kick and
+the hats; the bass sequence and the electro percussion (rim, clave); the
+chord stabs (Am9, Fmaj9) through a dotted delay and a chorus, open hats and
+an 808 cowbell; the lead and the toms; the break (no kick, the strings
+opened, Dm9 and Em9 into a long dub echo, a machine's voice through two
+sliding formants, a riser, a clap roll); the drop with everything, congas,
+the ride, the lead opened and then an octave up, the bass driven; and the
+way out, layer after layer gone. Every instrument is a synth written in the
+work.
 
 ### 17 · Signal (Reel)
 
 **EN**
 
-SIGNAL — the path of a sound, from the oscillator to the room. The DCO, the
-noise, the LFO, the envelope, the filters, the VCA and the chorus, the delay,
-the mix, the compressor, the lathe, the vinyl, the stylus, the speaker, the
-floor: one work per stage, twenty-one cuts, and the track is built with them, stage by
-stage, Detroit techno at 128. A minute, in a loop. Edition 0xa1ea01.
+SIGNAL — Detroit techno, seen as it is made. The kick as rings, the drum
+machine's sixteen steps, the bass on a scope, the chord stabs and their
+echoes, the lead on a piano roll, and the three at once on a split screen,
+cut on every beat. The track builds a layer at a time, strings, 909, bass,
+stabs, lead, the break, the drop. What you see is what plays. A minute, in a
+loop. Edition 0xa1ea01.
 
 **FR**
 
-SIGNAL — le chemin d'un son, de l'oscillateur à la salle. Le DCO, le bruit,
-le LFO, l'enveloppe, les filtres, le VCA et le chorus, le délai, le mix, le
-compresseur, la graveuse, le vinyle, la pointe, l'enceinte, la piste : une
-œuvre par étage, vingt et une coupes, et le morceau se construit avec eux, étage par étage,
-techno de Detroit à 128. Une minute, en boucle. Édition 0xa1ea01.
+SIGNAL — de la techno de Detroit, vue pendant qu'elle se fait. Le kick en
+anneaux, les seize pas de la boîte à rythmes, la basse sur un oscilloscope,
+les stabs et leurs échos, le lead sur un piano roll, et les trois à la fois
+en écran partagé, coupés à chaque temps. Le morceau se construit couche par
+couche : cordes, 909, basse, stabs, lead, le break, la reprise. Ce qu'on
+voit est ce qu'on entend. Une minute, en boucle. Édition 0xa1ea01.
 
 ## Tenth room: Hana
 
@@ -799,5 +803,6 @@ chiptune qui s'emballe à la fin. Une minute, en boucle. Édition 0xa1ea01.
 #retrogaming #wireframe #vectorgraphics #shmup #chiptune #8bit #vhs #retro #80s
 #babel #library #infinite #hexagon #borges #3d #raycasting #choir #darkambient
 #flower #squares #network #growth #boardsofcanada #idm #tape #analog
+#detroittechno #carlcraig #model500 #drummachine #909 #splitscreen
 #synthesizer #juno #modular #signalpath #vinyl #http #dns #tcp #osi #networking #glitch #glitchart #vhs #nosignal #idm #piano #modularsynth #eurorack #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
 ```

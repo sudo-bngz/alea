@@ -1,0 +1,15 @@
+// Voice — the machine sings: a Lissajous figure whose ratio changes on every
+// beat, like a vowel a robot says, traced and retraced.
+// What it returns: 0 dark, up to 1 light.
+
+work Voice(at = 0, beats = 4) {
+  let b = at + t * beats
+  let k = floor(b)
+  let rx = 2 + (k % 3)
+  let ry = 3 + (k % 2)
+  let env = exp(-fract(b) * 3)
+  let pts = [[0.5 + 0.38 * sin(rx * j * 0.0524 + b * 0.5), 0.5 + 0.55 * (0.6 + 0.4 * env) * sin(ry * j * 0.0524)] for j in range(121)]
+  let figure = path(pts, 0.005, 0.003)
+  let mouth = (abs(y - 0.5) < 0.004 + 0.2 * env * exp(-abs(x - 0.5) * 6)) * (abs(x - 0.5) < 0.35) * 0.4
+  output merge(figure, mouth)
+}
