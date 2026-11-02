@@ -1,0 +1,70 @@
+// Asteroids — the field of rocks: each a twenty-sided rock knocked out of
+// true (every vertex its own distance), tumbling at the ship; the ship
+// weaving through, its lasers breaking some of them apart.
+// What it returns: 0 dark, up to 1 light.
+
+work Asteroids(count = 7, speed = 1) {
+  let cy = 0.4
+  // ── the 3D kit (the same in every scene of VEKTOR): the eye at the origin, looking along +z, y down ──
+  let seed = ~between(0, 100)
+  let hash(a, b) = fract(sin(a * 12.9898 + b * 78.233 + seed) * 43758.5453)
+  let F = 0.95
+  let sx(p) = 0.5 + F * p[0] / max(p[2], 0.05)
+  let sy(p) = cy + F * p[1] / max(p[2], 0.05)
+  let roll_(v, r) = [v[0] * cos(r) - v[1] * sin(r), v[0] * sin(r) + v[1] * cos(r), v[2]]
+  let pitch_(v, p) = [v[0], v[1] * cos(p) - v[2] * sin(p), v[1] * sin(p) + v[2] * cos(p)]
+  let yaw_(v, w) = [v[0] * cos(w) + v[2] * sin(w), v[1], -v[0] * sin(w) + v[2] * cos(w)]
+  let shift(q, at, s) = [at[0] + s * q[0], at[1] + s * q[1], at[2] + s * q[2]]
+  let place(v, r, p, w, at, s) = shift(yaw_(pitch_(roll_(v, r), p), w), at, s)
+  let lerp3(a, b, u) = [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]
+  let edge(a, b) = line(sx(a), sy(a), sx(b), sy(b), 0.0024, 0.0018) * (a[2] > 0.25) * (b[2] > 0.25) * clamp(14 / (a[2] + b[2]), 0.5, 1)
+  let wire(vs, es, r, p, w, at, s) = merge([edge(place(vs[e[0]], r, p, w, at, s), place(vs[e[1]], r, p, w, at, s)) for e in es])
+  // the models: the player's ship (nose along +z), a dart (nose along -z), a drone, a rock, a tower
+  let SHIP = [[0, 0, 1.2], [0, -0.35, -0.6], [0, 0.15, -0.6], [-1.3, 0.2, -0.7], [1.3, 0.2, -0.7], [-0.3, 0, -0.7], [0.3, 0, -0.7], [-1.35, -0.45, -0.8], [1.35, -0.45, -0.8]]
+  let SHIPE = [[0, 3], [0, 4], [0, 1], [0, 2], [3, 5], [4, 6], [5, 6], [5, 1], [6, 1], [5, 2], [6, 2], [3, 7], [4, 8], [7, 5], [8, 6]]
+  let DART = [[0, 0, -1.2], [-1, 0.1, 0.5], [1, 0.1, 0.5], [0, -0.45, 0.4], [0, 0.1, 0.7]]
+  let DARTE = [[0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [1, 4], [2, 4], [3, 4]]
+  let OCT = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]
+  let OCTE = [[0, 2], [0, 3], [0, 4], [0, 5], [1, 2], [1, 3], [1, 4], [1, 5], [2, 4], [2, 5], [3, 4], [3, 5]]
+  let ICO = [[0.0, -0.526, -0.851], [-0.526, -0.851, 0.0], [-0.851, 0.0, -0.526], [0.0, -0.526, 0.851], [-0.526, 0.851, 0.0], [-0.851, 0.0, 0.526], [0.0, 0.526, -0.851], [0.526, -0.851, 0.0], [0.851, 0.0, -0.526], [0.0, 0.526, 0.851], [0.526, 0.851, 0.0], [0.851, 0.0, 0.526]]
+  let ICOE = [[0, 1], [0, 2], [0, 6], [0, 7], [0, 8], [1, 2], [1, 3], [1, 5], [1, 7], [2, 4], [2, 5], [2, 6], [3, 5], [3, 7], [3, 9], [3, 11], [4, 5], [4, 6], [4, 9], [4, 10], [5, 9], [6, 8], [6, 10], [7, 8], [7, 11], [8, 10], [8, 11], [9, 10], [9, 11], [10, 11]]
+  let PYR = [[-1, 0, -1], [1, 0, -1], [1, 0, 1], [-1, 0, 1], [0, -3, 0]]
+  let PYRE = [[0, 1], [1, 2], [2, 3], [3, 0], [0, 4], [1, 4], [2, 4], [3, 4]]
+  // a blast at a point of space: a ring going out, sparks, a flash; age 0 to 1
+  let boom(p, age, size) = (age > 0) * (age < 1) * merge(
+      ring(sx(p), sy(p), size * F / p[2] * (0.4 + 2.2 * age), 0.004, 0.002) * (1 - age),
+      ring(sx(p), sy(p), size * F / p[2] * (0.2 + 1.2 * age), 0.003, 0.002) * (1 - age) * 0.7,
+      merge([line(sx(p) + cos(j * 1.047 + age) * size * F / p[2] * age * 0.8, sy(p) + sin(j * 1.047 + age) * size * F / p[2] * age * 0.8,
+                  sx(p) + cos(j * 1.047 + age) * size * F / p[2] * (0.3 + age * 1.6), sy(p) + sin(j * 1.047 + age) * size * F / p[2] * (0.3 + age * 1.6),
+                  0.003, 0.002) for j in range(6)]) * (1 - age),
+      glow(x: sx(p), y: sy(p), size: size * F / p[2] * 1.4) * (1 - age) * (1 - age))
+  // a laser bolt from a to b, at u (0 to 1) of its way
+  let bolt(a, b, u) = (u > 0) * (u < 1) * line(sx(lerp3(a, b, u)), sy(lerp3(a, b, u)), sx(lerp3(a, b, min(u + 0.25, 1))), sy(lerp3(a, b, min(u + 0.25, 1))), 0.005, 0.003)
+  // the stars, rushing past: streaks along the rays from the centre
+  let stars(speed, dense) = (fract(ln(distance(x, y, 0.5, cy) + 0.002) * 2.4 - t * speed + hash(floor(atan2(y - cy, x - 0.5) / 6.2832 * 110), 1) * 7) < 0.04 + 0.03 * speed)
+      * (hash(floor(atan2(y - cy, x - 0.5) / 6.2832 * 110), floor(ln(distance(x, y, 0.5, cy) + 0.002) * 2.4 - t * speed + hash(floor(atan2(y - cy, x - 0.5) / 6.2832 * 110), 1) * 7)) > 1 - dense)
+      * (abs(fract(atan2(y - cy, x - 0.5) / 6.2832 * 110) - 0.5) < 0.18) * clamp(distance(x, y, 0.5, cy) * 3, 0, 1)
+  let jit = [[~between(0.7, 1.3) for v in range(12)] for k in range(count)]
+  let ax = [~between(-2.6, 2.6) for k in range(count)]
+  let ay = [~between(-2.2, 1.6) for k in range(count)]
+  let lag = [~between(-0.3, 0.6) for k in range(count)]
+  let big = [~between(0.9, 1.8) for k in range(count)]
+  let shot = [~between(0, 1) < 0.65 for k in range(count)]
+  let spin = [[~between(-4, 4), ~between(-4, 4)] for k in range(count)]
+  let z(k, tt) = 20 - (tt - lag[k]) * 26 * speed
+  let at(k, tt) = [ax[k], ay[k], z(k, tt)]
+  let hit(k) = lag[k] + (20 - ~between(7, 10)) / (26 * speed)       // when the laser reaches it (drawn once: see below)
+  let hits = [hit(k) for k in range(count)]
+  let alive(k) = (z(k, t) > 0.6) * (z(k, t) < 21) * (1 - shot[k] * (t > hits[k]))
+  let rock(k) = alive(k) * merge([edge(place([ICO[e[0]][0] * jit[k][e[0]], ICO[e[0]][1] * jit[k][e[0]], ICO[e[0]][2] * jit[k][e[0]]], t * spin[k][0], t * spin[k][1], 0, at(k, t), big[k]),
+                                       place([ICO[e[1]][0] * jit[k][e[1]], ICO[e[1]][1] * jit[k][e[1]], ICO[e[1]][2] * jit[k][e[1]]], t * spin[k][0], t * spin[k][1], 0, at(k, t), big[k]))
+                                  for e in ICOE])
+  // the ship, and its two guns
+  let sp = [0.6 * sin(t * 2.3) + 0.2 * sin(t * 7), 1.05 + 0.15 * sin(t * 3.1), 4.5]
+  let bank = -0.6 * cos(t * 2.3)
+  let ship = wire(SHIP, SHIPE, bank, -0.32, 0, sp, 0.9)
+  let gun(side) = place([side * 1.2, 0.15, 0.2], bank, -0.32, 0, sp, 0.9)
+  let fire(k) = shot[k] * (bolt(gun(-1), at(k, hits[k]), (t - hits[k] + 0.14) / 0.14) + bolt(gun(1), at(k, hits[k]), (t - hits[k] + 0.14) / 0.14))
+  let blasts = merge([shot[k] * boom(at(k, hits[k]), (t - hits[k]) * 2.2, big[k] * 1.6) for k in range(count)])
+  output merge(stars(0.6, 0.25) * 0.5, merge([rock(k) for k in range(count)]), merge([fire(k) for k in range(count)]), blasts, ship)
+}

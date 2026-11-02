@@ -1,0 +1,182 @@
+// VEKTOR — a minute of a shoot 'em up that could have run on the first 3D
+// consoles: everything in wireframe, blue lines on black, off a worn VHS
+// tape. The title screen; the jump; a battle in an asteroid field against
+// squadrons of darts, a mothership broken apart; the dive onto a planet,
+// low over its grid between wire mountains and down a canyon; the hatch of
+// the enemy base, its ducts, its gates and drones; the kernel at its heart,
+// shot until it comes apart; the escape; mission complete. Thirty-three scenes on
+// a timeline, in a loop, crossed by glitches, pixels and jumps drawn anew
+// for each edition; every rock, dart, drone and tower drawn by chance.
+//
+// The track is chiptune — pulse lead, triangle bass, arpeggios a
+// thirty-second note apart, noise drums — at 140 BPM over thirty-five bars,
+// a minute, in E minor: the theme over the asteroids; on the planet a
+// second theme with an echo and a wide pad (the landscape); underground,
+// the Phrygian dark and a bass in sixteenths; at the kernel everything goes
+// wild: a breakbeat drawn by chance, a distorted lead doubling the theme,
+// the pad, the crash and the blast; then the fanfare.
+
+use "vektor/title.alea"
+use "vektor/warp.alea"
+use "vektor/asteroids.alea"
+use "vektor/dogfight.alea"
+use "vektor/shatter.alea"
+use "vektor/planet.alea"
+use "vektor/ground.alea"
+use "vektor/hatch.alea"
+use "vektor/tunnel.alea"
+use "vektor/kernel.alea"
+use "vektor/complete.alea"
+use "vektor/hud.alea"
+
+work Vektor {
+  // ── black and blue; the VHS: scanlines, a tracking band rolling, the head-switching noise, the tape's shake ──
+  let blue  = ["#000000", "#071440", "#2f6bff", "#bfe0ff"]
+  let deep  = ["#000000", "#0a0a3a", "#3a5cff", "#d0dcff"]
+  let vhs(f) = merge(move(f, x: 0.004 * (fract(sin(floor(t * 30) * 91.7) * 4375.5) - 0.5), y: 0) * (0.78 + 0.22 * (fract(y * 260) < 0.5))
+                     + (abs(y - (fract(t * 0.43) * 1.9 - 0.42)) < 0.014) * grain(0.5) + (y > 1.34) * grain(0.6),
+                     text("PLAY  >", 0.17, -0.33, 0.03, 0, "mono") * 0.7 * (t < 0.6), text("SP", 0.9, 1.33, 0.026, 0, "mono") * 0.6)
+  let ink(f, colours) = paint(vhs(f), palette: colours, range: [0, 1])
+  let play(f, from, to, shield) = ink(merge(f, Hud(from: from, to: to, shield: shield)), blue)
+  let xf(s) = choose { 4: glitch(s, amount: ~between(0.6, 1)) | 2: pixels(s, size: ~between(0.03, 0.08)) | 2: jump() | 1: morph(s, amount: ~between(0.15, 0.3)) }
+
+  let reel = timeline([
+      // the title and the jump (bars 0–2)
+      scene(ink(Title(), blue), 1.9),                                              xf(0.25),
+      scene(ink(Warp(), blue), 1.53),                                              xf(0.25),
+      // the asteroid field (bars 2–11)
+      scene(play(Asteroids(), 0, 2400, 1), 2.4),                                   xf(0.25),
+      scene(play(Dogfight(), 2400, 6100, 1), 1.7),                                 xf(0.2),
+      scene(play(Asteroids(count: 10, speed: 1.4), 6100, 8800, 0.9), 1.6),         xf(0.25),
+      scene(play(Dogfight(form: 1, count: 9), 8800, 13500, 0.9), 2),               xf(0.25),
+      scene(play(Dogfight(form: 2, count: 10), 13500, 17200, 0.8), 1.2),          xf(0.2),
+      scene(play(Asteroids(count: 8), 17200, 20900, 0.8), 1.8),                    xf(0.25),
+      scene(play(Dogfight(form: 1, count: 12), 20900, 26000, 0.7), 1.6),          xf(0.2),
+      scene(play(Shatter(), 26000, 36000, 0.7), 1.5),                             xf(0.2),
+      scene(ink(Warp(speed: 5), blue), 1.63),                                      xf(0.25),
+      // the planet (bars 11–20)
+      scene(ink(Planet(), deep), 2.6),                                             xf(0.25),
+      scene(play(Ground(), 36000, 39400, 0.8), 2.2),                               xf(0.25),
+      scene(play(Ground(towers: 9, speed: 1.4), 39400, 43200, 0.8), 1.6),          xf(0.2),
+      scene(play(Dogfight(form: 0, count: 8, ground: 1), 43200, 47100, 0.7), 1.4), xf(0.2),
+      scene(play(Ground(canyon: 1, speed: 1.2), 47100, 50800, 0.7), 2),           xf(0.25),
+      scene(play(Ground(towers: 4, speed: 2), 50800, 53300, 0.7), 1.2),           xf(0.2),
+      scene(play(Dogfight(form: 2, count: 12), 53300, 58200, 0.6), 1.4),          xf(0.2),
+      scene(play(Hatch(), 58200, 60000, 0.6), 3.03),                              xf(0.3),
+      // the base (bars 20–28)
+      scene(play(Tunnel(), 60000, 61500, 0.6), 2.4),                              xf(0.25),
+      scene(play(Tunnel(drones: 1, speed: 1.3), 61500, 65800, 0.6), 1.8),        xf(0.2),
+      scene(play(Tunnel(gates: 1), 65800, 67200, 0.5), 1.6),                      xf(0.2),
+      scene(play(Tunnel(speed: 2.5), 67200, 68400, 0.5), 1),                      xf(0.2),
+      scene(play(Tunnel(drones: 1, gates: 1, speed: 1.5), 68400, 73600, 0.5), 1.8), xf(0.2),
+      scene(play(Tunnel(gates: 1, speed: 2), 73600, 75100, 0.4), 1.4),           xf(0.2),
+      scene(play(Tunnel(drones: 1, speed: 2.2), 75100, 78900, 0.4), 1.2),        xf(0.2),
+      scene(play(Kernel(), 78900, 81000, 0.4), 2.51),                              xf(0.3),
+      // the kernel (bars 28–33)
+      scene(play(Kernel(stage: 1), 81000, 86400, 0.3), 2),                        xf(0.2),
+      scene(play(Kernel(stage: 2), 86400, 90100, 0.2), 1.2),                      jump(),
+      scene(play(Kernel(stage: 2), 90100, 93000, 0.2), 1.4, from: 0.4, to: 1),    jump(),
+      scene(play(Shatter(which: 1), 93000, 98000, 0.2), 2),                       xf(0.25),
+      scene(play(Tunnel(escape: 1, speed: 3.5), 98000, 98760, 0.2), 1.97),       xf(0.3),
+      // mission complete (bars 33–35)
+      scene(ink(Complete(), blue), 3.43),                                          fade(0.5, through: 0),
+  ], loop: 1)                                                                     // 60 s
+  let look = chroma(vignette(blur(film(reel, amount: 0.06), radius: 0.0012), amount: 0.55), amount: 1.4)
+
+  // ── the instruments, a home console's: pulse, triangle, noise; and, later, what it never had ──
+  let m = meter(140, bars: 35)
+  let lead = synth {
+    let vib = 1 + 0.008 * sine(6) * adsr(attack: 0.15, decay: 0.01, sustain: 1, release: 0.1)
+    pulse(note.freq * vib, width: 0.25 + 0.1 * sine(3)) * adsr(attack: 0.002, decay: 0.12, sustain: 0.6, release: 0.06) * 0.45
+  }
+  let echoed = synth {                                               // the planet's lead: the same pulse, an echo of the landscape
+    let vib = 1 + 0.01 * sine(5.5) * adsr(attack: 0.2, decay: 0.01, sustain: 1, release: 0.1)
+    delay(pulse(note.freq * vib, width: 0.3) * adsr(attack: 0.004, decay: 0.2, sustain: 0.5, release: 0.15) * 0.4, time: 60 / 140 * 0.75, feedback: 0.45, mix: 0.4)
+  }
+  let wild = synth {                                                 // the end: a saw pushed into distortion
+    drive(lowpass(saw(note.freq) + saw(note.freq * 1.008) * 0.8, cutoff: 2500 + 2000 * perc(release: 0.2), resonance: 0.3)
+          * adsr(attack: 0.003, decay: 0.15, sustain: 0.7, release: 0.1), amount: 0.6) * 0.45
+  }
+  let tri = synth { triangle(note.freq) * adsr(attack: 0.002, decay: 0.08, sustain: 0.8, release: 0.04) }
+  let arp = synth { square(note.freq) * perc(attack: 0.001, release: 0.07) * 0.3 }
+  let pad = synth {
+    chorus(lowpass(saw(note.freq) + saw(note.freq * 1.005) + triangle(note.freq * 0.5), cutoff: 1400, resonance: 0.1)
+           * adsr(attack: 0.6, decay: 0.5, sustain: 0.8, release: 1.5) * 0.22, depth: 0.8, rate: 0.4)
+  }
+  let kick = synth { square(note.freq * (1 + 6 * perc(attack: 0.0005, release: 0.03))) * perc(attack: 0.001, release: 0.12) * 0.8 }
+  let snare = synth { (highpass(noise(), cutoff: 1500, resonance: 0.1) * perc(attack: 0.001, release: 0.12) + square(220) * perc(release: 0.03) * 0.3) * note.velocity }
+  let hat = synth { highpass(noise(), cutoff: 9000, resonance: 0.1) * perc(release: 0.025) * note.velocity }
+  let crash = synth { highpass(noise(), cutoff: 4000, resonance: 0.2) * perc(attack: 0.001, release: 1.6) * 0.6 }
+  let zap = synth { square(note.freq * (1 + 3 * perc(attack: 0.0005, release: 0.07))) * perc(attack: 0.001, release: 0.1) * 0.25 }
+  let blast = synth { lowpass(noise(), cutoff: 200 + 5000 * perc(attack: 0.001, release: 0.5), resonance: 0.3) * perc(attack: 0.002, release: 1.2) }
+
+  // ── the arrangement: 35 bars, eighth notes for the tunes, sixteenths for the drums ──
+  let s16 = 35 * 16
+  let semi(s) = 1 - (s + 0.5) / 36
+  let bar(j) = floor(j / 16)
+  let beat(j) = j % 16
+  let during(j, a, b) = (bar(j) >= a) * (bar(j) < b)
+  // the tunes, an eighth a step (-1 a rest), four bars a phrase, semitones above E3
+  let A = [[0, -1, 7, -1, 12, -1, 10, 7], [5, -1, 3, -1, 5, 7, -1, -1], [0, -1, 7, -1, 12, -1, 14, 15], [14, 12, 10, -1, 12, -1, -1, -1]]
+  let B = [[7, -1, 10, 12, 15, -1, 14, 12], [8, -1, 7, -1, 8, 10, -1, -1], [7, -1, 10, 12, 15, -1, 17, 19], [17, 15, 14, -1, 15, -1, -1, -1]]
+  let C = [[0, 1, 0, -1, 7, -1, 6, -1], [0, 1, 3, -1, 1, -1, -1, -1]]
+  let FAN = [[12, -1, 12, 12, 19, -1, -1, -1], [17, -1, 19, -1, 24, -1, -1, -1]]
+  let tune(b, p) = during(b * 16, 2, 11) * A[(b + 2) % 4][p] + during(b * 16, 11, 20) * B[(b + 1) % 4][p]
+                 + during(b * 16, 20, 28) * C[b % 2][p] + during(b * 16, 28, 33) * A[b % 4][p] + during(b * 16, 33, 35) * FAN[(b + 1) % 2][p]
+  // the chords, a bar each: Em C D Bm; underground Em F Em B (semitones above E3), and their roots (above E1)
+  let up = [[12, 15, 19], [8, 12, 15], [10, 14, 17], [7, 10, 14]]
+  let low = [[12, 15, 19], [13, 17, 20], [12, 15, 19], [11, 15, 18]]
+  let chord(b) = during(b * 16, 20, 28) * low[b % 4] + (1 - during(b * 16, 20, 28)) * up[b % 4]
+  let rootsup = [12, 8, 10, 7]
+  let rootslow = [12, 13, 12, 11]
+  let root(b) = during(b * 16, 20, 28) * rootslow[b % 4] + (1 - during(b * 16, 20, 28)) * rootsup[b % 4]
+
+  pattern melody = repeat 35 * 8 event(t: i / (35 * 8), x: 0.5, y: semi(max(tune(floor(i / 8), i % 8), 0)), size: 0.008,
+      intensity: (tune(floor(i / 8), i % 8) >= 0) * (1 - during(i * 2, 11, 20)) * (floor(i / 8) >= 2) * 0.8)
+  pattern melody2 = repeat 35 * 8 event(t: i / (35 * 8), x: 0.4, y: semi(max(tune(floor(i / 8), i % 8), 0)), size: 0.012,
+      intensity: (tune(floor(i / 8), i % 8) >= 0) * during(i * 2, 11, 20) * 0.8)
+  pattern howl = repeat 35 * 8 event(t: i / (35 * 8), x: 0.6, y: semi(max(tune(floor(i / 8), i % 8), 0) + 12 * (floor(i / 8) < 33)), size: 0.008,
+      intensity: (tune(floor(i / 8), i % 8) >= 0) * during(i * 2, 28, 35) * 0.75)
+  pattern bassline = repeat s16 event(t: i / s16, x: 0.5, y: semi(root(bar(i)) + 12 * (beat(i) % 4 == 2)), size: 0.004,
+      intensity: (bar(i) >= 1) * ((beat(i) % 2 == 0) * (1 - during(i, 20, 33)) + during(i, 20, 33)) * (0.7 + 0.3 * (beat(i) % 4 == 0)))
+  pattern arps = repeat 35 * 32 event(t: i / (35 * 32), x: 0.5 + 0.3 * sin(i), y: semi(chord(floor(i / 32))[i % 3]), size: 0.002,
+      intensity: ((floor(i / 32) < 2) + during(i / 2, 11, 33)) * 0.6)
+  pattern pads = repeat 35 * 3 event(t: floor(i / 3) * 16 / s16, x: 0.3 + 0.2 * (i % 3), y: semi(chord(floor(i / 3))[i % 3] - 12), size: 0.08,
+      intensity: (during(floor(i / 3) * 16, 11, 20) + during(floor(i / 3) * 16, 28, 35)) * 0.55)
+  // drums: chip drums, steady; underground four on the floor; at the kernel a breakbeat drawn by chance
+  let wildk = [~between(0, 1) < 0.3 for k in range(16)]
+  let wilds = [~between(0, 1) < 0.25 for k in range(16)]
+  pattern kicks = repeat s16 event(t: i / s16, x: 0.5, y: 0.99,
+      intensity: during(i, 2, 20) * ((beat(i) == 0) + (beat(i) == 8) + (beat(i) == 10) * 0.6)
+               + during(i, 20, 28) * (beat(i) % 4 == 0)
+               + during(i, 28, 33) * ((beat(i) == 0) + wildk[beat(i)] * 0.8))
+  pattern snares = repeat s16 event(t: i / s16, x: 0.55, y: 0.5,
+      intensity: (during(i, 2, 28) + during(i, 28, 33)) * ((beat(i) == 4) + (beat(i) == 12)) * 0.8
+               + during(i, 28, 33) * wilds[beat(i)] * 0.4
+               + (beat(i) >= 12) * (bar(i) % 4 == 3) * during(i, 2, 33) * (~between(0, 1) < 0.6) * 0.5)
+  pattern hats = repeat s16 event(t: i / s16, x: 0.5 + 0.3 * sin(i * 1.3), y: 0.5,
+      intensity: during(i, 2, 33) * ((beat(i) % 2 == 0) * 0.5 + during(i, 20, 33) * (beat(i) % 2 == 1) * 0.3))
+  pattern crashes = repeat 6 event(t: [2, 11, 20, 28, 30.7, 33][i] * 16 / s16, x: 0.5, y: 0.5, size: 0.08, intensity: 0.7)
+  pattern booms = repeat 2 event(t: [15.73, 52.6][i] / 60, x: 0.5, y: 0.5, size: 0.06, intensity: 1)
+  pattern zaps = repeat s16 event(t: i / s16, x: ~between(0.2, 0.8), y: semi(~between(20, 32)), size: 0.004,
+      intensity: (during(i, 2, 11) + during(i, 12, 31)) * (~between(0, 1) < 0.18) * 0.5)
+
+  let music = [
+    notes(melody,    instrument: lead, scale: "chromatic", key: 164.81, tempo: m.tempo, gain: 1.6),
+    notes(melody2,   instrument: echoed, scale: "chromatic", key: 164.81, tempo: m.tempo, gain: 1.6),
+    notes(howl,      instrument: wild, scale: "chromatic", key: 164.81, tempo: m.tempo, gain: 1.0),
+    notes(bassline,  instrument: tri, scale: "chromatic", key: 41.2, tempo: m.tempo, gain: 2.2),
+    notes(arps,      instrument: arp, scale: "chromatic", key: 164.81, gain: 0.6),
+    notes(pads,      instrument: pad, scale: "chromatic", key: 164.81, tempo: m.tempo, gain: 0.8),
+    notes(kicks,     instrument: kick, scale: "chromatic", key: 55, tempo: m.tempo, gain: 2),
+    notes(snares,    instrument: snare, tempo: m.tempo, gain: 0.8),
+    notes(hats,      instrument: hat, tempo: m.tempo, gain: 0.45),
+    notes(crashes,   instrument: crash, gain: 0.2),
+    notes(booms,     instrument: blast, gain: 0.35),
+    notes(zaps,      instrument: zap, scale: "chromatic", key: 220, tempo: m.tempo, gain: 0.25),
+    texture(0.2 + 0.8 * (t > 11 * 60 / 140 * 4 / 60) * (t < 20 * 60 / 140 * 4 / 60) + x * 0, kind: "wind", gain: 0.15),
+  ]
+
+  render image(look, width: 1080, height: 1920, at: 49.3 / 60)          // the cover: the attack on the kernel
+  render video(look, fps: 30, width: 1080, height: 1920, sound: music, room: 0.2, echo: 0.05)
+}

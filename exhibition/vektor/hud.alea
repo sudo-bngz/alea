@@ -1,0 +1,13 @@
+// Hud — what the pilot sees over everything: the score counting, the
+// shield in segments, the crosshair. from / to: the score over the scene.
+// What it returns: 0 dark, up to 1 light.
+
+work Hud(from = 0, to = 1000, shield = 1) {
+  let steps = 8
+  let score = sequence([text("{from + floor((to - from) * k / steps / 10) * 10}", 0.82, -0.32, 0.035, 0, "mono") for k in range(steps)], fade: 0) * 0.85
+  let label = text("SCORE", 0.82, -0.36, 0.022, 0, "mono") * 0.6
+  let segs = merge([rect(0.12 + 0.03 * k, -0.33, 0.022, 0.016, 0, 0.001) * (k < shield * 10) for k in range(10)]) * 0.8
+  let frame = (abs(max(abs(x - 0.255) / 0.155, abs(y + 0.33) / 0.016) - 1) < 0.04) * 0.5
+  let cross = merge(rect(0.5, 0.42, 0.04, 0.002, 0, 0.001), rect(0.5, 0.42, 0.002, 0.04, 0, 0.001)) * (1 - (distance(x, y, 0.5, 0.42) < 0.008)) * 0.5
+  output merge(score, label, segs, frame, cross)
+}
