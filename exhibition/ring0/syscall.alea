@@ -1,0 +1,28 @@
+// Syscall — the border between the programs (left) and the kernel (right):
+// calls crossing it through the one gate, each lighting its number in the
+// kernel's table, the answer coming back the same way.
+// What it returns: 0 dark, up to 1 light.
+
+work Syscall(at = 0, beats = 4, calls = 7) {
+  let seed = ~between(0, 100)
+  let hash(a, b) = fract(sin(a * 12.9898 + b * 78.233 + seed) * 43758.5453)
+  let b = at + t * beats
+  let wall = (abs(x - 0.42) < 0.003) * (abs(y - 0.5) > 0.03) * 0.7
+  let gate = (abs(x - 0.42) < 0.012) * (abs(y - 0.5) < 0.03) * (0.4 + 0.6 * exp(-fract(b * 2) * 5))
+  // the kernel's table: 8 × 24 cells
+  let tu = (x - 0.55) / 0.38 * 8
+  let tv = (y + 0.25) / 1.5 * 24
+  let tc = floor(tu)
+  let tr = floor(tv)
+  let intable = (tc >= 0) * (tc < 8) * (tr >= 0) * (tr < 24) * (abs(fract(tu) - 0.5) < 0.4) * (abs(fract(tv) - 0.5) < 0.38)
+  // call k: leaves a lane on the left, goes to the gate, then to its cell, and back
+  let lanes = [~between(-0.2, 1.2) for k in range(calls)]
+  let cell(k) = [0.55 + (floor(hash(k, floor(b)) * 8) + 0.5) * 0.38 / 8, -0.25 + (floor(hash(k + 9, floor(b)) * 24) + 0.5) * 1.5 / 24]
+  let ph(k) = fract(b + k / calls)
+  let pos(k) = (ph(k) < 0.5) * [0.05 + 0.37 * ph(k) * 2, lanes[k] + (0.5 - lanes[k]) * ph(k) * 2]
+             + (ph(k) >= 0.5) * [0.42 + (cell(k)[0] - 0.42) * (ph(k) - 0.5) * 2, 0.5 + (cell(k)[1] - 0.5) * (ph(k) - 0.5) * 2]
+  let calls_ = merge([rect(pos(k)[0], pos(k)[1], 0.024, 0.012, 0, 0.002) + glow(x: pos(k)[0], y: pos(k)[1], size: 0.05) * 0.4 for k in range(calls)])
+  let lit = merge([(abs(x - cell(k)[0]) < 0.02) * (abs(y - cell(k)[1]) < 0.025) * (ph(k) > 0.85) for k in range(calls)])
+  let paths = merge([line(0.05, lanes[k], 0.42, 0.5, 0.002, 0.002) * 0.15 for k in range(calls)])
+  output merge(wall, gate, intable * 0.18, lit * intable, calls_, paths)
+}

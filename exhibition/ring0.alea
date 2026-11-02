@@ -1,0 +1,195 @@
+// RING 0 — how the kernel of an operating system works, from power on to
+// halt, abstract and on the beat: its log scrolling at boot; the shell, a
+// command typed a key at a time; the processes in their time slices, lane by
+// lane; the tree of processes forking; the rings of protection, a call
+// falling from ring three to ring zero and back; system calls crossing the
+// one gate into the kernel's table; the run queue, a red-black tree giving up
+// its leftmost; interrupts climbing from the devices to the CPU, which drops
+// what it was doing; the disk, the bus, the memory; pages mapped to frames,
+// a fault and its page brought in; and, over and over, the three layers at
+// once (programs, kernel, hardware), calls falling and interrupts climbing.
+// The machine halts as an old screen switched off. Fifty-five scenes of one to
+// four beats on a timeline, in a loop, every cut drawn for each edition.
+//
+// The track, an IDM of clicks, metal and wood at 120 BPM over thirty bars,
+// follows it: a computer's chirps at boot; a kick on a Euclidean five, hats in
+// sevens, wooden plucks on the whole-tone scale for user space; the system
+// calls as FM thumps and a bass in nines for the kernel; the interrupts as
+// metallic hits and their rolls for the hardware; everything for memory and
+// the scheduler; then it thins out, and the screen's tone falls away. The
+// calls and interrupts that sound are the ones on the screen.
+
+use "ring0/boot.alea"
+use "ring0/shell.alea"
+use "ring0/procs.alea"
+use "ring0/rings.alea"
+use "ring0/syscall.alea"
+use "ring0/irq.alea"
+use "ring0/hardware.alea"
+use "ring0/memory.alea"
+use "ring0/tree.alea"
+use "ring0/fork.alea"
+use "ring0/layers.alea"
+use "ring0/halt.alea"
+
+work Ring0 {
+  // ── what the edition does: on which sixteenths the system calls and the interrupts come ──
+  let sys = [(k == 0) + (k != 0) * (~between(0, 1) < 0.28) for k in range(16)]
+  let irq = [(k % 4 != 0) * (~between(0, 1) < 0.3) for k in range(16)]
+  let hats7 = [~between(0, 1) < 0.55 for k in range(7)]
+  let wood5 = [~between(0, 1) < 0.6 for k in range(5)]
+  let wtone = [choose { 0 | 2 | 4 | 6 | 8 | 10 | 12 | 14 | 16 } for k in range(5)]
+  let bass9 = [choose { 0 | 0 | 7 | 12 | 1 | 6 } for k in range(9)]
+  let rot = floor(~between(0, 16))
+
+  // ── the pictures: phosphor, amber, cold cyan, a faded red, violet; scanlines and grain ──
+  let green  = ["#050a06", "#173a20", "#7ce08a", "#e8ffe8"]
+  let amber  = ["#0c0803", "#4a2e08", "#f0a030", "#fff0d0"]
+  let cyan   = ["#040b0e", "#123c48", "#5ad0e8", "#e6fbff"]
+  let red    = ["#0e0505", "#521812", "#e0604a", "#ffe6dc"]
+  let violet = ["#09070e", "#2e2448", "#a490e0", "#f2eeff"]
+  let beat = 0.5
+  let ink(f, colours) = paint(f * (0.84 + 0.16 * (fract(y * 280) < 0.5)), palette: colours, range: [0, 1])
+  let xf(s) = choose { 5: glitch(s, amount: ~between(0.6, 1)) | 2: pixels(s, size: ~between(0.025, 0.07)) | 2: morph(s, amount: ~between(0.15, 0.3)) | 1: jump() }
+
+  let reel = timeline([
+      // power on: the kernel's log (bars 0–3)
+      scene(ink(Boot(at: 0, beats: 4), amber), 4 * beat), xf(0.18),
+      scene(ink(Boot(at: 4, beats: 2, rate: 40), amber), 2 * beat), xf(0.18),
+      scene(ink(Rings(at: 6, beats: 2), amber), 2 * beat), xf(0.18),
+      scene(ink(Boot(at: 8, beats: 2, rate: 28), amber), 2 * beat), xf(0.18),
+      scene(ink(Layers(at: 10, beats: 2, sys: sys, irq: irq), green), 2 * beat), xf(0.18),
+      // user space: the shell, the processes, fork (bars 3–9)
+      scene(ink(Shell(at: 12, beats: 4), green), 4 * beat), xf(0.18),
+      scene(ink(Procs(at: 16, beats: 2), green), 2 * beat), xf(0.18),
+      scene(ink(Layers(at: 18, beats: 2, sys: sys, irq: irq), green), 2 * beat), xf(0.18),
+      scene(ink(Shell(at: 20, beats: 2, rate: 16), green), 2 * beat), xf(0.18),
+      scene(ink(Fork(at: 22, beats: 3), green), 3 * beat), xf(0.18),
+      scene(ink(Procs(at: 25, beats: 2, cpus: 10, speed: 2), green), 2 * beat), xf(0.18),
+      scene(ink(Layers(at: 27, beats: 1, sys: sys, irq: irq), green), 1 * beat), xf(0.12),
+      scene(ink(Shell(at: 28, beats: 2, rate: 22), green), 2 * beat), xf(0.18),
+      scene(ink(Fork(at: 30, beats: 2, depth: 4), green), 2 * beat), xf(0.18),
+      scene(ink(Rings(at: 32, beats: 2), cyan), 2 * beat), xf(0.18),
+      scene(ink(Layers(at: 34, beats: 2, sys: sys, irq: irq), green), 2 * beat), xf(0.18),
+      // into the kernel: rings, system calls, the run queue (bars 9–15)
+      scene(ink(Rings(at: 36, beats: 3), cyan), 3 * beat), xf(0.18),
+      scene(ink(Syscall(at: 39, beats: 3), cyan), 3 * beat), xf(0.18),
+      scene(ink(Layers(at: 42, beats: 2, sys: sys, irq: irq), cyan), 2 * beat), xf(0.18),
+      scene(ink(Syscall(at: 44, beats: 2, calls: 12), cyan), 2 * beat), xf(0.18),
+      scene(ink(Tree(at: 46, beats: 2), cyan), 2 * beat), xf(0.18),
+      scene(ink(Rings(at: 48, beats: 1), cyan), 1 * beat), xf(0.12),
+      scene(ink(Layers(at: 49, beats: 2, sys: sys, irq: irq), cyan), 2 * beat), xf(0.18),
+      scene(ink(Syscall(at: 51, beats: 3, calls: 9), cyan), 3 * beat), xf(0.18),
+      scene(ink(Tree(at: 54, beats: 2), cyan), 2 * beat), xf(0.18),
+      scene(ink(Layers(at: 56, beats: 2, sys: sys, irq: irq), cyan), 2 * beat), xf(0.18),
+      scene(ink(Shell(at: 58, beats: 2, rate: 30), green), 2 * beat), xf(0.18),
+      // interrupts, the hardware (bars 15–21)
+      scene(ink(Irq(at: 60, beats: 3, irq: irq), red), 3 * beat), xf(0.18),
+      scene(ink(Hardware(at: 63, beats: 3), red), 3 * beat), xf(0.18),
+      scene(ink(Layers(at: 66, beats: 2, sys: sys, irq: irq), red), 2 * beat), xf(0.18),
+      scene(ink(Irq(at: 68, beats: 2, irq: irq), red), 2 * beat), xf(0.18),
+      scene(ink(Hardware(at: 70, beats: 2), red), 2 * beat), xf(0.18),
+      scene(ink(Layers(at: 72, beats: 1, sys: sys, irq: irq), red), 1 * beat), xf(0.12),
+      scene(ink(Irq(at: 73, beats: 2, irq: irq), red), 2 * beat), xf(0.18),
+      scene(ink(Memory(at: 75, beats: 2), violet), 2 * beat), xf(0.18),
+      scene(ink(Layers(at: 77, beats: 2, sys: sys, irq: irq), red), 2 * beat), xf(0.18),
+      scene(ink(Hardware(at: 79, beats: 3), red), 3 * beat), xf(0.18),
+      scene(ink(Irq(at: 82, beats: 2, irq: irq), red), 2 * beat), xf(0.18),
+      // memory, the scheduler, everything at once (bars 21–27)
+      scene(ink(Memory(at: 84, beats: 3), violet), 3 * beat), xf(0.18),
+      scene(ink(Tree(at: 87, beats: 2), violet), 2 * beat), xf(0.18),
+      scene(ink(Layers(at: 89, beats: 2, sys: sys, irq: irq), violet), 2 * beat), xf(0.18),
+      scene(ink(Procs(at: 91, beats: 2, cpus: 8, speed: 3), green), 2 * beat), xf(0.18),
+      scene(ink(Memory(at: 93, beats: 2, pages: 20), violet), 2 * beat), xf(0.18),
+      scene(ink(Layers(at: 95, beats: 1, sys: sys, irq: irq), red), 1 * beat), xf(0.12),
+      scene(ink(Syscall(at: 96, beats: 2, calls: 14), cyan), 2 * beat), xf(0.18),
+      scene(ink(Irq(at: 98, beats: 1, irq: irq), red), 1 * beat), xf(0.12),
+      scene(ink(Tree(at: 99, beats: 2), violet), 2 * beat), xf(0.18),
+      scene(ink(Layers(at: 101, beats: 2, sys: sys, irq: irq), violet), 2 * beat), xf(0.18),
+      scene(ink(Memory(at: 103, beats: 3), violet), 3 * beat), xf(0.18),
+      scene(ink(Layers(at: 106, beats: 2, sys: sys, irq: irq), cyan), 2 * beat), xf(0.18),
+      // halt (bars 27–30)
+      scene(ink(Procs(at: 108, beats: 2, speed: 0.5), green), 2 * beat), xf(0.18),
+      scene(ink(Layers(at: 110, beats: 2, sys: sys, irq: irq), amber), 2 * beat), xf(0.18),
+      scene(ink(Rings(at: 112, beats: 2), amber), 2 * beat), xf(0.18),
+      scene(ink(Boot(at: 114, beats: 2, rev: 1, rate: 30), amber), 2 * beat), xf(0.18),
+      scene(ink(Halt(at: 116, beats: 4), amber), 4 * beat), fade(0.3, through: 0),
+  ], loop: 1)                                                                    // 120 beats: 60 s
+  let look = chroma(vignette(film(reel, amount: 0.075), amount: 0.5), amount: 0.9)
+
+  // ── the instruments: clicks, metal, wood, a drone ──
+  let m = meter(120, bars: 30)
+  let chirp = synth { (sine(note.freq) + square(note.freq * 1.5) * 0.2) * perc(attack: 0.001, release: 0.05) * 0.4 }
+  let click = synth { bandpass(noise(), cutoff: note.freq, resonance: 0.8) * perc(attack: 0.0003, release: 0.012) * 2 * note.velocity }
+  let kick = synth { sine(note.freq * (1 + 3 * perc(attack: 0.0005, release: 0.03))) * perc(attack: 0.001, release: 0.25) + noise() * perc(release: 0.003) * 0.2 }
+  let thump = synth {                                             // a system call: an FM thud
+    sine(note.freq + sine(note.freq * 1.5) * note.freq * 2 * perc(release: 0.05)) * perc(attack: 0.001, release: 0.18)
+  }
+  let metal = synth {                                             // an interrupt: metal struck
+    sine(note.freq + sine(note.freq * 3.73) * note.freq * 3 * perc(release: 0.08)) * perc(attack: 0.0005, release: 0.12) * 0.6
+  }
+  let wood = synth {                                              // wood: a short FM pluck, organic
+    sine(note.freq + sine(note.freq * 2.01) * note.freq * 1.2 * perc(release: 0.04)) * perc(attack: 0.001, release: 0.22) * 0.6
+  }
+  let hat = synth { highpass(noise(), cutoff: 7500, resonance: 0.4) * perc(release: 0.04) * note.velocity }
+  let bass = synth {
+    lowpass(sine(note.freq) + sine(note.freq * 2 + sine(note.freq * 0.5) * note.freq * 0.5 * perc(release: 0.1)) * 0.3, cutoff: 600, resonance: 0.2)
+      * adsr(attack: 0.005, decay: 0.2, sustain: 0.5, release: 0.1)
+  }
+  let bell = synth { (sine(note.freq) + sine(note.freq * 2.76) * 0.4 * perc(release: 0.6)) * perc(attack: 0.002, release: 1.4) * 0.35 }
+  let drone = synth {
+    let f = note.freq * (1 + 0.002 * sine(0.2))
+    chorus(lowpass(triangle(f) + triangle(f * 1.004) + saw(f * 0.5) * 0.2, cutoff: 500 + 400 * sine(0.05), resonance: 0.3)
+           * adsr(attack: 1.5, decay: 1, sustain: 0.8, release: 3) * 0.3, depth: 0.9, rate: 0.25)
+  }
+  let crt = synth { (sine(note.freq * (0.2 + 0.8 * adsr(attack: 0.001, decay: 1.4, sustain: 0, release: 0.1))) * 0.4 + highpass(noise(), cutoff: 4000, resonance: 0.1) * perc(release: 0.1)) * perc(attack: 0.001, release: 1.5) }
+
+  // ── the arrangement: 30 bars of sixteenths ──
+  let s16 = 480
+  let semi(s) = 1 - (s + 0.5) / 36
+  let bar(j) = floor(j / 16)
+  let st(j) = j % 16
+  let during(j, a, b) = (bar(j) >= a) * (bar(j) < b)
+  // the stages: boot 0–3, user 3–9, kernel 9–15, interrupts 15–21, memory 21–27, halt 27–30
+  let clusters = [[0, 2, 7, 11, 14], [1, 5, 8, 12, 15], [2, 4, 9, 11, 16], [0, 3, 8, 10, 13]]
+  pattern pads = repeat 8 * 5 event(t: floor(i / 5) * 64 / s16, x: 0.25 + 0.12 * (i % 5), y: semi(clusters[floor(i / 5) % 4][i % 5] + 5), size: 0.146,
+      intensity: 0.45 - 0.2 * (floor(i / 5) == 7))
+  pattern chirps = repeat s16 event(t: i / s16, x: ~between(0.2, 0.8), y: semi(~between(20, 34)), size: 0.004,
+      intensity: (during(i, 0, 3) * (~between(0, 1) < 0.35) + during(i, 3, 27) * (~between(0, 1) < 0.03)) * 0.5)
+  pattern clicks = repeat s16 * 2 event(t: i / (s16 * 2), x: ~between(0.1, 0.9), y: semi(~between(10, 35)), size: 0.002,
+      intensity: (~between(0, 1) < 0.15 + 0.15 * during(floor(i / 2), 9, 27) + 0.1 * during(floor(i / 2), 15, 27)) * ~between(0.2, 0.9) * (1 - 0.7 * during(floor(i / 2), 27, 30)))
+  pattern kicks = repeat s16 event(t: i / s16, x: 0.5, y: 0.99,
+      intensity: (during(i, 3, 15) * ((st(i + rot) * 5) % 16 < 5) + during(i, 15, 27) * ((st(i + rot) * 7) % 16 < 7) * (st(i) % 2 == 0)) * 0.9
+               + during(i, 27, 29) * (st(i) == 0) * 0.6)
+  pattern thumps = repeat s16 event(t: i / s16, x: 0.45, y: semi(~between(4, 9)), size: 0.004, intensity: during(i, 9, 28) * sys[i % 16] * 0.8)
+  pattern metals = repeat s16 event(t: i / s16, x: ~between(0.3, 0.7), y: semi(~between(18, 30)), size: 0.004, intensity: during(i, 15, 28) * irq[i % 16] * 0.7)
+  // the rolls of the interrupts: thirty-second notes after some of them
+  pattern rolls = repeat s16 * 2 event(t: i / (s16 * 2), x: 0.5 + 0.35 * sin(i * 1.1), y: semi(24 + (i % 4) * 2), size: 0.002,
+      intensity: during(floor(i / 2), 15, 27) * irq[floor(i / 2) % 16] * (i % 2 == 1) * (bar(floor(i / 2)) % 2 == 1) * 0.45)
+  pattern hats = repeat s16 event(t: i / s16, x: 0.5 + 0.3 * sin(i * 1.9), y: 0.5, intensity: during(i, 3, 28) * hats7[i % 7] * (0.2 + 0.5 * ~between(0, 1)))
+  pattern woods = repeat s16 event(t: i / s16, x: ~between(0.2, 0.8), y: semi(12 + wtone[i % 5]), size: 0.006,
+      intensity: (during(i, 3, 27) * wood5[i % 5] * (~between(0, 1) < 0.65) + during(i, 27, 29) * (~between(0, 1) < 0.15)) * 0.6)
+  pattern basses = repeat s16 event(t: i / s16, x: 0.5, y: semi(bass9[i % 9] + 3), size: 0.006, intensity: during(i, 9, 27) * (i % 9 != 4) * (i % 3 == 0) * 0.8)
+  pattern bells = repeat 30 event(t: i * 16 / s16, x: ~between(0.3, 0.7), y: semi(choose { 19 | 21 | 26 | 28 }), size: 0.05,
+      intensity: (i % 3 == 0) * (i >= 9) * (i < 27) * 0.5 + (i == 21) * 0.4)
+  pattern off = repeat 1 event(t: 29 * 16 / s16, x: 0.5, y: semi(27), size: 0.08, intensity: 0.7)
+
+  let music = [
+    notes(pads,    instrument: drone, scale: "chromatic", key: 55, tempo: m.tempo, gain: 1),
+    notes(chirps,  instrument: chirp, scale: "chromatic", key: 220, tempo: m.tempo, gain: 0.3),
+    notes(clicks,  instrument: click, scale: "chromatic", key: 220, gain: 0.5),
+    notes(kicks,   instrument: kick, scale: "chromatic", key: 50, tempo: m.tempo, gain: 1.6),
+    notes(thumps,  instrument: thump, scale: "chromatic", key: 55, tempo: m.tempo, gain: 0.9),
+    notes(metals,  instrument: metal, scale: "chromatic", key: 220, tempo: m.tempo, gain: 0.5),
+    notes(rolls,   instrument: metal, scale: "chromatic", key: 220, gain: 0.35),
+    notes(hats,    instrument: hat, tempo: m.tempo, gain: 0.35),
+    notes(woods,   instrument: wood, scale: "chromatic", key: 220, tempo: m.tempo, gain: 0.55),
+    notes(basses,  instrument: bass, scale: "chromatic", key: 41.2, tempo: m.tempo, gain: 1.4),
+    notes(bells,   instrument: bell, scale: "chromatic", key: 220, tempo: m.tempo, gain: 0.4),
+    notes(off,     instrument: crt, scale: "chromatic", key: 220, gain: 0.3),
+    notes(reel.cues, instrument: click, scale: "chromatic", key: 1760, gain: 0.2),
+  ]
+
+  render image(look, width: 1080, height: 1920, at: 33 / 60)
+  render video(look, fps: 30, width: 1080, height: 1920, sound: music, room: 0.3, echo: 0.12)
+}

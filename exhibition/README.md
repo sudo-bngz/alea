@@ -21,6 +21,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Hana** (花) | `hana.alea` (+ `hana/`) | An electronic flower, from seed to seed, in a network: a seed calling in the grid, roots along its links, a stem of square cells, a bud of nested squares, the bloom of square petals, the seeds leaving along the links and on the wind, flowers everywhere, the petals falling apart into grain. Forty-one cuts in a minute, glitches drawn anew every edition, an IDM track in the Boards of Canada way. |
 | **Babel** | `babel.alea` (+ `babel/`) | The library that holds every book: pages of a script of twenty-five symbols rewritten on every tick, a book in three dimensions turning in the dark, the shelves, a hexagonal gallery from above, the hallways, the shaft and its stair, the mirror, and one long rise out of a gallery until the floor of galleries runs to the horizon. Forty-one cuts in a minute, a dark choir and a broken beat. |
 | **VEKTOR** | `vektor.alea` (+ `vektor/`) | A minute of a wireframe 3D shoot 'em up off a worn VHS tape, blue lines on black: the title screen, the jump, an asteroid field and squadrons of darts, a mothership broken apart, the dive onto a planet and low over its grid, the hatch of the enemy base, its ducts, the kernel shot until it comes apart, the escape, mission complete. A chiptune that goes wild at the end. |
+| **RING 0** | `ring0.alea` (+ `ring0/`) | How the kernel of an operating system works, abstract and on the beat: the boot log, the shell, processes in their time slices, the rings of protection, system calls through the gate, interrupts climbing from the devices, the disk and the bus, pages and their frames, the run queue, the fork, and the three layers at once; then the halt, an old screen switched off. Fifty-five cuts in a minute, glitches drawn anew every edition, an IDM track of clicks, metal and wood in the Autechre way. |
 | **Kairo** (回路) | `kairo.alea` (+ `fonts/`) | After Kikai, a modular synthesizer that never existed: two rows of modules racked in another order each edition, patched with hanging cables. Also a Reel without drums: a slow piano waltz over a deep drone, the melody written on a staff as it plays. |
 
 ## Replaying the editions
@@ -32,6 +33,7 @@ alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
 alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
+alea ring0.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea vektor.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 45 minutes)
 alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
@@ -66,6 +68,7 @@ The posted editions:
 | Hana Reel | 0xa1ea01 |
 | Babel Reel | 0xa1ea01 |
 | VEKTOR Reel | 0xa1ea01 |
+| RING 0 Reel | 0xa1ea01 |
 
 All images are 1080 × 1350 (4:5, Instagram's portrait format); the Reel is
 1080 × 1920 (9:16), 15 seconds, with sound.
@@ -792,6 +795,59 @@ ennemie, ses conduits, et le noyau en son cœur, abattu jusqu'à ce qu'il
 vole en éclats. Chaque rocher et chaque chasseur tirés au hasard, une
 chiptune qui s'emballe à la fin. Une minute, en boucle. Édition 0xa1ea01.
 
+## Thirteenth room: RING 0
+
+| # | Post | Files |
+|---|---|---|
+| 21 | RING 0, Reel (60 s, a loop) | `21-ring0-reel.mp4` (cover: `21-ring0-reel-cover.jpg`) |
+
+**How it is made.** The kernel of an operating system, from power on to
+halt, in twelve works in `ring0/`, each one beat-synchronised (it is given
+the beat it starts on and how many it lasts, and moves on each one): *Boot*
+(the log scrolling in glyphs, a progress bar), *Shell* (a prompt, a command
+typed a key at a time, its output, a pipe), *Procs* (processes in their time
+slices on six CPUs, the now-line running), *Fork* (a tree of processes
+splitting), *Rings* (the rings of protection, three to zero, a call diving
+in), *Syscall* (the wall between user and kernel, the one gate, the system
+call table lighting up), *Tree* (the run queue as a red-black tree giving up
+its leftmost), *Irq* (devices, their wires, the interrupt controller, the CPU
+dropping what it was doing for the handler), *Hardware* (a platter, the bus
+and its DMA, memory cells, the clock), *Memory* (virtual pages mapped to
+frames, a page fault and the page brought in), *Layers* (programs, kernel and
+hardware at once: calls falling, interrupts climbing) and *Halt* (the log
+backwards, then the screen collapsing to a line and a dot). Fifty-five scenes
+of one to four beats on a timeline, in a loop, with glitches, pixels and
+morphs drawn anew for every cut; five phosphors (green, amber, cyan, a faded
+red, violet), scanlines, `film`, `vignette` and `chroma`.
+
+The track is IDM at 120 BPM over thirty bars, of clicks, metal and wood: a
+computer's chirps and a drone of cluster chords at boot; for user space a
+kick on a Euclidean rhythm, hats in sevens against the bar, wooden FM plucks
+in fives on the whole-tone scale; for the kernel, the system calls as FM
+thumps and a bass in nines; for the interrupts, struck metal and its rolls,
+the kick displaced; everything for memory and the scheduler; then it thins
+out, and the screen's tone falls away. The system calls and interrupts that
+sound are drawn once for the edition, and are the ones on the screen.
+
+### 21 · RING 0 (Reel)
+
+**EN**
+
+RING 0 — how a kernel works, in a minute. The boot, the shell, processes
+sharing the CPUs, a system call crossing into ring zero, interrupts climbing
+from the hardware, pages and their frames, a fork, and the halt: an old
+screen switched off. Fifty-five cuts drawn by chance, phosphor and grain, an
+IDM of clicks, metal and wood. A minute, in a loop. Edition 0xa1ea01.
+
+**FR**
+
+RING 0 — le fonctionnement d'un noyau, en une minute. Le démarrage, le
+shell, les processus qui se partagent les CPU, un appel système qui passe en
+anneau zéro, les interruptions qui remontent du matériel, les pages et leurs
+cadres, un fork, et l'arrêt : un vieil écran qu'on éteint. Cinquante-cinq
+coupes tirées au hasard, phosphore et grain, une IDM de clics, de métal et de
+bois. Une minute, en boucle. Édition 0xa1ea01.
+
 ### Hashtags
 
 ```
@@ -803,6 +859,7 @@ chiptune qui s'emballe à la fin. Une minute, en boucle. Édition 0xa1ea01.
 #retrogaming #wireframe #vectorgraphics #shmup #chiptune #8bit #vhs #retro #80s
 #babel #library #infinite #hexagon #borges #3d #raycasting #choir #darkambient
 #flower #squares #network #growth #boardsofcanada #idm #tape #analog
+#linux #kernel #operatingsystem #syscall #interrupt #terminal #autechre #idm #phosphor
 #detroittechno #carlcraig #model500 #drummachine #909 #splitscreen
 #synthesizer #juno #modular #signalpath #vinyl #http #dns #tcp #osi #networking #glitch #glitchart #vhs #nosignal #idm #piano #modularsynth #eurorack #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
 ```
