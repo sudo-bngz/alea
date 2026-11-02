@@ -1,0 +1,2 @@
+# words for voices/kokoro.py, in the model's tokens: word, a space, the phones
+alea ˈ ɑ l i ə

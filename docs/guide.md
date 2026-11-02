@@ -403,6 +403,8 @@ render sound(drone(sky, instrument: "strings", scale: "dorian", key: 110),
   built of a pulse, noise and resonances, so its pitch, its pace, the size
   of its throat and its roughness can be drawn by chance, and it can sing
   (`melody:`, a semitone per syllable).
+  For a voice that sounds like a person, `engine: "voices/kokoro.py"` hands
+  the text to a program (a neural voice, local or an API): see `voices/`.
 
 Each layer has an `instrument` (strings, choir, organ, glass…; for notes:
 bell, pluck, marimba, kalimba, drum…), a `scale` (major, minor, dorian,

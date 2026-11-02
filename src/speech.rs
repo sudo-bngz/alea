@@ -1138,7 +1138,7 @@ fn tokens(text: &str, lang: Lang) -> Vec<Token> {
 // ───────────────────────────── timing and melody ─────────────────────────────
 
 /// One sound of the utterance, placed in time.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Seg {
     ph: usize,
     start: f64,
@@ -1641,11 +1641,137 @@ pub struct Speech {
     pub timbre: Timbre,
     pub pan: f64,
     pub seed: u64,
+    /// A voice from outside (`engine:`), already said: its sound, mono, at
+    /// alea's rate. The utterance's times are scaled onto it.
+    pub external: Option<Arc<Vec<f64>>>,
 }
 
 impl Speech {
     pub fn sound(&self) -> Vec<f64> {
-        speak(&self.utterance, self.timbre, self.seed)
+        match &self.external {
+            Some(v) => v.as_ref().clone(),
+            None => speak(&self.utterance, self.timbre, self.seed),
+        }
+    }
+}
+
+// ───────────────────────────── a voice from outside ─────────────────────────────
+
+/// What an engine is given: the text on its standard input, and these in its
+/// environment. It writes a WAV to its standard output.
+pub struct Ask<'a> {
+    pub program: &'a std::path::Path,
+    pub text: &'a str,
+    pub lang: Lang,
+    pub voice: &'a str,
+    pub speed: f64,
+    pub pitch: f64,
+    pub size: f64,
+}
+
+/// Where the sounds of outside voices are kept, so that a text is said once:
+/// `$ALEA_VOICES`, or `voices/` in the user's cache directory.
+fn cache_dir() -> Option<std::path::PathBuf> {
+    if let Ok(d) = std::env::var("ALEA_VOICES") {
+        return Some(std::path::PathBuf::from(d));
+    }
+    let home = std::env::var("XDG_CACHE_HOME").map(std::path::PathBuf::from).ok().or_else(|| {
+        std::env::var("HOME").ok().map(|h| std::path::PathBuf::from(h).join(".cache"))
+    })?;
+    Some(home.join("alea").join("voices"))
+}
+
+/// Runs the engine (or finds what it said last time), and gives the sound,
+/// mono, at alea's rate, with silence at both ends trimmed to a few
+/// milliseconds; and the voiced stretch's length.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn ask(a: &Ask) -> Result<Vec<f64>, String> {
+    use std::io::Write;
+    let program = std::fs::canonicalize(a.program).map_err(|e| format!("cannot find the engine `{}`: {e}", a.program.display()))?;
+    let lang = match a.lang {
+        Lang::En => "en",
+        Lang::Fr => "fr",
+    };
+    let key = {
+        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+        for b in format!("{}\0{}\0{}\0{}\0{:.3}\0{:.1}\0{:.3}", program.display(), a.text, lang, a.voice, a.speed, a.pitch, a.size).bytes() {
+            h ^= u64::from(b);
+            h = h.wrapping_mul(0x0100_0000_01b3);
+        }
+        format!("{h:016x}")
+    };
+    let cached = cache_dir().map(|d| d.join(format!("{key}.wav")));
+    let bytes = match cached.as_ref().and_then(|p| std::fs::read(p).ok()) {
+        Some(b) => b,
+        None => {
+            let mut child = std::process::Command::new(&program)
+                .env("ALEA_LANG", lang)
+                .env("ALEA_VOICE", a.voice)
+                .env("ALEA_SPEED", format!("{:.3}", a.speed))
+                .env("ALEA_PITCH", format!("{:.1}", a.pitch))
+                .env("ALEA_SIZE", format!("{:.3}", a.size))
+                .stdin(std::process::Stdio::piped())
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped())
+                .spawn()
+                .map_err(|e| format!("cannot run the engine `{}`: {e}", a.program.display()))?;
+            let text = a.text.to_string();
+            let mut stdin = child.stdin.take().expect("piped");
+            let writer = std::thread::spawn(move || {
+                let _ = stdin.write_all(text.as_bytes());
+            });
+            let out = child.wait_with_output().map_err(|e| format!("the engine `{}` failed: {e}", a.program.display()))?;
+            let _ = writer.join();
+            if !out.status.success() || out.stdout.is_empty() {
+                let err = String::from_utf8_lossy(&out.stderr);
+                let err = err.trim().lines().last().unwrap_or("").to_string();
+                return Err(format!("the engine `{}` gave no sound{}{}", a.program.display(), if err.is_empty() { "" } else { ": " }, err));
+            }
+            if let Some(p) = &cached {
+                if let Some(d) = p.parent() {
+                    let _ = std::fs::create_dir_all(d);
+                }
+                let _ = std::fs::write(p, &out.stdout);
+            }
+            out.stdout
+        }
+    };
+    let input = crate::input::decode("voice", &bytes).map_err(|e| format!("the engine `{}` did not write a WAV: {e}", a.program.display()))?;
+    let crate::input::Kind::Sound(clip) = &input.kind else {
+        return Err(format!("the engine `{}` did not write a WAV", a.program.display()));
+    };
+    let n = (clip.duration() * SR) as usize;
+    let st = clip.stereo(SR, n);
+    let mut mono: Vec<f64> = st[0].iter().zip(&st[1]).map(|(l, r)| (l + r) * 0.5).collect();
+    // trim the silence at both ends (under -45 dB), keeping 20 ms
+    let thr = 10f64.powf(-45.0 / 20.0) * mono.iter().fold(0.0f64, |m, x| m.max(x.abs())).max(1e-9);
+    let first = mono.iter().position(|x| x.abs() > thr).unwrap_or(0);
+    let last = mono.iter().rposition(|x| x.abs() > thr).unwrap_or(mono.len());
+    let pad = (0.02 * SR) as usize;
+    let (a0, b0) = (first.saturating_sub(pad), (last + pad).min(mono.len()));
+    mono.drain(b0..);
+    mono.drain(..a0);
+    Ok(mono)
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn ask(a: &Ask) -> Result<Vec<f64>, String> {
+    Err(format!("`engine: \"{}\"` needs the command line: in the browser, only alea's own voice speaks", a.program.display()))
+}
+
+impl Utterance {
+    /// The same words and syllables, scaled to fit a sound of `duration`
+    /// seconds (an outside voice's).
+    pub fn scaled_to(&self, duration: f64) -> Utterance {
+        let own = self.duration.max(1e-6);
+        let k = duration / own;
+        Utterance {
+            segs: self.segs.iter().map(|s| Seg { start: s.start * k, dur: s.dur * k, ..*s }).collect(),
+            f0: self.f0.iter().map(|&(t, r)| (t * k, r)).collect(),
+            words: self.words.iter().map(|&(a, b)| (a * k, b * k)).collect(),
+            syllables: self.syllables.iter().map(|&t| t * k).collect(),
+            duration,
+        }
     }
 }
 
