@@ -190,6 +190,6 @@ work Ring0 {
     notes(reel.cues, instrument: click, scale: "chromatic", key: 1760, gain: 0.2),
   ]
 
-  render image(look, width: 1080, height: 1920, at: 33 / 60)
+  render image(look, width: 1080, height: 1920, at: 40 / 60)
   render video(look, fps: 30, width: 1080, height: 1920, sound: music, room: 0.3, echo: 0.12)
 }
