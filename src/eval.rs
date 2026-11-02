@@ -3651,7 +3651,7 @@ impl Resolver<'_> {
     /// `say(text, …)`: a voice reading a text.
     fn say(&mut self, args: &[Arg], span: Span) -> Res<Val> {
         use crate::speech::{Lang, Speech, Timbre};
-        const NAMES: &[&str] = &["text", "at", "lang", "pitch", "speed", "size", "rough", "breath", "pan", "gain", "melody"];
+        const NAMES: &[&str] = &["text", "at", "lang", "pitch", "speed", "size", "rough", "breath", "pan", "gain", "melody", "engine", "voice"];
         let mut slots: Vec<Option<&Expr>> = vec![None; NAMES.len()];
         let mut named_seen = false;
         for (k, a) in args.iter().enumerate() {
@@ -3723,9 +3723,38 @@ impl Resolver<'_> {
                 _ => return Err(Error::new("`melody` is a list of semitones, one per syllable: [0, 3, 7]", e.span)),
             },
         };
-        let utterance = Arc::new(crate::speech::plan(&text, lang, speed, &melody));
+        let string = |r: &mut Self, k: usize| -> Res<Option<(String, Span)>> {
+            match slots[k] {
+                None => Ok(None),
+                Some(e) => match r.lower(e)? {
+                    Val::Str(s) => Ok(Some((s, e.span))),
+                    other => Err(Error::new(format!("`{}` is a text, not {}", NAMES[k], kind_of(&other)), e.span)),
+                },
+            }
+        };
+        let engine = string(self, 11)?;
+        let voice = string(self, 12)?.map(|(v, _)| v).unwrap_or_default();
+        let utterance = crate::speech::plan(&text, lang, speed, &melody);
         let seed = hash(&[self.seed, 0x5a7, text.len() as u64, (at * 1000.0) as u64]);
-        let speech = Arc::new(Speech { utterance, at, timbre: Timbre { pitch, size, rough, breath }, pan, seed });
+        // a voice from outside: a program next to the work (or on the path),
+        // the text on its standard input, a WAV on its standard output
+        let (utterance, external) = match engine {
+            None => (utterance, None),
+            Some((name, _)) if name == "alea" => (utterance, None),
+            Some((name, espan)) => {
+                if !melody.is_empty() {
+                    return Err(Error::new("`melody` is sung by alea's own voice: it cannot be given with `engine`", espan));
+                }
+                let program = self.module.dir.join(&name);
+                let program = if program.exists() { program } else { std::path::PathBuf::from(&name) };
+                let ask = crate::speech::Ask { program: &program, text: &text, lang, voice: &voice, speed, pitch, size };
+                let sound = crate::speech::ask(&ask).map_err(|e| Error::new(e, espan))?;
+                let duration = sound.len() as f64 / crate::sound::SR;
+                (utterance.scaled_to(duration), Some(Arc::new(sound)))
+            }
+        };
+        let utterance = Arc::new(utterance);
+        let speech = Arc::new(Speech { utterance, at, timbre: Timbre { pitch, size, rough, breath }, pan, seed, external });
         Ok(Val::Sound(Arc::new(crate::sound::Layer::Speech { speech, gain })))
     }
 
