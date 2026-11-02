@@ -841,7 +841,7 @@ the pauses and the melody (a phrase falls at `.`, rises at `?`, stays up at
 noise through resonators that glide from one sound to the next, the voice of
 the first speaking machines. A word can be written in phonemes between
 slashes, with `'` before the stressed syllable: `say("/h@'loU/")`
-(vowels `i I e E { a A O o U u V @ 3 y 2 9 a~ e~ o~ 9~ aI aU OI eI oU`,
+(vowels `i I e E & a A O o U u V @ 3 y 2 9 a~ e~ o~ 9~ aI aU OI eI oU`,
 consonants `p b t d k g f v T D s z S Z h m n N J l r R w j H tS dZ`).
 The voice has its own level in the mix, then goes through the echo and the
 room with the rest.

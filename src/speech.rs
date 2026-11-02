@@ -141,7 +141,7 @@ const PHONEMES: &[Ph] = &[
     v("I", [400.0, 1950.0, 2550.0], 85.0),
     v("e", [380.0, 2150.0, 2750.0], 110.0),
     v("E", [540.0, 1800.0, 2500.0], 100.0),
-    v("{", [680.0, 1700.0, 2400.0], 125.0),
+    v("&", [680.0, 1700.0, 2400.0], 125.0),
     v("a", [720.0, 1350.0, 2450.0], 115.0),
     v("A", [720.0, 1100.0, 2450.0], 130.0),
     v("O", [560.0, 900.0, 2400.0], 125.0),
@@ -651,7 +651,7 @@ fn from_nrl(s: &str) -> Vec<usize> {
                 "IH" => "I",
                 "EY" => "eI",
                 "EH" => "E",
-                "AE" => "{",
+                "AE" => "&",
                 "AA" => "A",
                 "AO" => "O",
                 "OW" => "oU",
@@ -683,34 +683,34 @@ fn from_nrl(s: &str) -> Vec<usize> {
 /// English words the rules get wrong, and the short words that carry no stress.
 #[rustfmt::skip]
 const EN_WORDS: &[(&str, &str)] = &[
-    ("a", "@"), ("an", "@n"), ("the", "D@"), ("of", "@v"), ("to", "tu"), ("and", "{nd"), ("in", "In"), ("is", "Iz"),
-    ("it", "It"), ("as", "{z"), ("at", "{t"), ("be", "bi"), ("by", "baI"), ("for", "fOr"), ("from", "frVm"), ("or", "Or"),
+    ("a", "@"), ("an", "@n"), ("the", "D@"), ("of", "@v"), ("to", "tu"), ("and", "&nd"), ("in", "In"), ("is", "Iz"),
+    ("it", "It"), ("as", "&z"), ("at", "&t"), ("be", "bi"), ("by", "baI"), ("for", "fOr"), ("from", "frVm"), ("or", "Or"),
     ("on", "An"), ("we", "wi"), ("he", "hi"), ("she", "Si"), ("me", "mi"), ("my", "maI"), ("your", "jOr"), ("you", "ju"),
-    ("are", "Ar"), ("was", "wVz"), ("were", "w3"), ("have", "h{v"), ("has", "h{z"), ("do", "du"), ("does", "dVz"),
+    ("are", "Ar"), ("was", "wVz"), ("were", "w3"), ("have", "h&v"), ("has", "h&z"), ("do", "du"), ("does", "dVz"),
     ("what", "wVt"), ("who", "hu"), ("one", "'wVn"), ("two", "'tu"), ("once", "'wVns"), ("again", "@'gEn"),
     ("said", "'sEd"), ("says", "'sEz"), ("give", "'gIv"), ("live", "'lIv"), ("love", "'lVv"), ("come", "'kVm"),
     ("some", "'sVm"), ("done", "'dVn"), ("none", "'nVn"), ("gone", "'gOn"), ("only", "'oUnli"), ("every", "'Evri"),
     ("never", "'nEv3"), ("ever", "'Ev3"), ("very", "'vEri"), ("any", "'Eni"), ("many", "'mEni"), ("thing", "'TIN"),
     ("things", "'TINz"), ("same", "'seIm"), ("make", "'meIk"), ("made", "'meId"), ("time", "'taIm"), ("twice", "'twaIs"),
-    ("language", "'l{NgwIdZ"), ("art", "'Art"), ("artwork", "'Artw3k"), ("artworks", "'Artw3ks"), ("code", "'koUd"),
-    ("random", "'r{nd@m"), ("chance", "'tS{ns"), ("seed", "'sid"), ("edition", "I'dIS@n"), ("editions", "I'dIS@nz"),
+    ("language", "'l&NgwIdZ"), ("art", "'Art"), ("artwork", "'Artw3k"), ("artworks", "'Artw3ks"), ("code", "'koUd"),
+    ("random", "'r&nd@m"), ("chance", "'tS&ns"), ("seed", "'sid"), ("edition", "I'dIS@n"), ("editions", "I'dIS@nz"),
     ("alea", "'Ali@"), ("generative", "'dZEn@r@tIv"), ("kernel", "'k3n@l"), ("linux", "'lIn@ks"), ("sound", "'saUnd"),
     ("music", "'mjuzIk"), ("image", "'ImIdZ"), ("images", "'ImIdZIz"), ("video", "'vIdioU"), ("picture", "'pIktS3"),
     ("write", "'raIt"), ("written", "'rIt@n"), ("run", "'rVn"), ("runs", "'rVnz"), ("draw", "'drO"), ("drawn", "'drOn"),
     ("die", "'daI"), ("dice", "'daIs"), ("throw", "'TroU"), ("listen", "'lIs@n"), ("hello", "h@'loU"), ("world", "'w3ld"),
     ("voice", "'vOIs"), ("read", "'rid"), ("reads", "'ridz"), ("text", "'tEkst"), ("synthesis", "'sInT@sIs"),
-    ("computer", "k@m'pjut3"), ("machine", "m@'Sin"), ("program", "'proUgr{m"), ("different", "'dIfr@nt"),
+    ("computer", "k@m'pjut3"), ("machine", "m@'Sin"), ("program", "'proUgr&m"), ("different", "'dIfr@nt"),
     ("because", "bI'kOz"), ("before", "bI'fOr"), ("between", "bI'twin"), ("idea", "aI'di@"), ("create", "kri'eIt"),
     ("there", "DEr"), ("their", "DEr"), ("where", "'wEr"), ("here", "'hir"), ("eye", "'aI"), ("eyes", "'aIz"),
     ("people", "'pip@l"), ("would", "wUd"), ("could", "kUd"), ("should", "SUd"), ("through", "'Tru"), ("though", "'DoU"),
     ("knows", "'noUz"), ("know", "'noU"), ("new", "'nju"), ("now", "'naU"), ("how", "'haU"), ("they", "DeI"),
-    ("this", "DIs"), ("that", "D{t"), ("with", "wID"), ("not", "nAt"), ("but", "bVt"), ("can", "k{n"), ("will", "wIl"),
-    ("i", "'aI"), ("i'm", "'aIm"), ("it's", "Its"), ("don't", "'doUnt"), ("can't", "'k{nt"), ("am", "{m"), ("no", "'noU"),
+    ("this", "DIs"), ("that", "D&t"), ("with", "wID"), ("not", "nAt"), ("but", "bVt"), ("can", "k&n"), ("will", "wIl"),
+    ("i", "'aI"), ("i'm", "'aIm"), ("it's", "Its"), ("don't", "'doUnt"), ("can't", "'k&nt"), ("am", "&m"), ("no", "'noU"),
     ("yes", "'jEs"), ("go", "'goU"), ("so", "'soU"), ("all", "'Ol"), ("call", "'kOl"), ("calls", "'kOlz"), ("system", "'sIst@m"),
     ("interrupt", "'Int@rVpt"), ("process", "'prAsEs"), ("memory", "'mEm@ri"), ("shell", "'SEl"), ("user", "'juz3"),
     ("hardware", "'hArdwEr"), ("software", "'sOftwEr"), ("noise", "'nOIz"), ("number", "'nVmb3"), ("open", "'oUp@n"),
     ("heart", "'hArt"), ("choir", "'kwaI3"), ("window", "'wIndoU"), ("echo", "'EkoU"), ("echoes", "'EkoUz"),
-    ("timeline", "'taImlaIn"), ("midi", "'mIdi"), ("field", "'fild"), ("planet", "'pl{nIt"), ("friend", "'frEnd"),
+    ("timeline", "'taImlaIn"), ("midi", "'mIdi"), ("field", "'fild"), ("planet", "'pl&nIt"), ("friend", "'frEnd"),
     ("rhythm", "'rID@m"), ("chord", "'kOrd"), ("chords", "'kOrdz"), ("words", "'w3dz"), ("word", "'w3d"),
     ("into", "'Intu"), ("onto", "'Antu"), ("our", "'aU3"), ("out", "'aUt"), ("about", "@'baUt"),
 ];
@@ -1162,7 +1162,7 @@ pub struct Utterance {
 }
 
 /// The lengths in the table, to the pace of a voice at `speed` 1.
-const TEMPO: f64 = 0.76;
+const TEMPO: f64 = 0.9;
 
 /// Places the sounds of a text in time and draws its melody: `speed` 1 is an
 /// unhurried voice; `melody`, if given, is sung, a semitone value per
@@ -1215,11 +1215,13 @@ pub fn plan(text: &str, lang: Lang, speed: f64, melody: &[f64]) -> Utterance {
                     let is_vowel = pd.class == Class::Vowel;
                     if is_vowel {
                         ms *= match (lang, stress) {
-                            (Lang::En, 2) => 1.35,
-                            (Lang::En, 1) => 1.1,
-                            (Lang::En, _) => 0.75,
+                            (Lang::En, 2) => 1.3,
+                            (Lang::En, 1) => 1.05,
+                            (Lang::En, _) => 0.85,
                             (Lang::Fr, _) => 0.9,
                         };
+                        // short enough to be lost: no vowel under 65 ms
+                        ms = ms.max(65.0);
                         // the end of a phrase is drawn out, in French the end of each word group
                         if Some(j) == last_vowel && (last_word || (lang == Lang::Fr && stress > 0))
                         {
@@ -1229,7 +1231,11 @@ pub fn plan(text: &str, lang: Lang, speed: f64, melody: &[f64]) -> Utterance {
                             ms = ms.max(150.0) * 1.6;
                         }
                     } else if last_word && last_vowel.is_some_and(|lv| j > lv) {
-                        ms *= 1.2;
+                        ms *= 1.25;
+                    }
+                    // a stop or a fricative at the start of a word is a touch longer: it is heard
+                    if j == 0 && matches!(pd.class, Class::Stop | Class::Fric | Class::Affric) {
+                        ms *= 1.15;
                     }
                     // a voiceless stop before a stressed vowel breathes out (English)
                     let next = w.get(j + 1).copied();
@@ -1240,7 +1246,7 @@ pub fn plan(text: &str, lang: Lang, speed: f64, melody: &[f64]) -> Utterance {
                             PHONEMES[q].class == Class::Vowel && (s > 0 || j == 0)
                         });
                     if aspirate {
-                        ms += 35.0;
+                        ms += 40.0;
                     }
                     let dur = ms / 1000.0 / speed * TEMPO;
                     if is_vowel {
@@ -1271,6 +1277,12 @@ pub fn plan(text: &str, lang: Lang, speed: f64, melody: &[f64]) -> Utterance {
                     t += dur;
                 }
                 words.push((w_start, t));
+                // a hair of silence between words: each one stands on its own
+                if !last_word {
+                    let gap = 0.028 / speed;
+                    segs.push(Seg { ph: ph("_").expect("pause"), start: t, dur: gap, stress: 0, aspirate: false });
+                    t += gap;
+                }
                 // French: each word group ends rising (but the last)
                 if lang == Lang::Fr && !sing && !last_word && w.len() > 2 && last_vowel.is_some() {
                     if let Some(p) = points.last_mut() {
@@ -1361,7 +1373,7 @@ impl Reso {
     }
 }
 
-/// What the tract is doing at a moment: the targets the voice glides toward.
+/// What the tract is doing at a moment: formants, the voice, breath, noise.
 #[derive(Clone, Copy, Debug, Default)]
 struct Target {
     f: [f64; 3],
@@ -1371,6 +1383,22 @@ struct Target {
     nf: f64,
     nbw: f64,
     nasal: f64,
+}
+
+impl Target {
+    fn lerp(&self, o: &Target, a: f64) -> Target {
+        let l = |x: f64, y: f64| x + (y - x) * a;
+        Target {
+            f: [l(self.f[0], o.f[0]), l(self.f[1], o.f[1]), l(self.f[2], o.f[2])],
+            voice: l(self.voice, o.voice),
+            asp: l(self.asp, o.asp),
+            noise: l(self.noise, o.noise),
+            // the colour of the noise jumps with the louder of the two
+            nf: if self.noise >= o.noise { self.nf } else { o.nf },
+            nbw: if self.noise >= o.noise { self.nbw } else { o.nbw },
+            nasal: l(self.nasal, o.nasal),
+        }
+    }
 }
 
 struct Rng(u64);
@@ -1395,96 +1423,110 @@ pub struct Timbre {
     pub breath: f64,
 }
 
+/// A moment the tract is heading for: at `t`, it is at `target`; between two
+/// keys it moves in a straight line. A phase of a sound holds its target
+/// between two keys, and the stretch to the next sound's first key is the
+/// transition (the formants' glide from a stop into its vowel, say).
+struct Key {
+    t: f64,
+    target: Target,
+}
+
+/// The keys of an utterance: its sounds as phases, each held, with the
+/// transitions between them. This is where articulation happens.
+fn keys(u: &Utterance) -> Vec<Key> {
+    let mut keys: Vec<Key> = Vec::new();
+    // a phase held from `a` to `b`, reached over `tin` and left over `tout`
+    fn hold(keys: &mut Vec<Key>, a: f64, b: f64, tin: f64, tout: f64, target: Target) {
+        let d = b - a;
+        let tin = tin.min(d * 0.4);
+        let tout = tout.min(d * 0.4);
+        keys.push(Key { t: a + tin, target });
+        keys.push(Key { t: b - tout, target });
+    }
+    let n = u.segs.len();
+    for (k, s) in u.segs.iter().enumerate() {
+        let p = PHONEMES[s.ph];
+        let (a, b) = (s.start, s.start + s.dur);
+        let next = u.segs.get(k + 1).map(|n| PHONEMES[n.ph]);
+        let next_vowel = next.filter(|q| matches!(q.class, Class::Vowel | Class::Glide | Class::Liquid));
+        let prev_sonorant = k > 0 && matches!(PHONEMES[u.segs[k - 1].ph].class, Class::Vowel | Class::Glide | Class::Liquid | Class::Nasal);
+        // the formants the stop's burst and breath open into: the vowel's
+        let after = next_vowel.map_or(p.f, |q| q.f);
+        let tr: f64 = 0.035; // a formant transition
+        match p.class {
+            Class::Vowel => {
+                let loud = if s.stress > 0 { 1.0 } else { 0.85 };
+                let t = Target { f: p.f, voice: loud, nasal: f64::from(u8::from(p.nasal)), ..Default::default() };
+                match p.to {
+                    // a diphthong moves through its whole length
+                    Some(to) => {
+                        keys.push(Key { t: a + tr.min(s.dur * 0.3), target: t });
+                        keys.push(Key { t: b - (tr * 0.5).min(s.dur * 0.2), target: Target { f: to, ..t } });
+                    }
+                    None => hold(&mut keys, a, b, tr, tr, t),
+                }
+            }
+            Class::Glide => hold(&mut keys, a, b, tr, tr, Target { f: p.f, voice: 0.7, ..Default::default() }),
+            Class::Liquid => hold(&mut keys, a, b, tr * 0.7, tr * 0.7, Target { f: p.f, voice: 0.65, ..Default::default() }),
+            Class::Nasal => hold(&mut keys, a, b, 0.012, 0.012, Target { f: p.f, voice: 0.45, nasal: 1.0, ..Default::default() }),
+            Class::Fric => {
+                let voice = if p.voiced { if p.name == "R" { 0.55 } else { 0.35 } } else { 0.0 };
+                hold(&mut keys, a, b, 0.02, 0.02, Target { f: p.f, voice, noise: p.noise.2, nf: p.noise.0, nbw: p.noise.1, ..Default::default() })
+            }
+            Class::Aspirate => hold(&mut keys, a, b, 0.015, 0.015, Target { f: after, asp: 0.5, ..Default::default() }),
+            Class::Stop => {
+                // closure: silence (a voiced stop keeps a faint voice bar);
+                // the burst: a few ms of noise at the place of the stop;
+                // the release: breath into the vowel, the voice starting
+                // late after a voiceless stop (the voice onset time)
+                let vot = if p.voiced { 0.008 } else if s.aspirate { 0.055 } else { 0.025 };
+                let burst = 0.012;
+                let close_end = (b - vot - burst).max(a + 0.02);
+                let bar = Target { f: [180.0, p.f[1], p.f[2]], voice: if p.voiced { 0.15 } else { 0.0 }, ..Default::default() };
+                // the formants glide to the stop's place during the vowel before it
+                hold(&mut keys, a, close_end, if prev_sonorant { 0.004 } else { 0.001 }, 0.001, bar);
+                let bt = Target { f: after, noise: p.noise.2 * 1.8, nf: p.noise.0, nbw: p.noise.1, voice: if p.voiced { 0.3 } else { 0.0 }, ..Default::default() };
+                hold(&mut keys, close_end, close_end + burst, 0.001, 0.001, bt);
+                let rel = Target { f: after, asp: if p.voiced { 0.05 } else { 0.4 }, voice: if p.voiced { 0.7 } else { 0.0 }, ..Default::default() };
+                hold(&mut keys, close_end + burst, b, 0.002, 0.004, rel);
+            }
+            Class::Affric => {
+                let close_end = a + s.dur * 0.4;
+                let bar = Target { f: [180.0, p.f[1], p.f[2]], voice: if p.voiced { 0.15 } else { 0.0 }, ..Default::default() };
+                hold(&mut keys, a, close_end, 0.004, 0.001, bar);
+                let fr = Target { f: p.f, noise: p.noise.2, nf: p.noise.0, nbw: p.noise.1, voice: if p.voiced { 0.3 } else { 0.0 }, ..Default::default() };
+                hold(&mut keys, close_end, b, 0.003, 0.01, fr);
+            }
+            Class::Pause => {
+                // silence; the formants rest where they were
+                let f = keys.last().map_or([500.0, 1500.0, 2500.0], |k| k.target.f);
+                hold(&mut keys, a, b, 0.03, 0.02, Target { f, ..Default::default() });
+            }
+        }
+        if k + 1 == n {
+            let f = keys.last().map_or([500.0, 1500.0, 2500.0], |k| k.target.f);
+            keys.push(Key { t: b + 0.03, target: Target { f, ..Default::default() } });
+        }
+    }
+    // keys in order, at least a hair apart
+    let mut t = -1.0;
+    for k in keys.iter_mut() {
+        if k.t <= t {
+            k.t = t + 1e-4;
+        }
+        t = k.t;
+    }
+    keys
+}
+
 /// The utterance, spoken: a mono sound at the rate of alea's sound.
 pub fn speak(u: &Utterance, tb: Timbre, seed: u64) -> Vec<f64> {
     let n = (u.duration * SR) as usize + 1;
     let mut out = vec![0.0; n];
     let scale = 1.06 / tb.size.clamp(0.4, 2.0);
     let mut rng = Rng(seed ^ 0x0005_a70f_70ce);
-
-    // the targets of each moment, segment by segment
-    let target = |s: &Seg, next: Option<&Seg>, local: f64| -> Target {
-        let p = PHONEMES[s.ph];
-        let mut f = p.f;
-        if let Some(to) = p.to {
-            let a = (local / s.dur).clamp(0.0, 1.0);
-            let a = a * a * (3.0 - 2.0 * a);
-            for k in 0..3 {
-                f[k] = f[k] + (to[k] - f[k]) * a;
-            }
-        }
-        let next_vowel = next
-            .map(|n| PHONEMES[n.ph])
-            .filter(|q| q.class == Class::Vowel);
-        let mut t = Target {
-            f,
-            nf: p.noise.0,
-            nbw: p.noise.1,
-            ..Default::default()
-        };
-        match p.class {
-            Class::Vowel | Class::Glide => {
-                t.voice = if p.class == Class::Glide {
-                    0.75
-                } else if s.stress > 0 {
-                    1.0
-                } else {
-                    0.8
-                };
-                if p.nasal {
-                    t.nasal = 1.0;
-                }
-            }
-            Class::Liquid => t.voice = 0.7,
-            Class::Nasal => {
-                t.voice = 0.55;
-                t.nasal = 1.0;
-            }
-            Class::Fric => {
-                t.voice = if p.voiced {
-                    if p.name == "R" { 0.6 } else { 0.4 }
-                } else {
-                    0.0
-                };
-                t.noise = p.noise.2;
-            }
-            Class::Aspirate => {
-                // through the vowel that follows
-                if let Some(q) = next_vowel {
-                    t.f = q.f;
-                }
-                t.asp = 0.35;
-            }
-            Class::Stop | Class::Affric => {
-                let closure = if p.class == Class::Affric { 0.45 } else { 0.62 }
-                    * if s.aspirate { 0.7 } else { 1.0 };
-                let close_end = s.dur * closure;
-                let burst_end = close_end
-                    + if p.class == Class::Affric {
-                        s.dur * 0.55
-                    } else {
-                        0.014
-                    };
-                if local < close_end {
-                    // closed: silence, or the voice bar of a voiced stop
-                    t.voice = if p.voiced { 0.12 } else { 0.0 };
-                    t.f = [200.0, f[1], f[2]];
-                } else if local < burst_end {
-                    t.noise = p.noise.2;
-                    t.voice = if p.voiced { 0.3 } else { 0.0 };
-                } else {
-                    // the breath before the vowel, in its shape
-                    if let Some(q) = next_vowel {
-                        t.f = q.f;
-                    }
-                    t.asp = if s.aspirate { 0.4 } else { 0.0 };
-                    t.voice = if p.voiced { 0.6 } else { 0.0 };
-                }
-            }
-            Class::Pause => {}
-        }
-        t
-    };
+    let keys = keys(u);
 
     // the pitch
     let f0_at = |time: f64| -> f64 {
@@ -1501,9 +1543,8 @@ pub fn speak(u: &Utterance, tb: Timbre, seed: u64) -> Vec<f64> {
         pts[pts.len() - 1].1
     };
 
-    let mut seg = 0usize;
-    let mut cur = Target::default();
-    cur.f = [500.0, 1500.0, 2500.0];
+    let mut ki = 0usize;
+    let mut cur = Target { f: [500.0, 1500.0, 2500.0], ..Default::default() };
     let mut res = [Reso::default(); 5];
     let mut nres = [Reso::default(); 2];
     let mut nasal_pole = Reso::default();
@@ -1512,32 +1553,28 @@ pub fn speak(u: &Utterance, tb: Timbre, seed: u64) -> Vec<f64> {
     let mut period_amp = 1.0;
     let mut tilt = 0.0;
     let mut wander = 0.0;
-    let k_form = 1.0 - libm::exp(-1.0 / (0.012 * SR));
-    let k_amp = 1.0 - libm::exp(-1.0 / (0.004 * SR));
-    let k_slow = 1.0 - libm::exp(-1.0 / (0.03 * SR));
+    // amplitudes move fast but not instantly: no clicks
+    let k_amp = 1.0 - libm::exp(-1.0 / (0.0025 * SR));
     let mut hp = (0.0, 0.0);
     for (i, o) in out.iter_mut().enumerate() {
         let time = i as f64 / SR;
-        while seg + 1 < u.segs.len() && time >= u.segs[seg + 1].start {
-            seg += 1;
+        while ki + 1 < keys.len() && time >= keys[ki + 1].t {
+            ki += 1;
         }
-        let tg = match u.segs.get(seg) {
-            Some(s) if time >= s.start && time < s.start + s.dur => {
-                target(s, u.segs.get(seg + 1), time - s.start)
-            }
-            _ => Target {
-                f: cur.f,
-                ..Default::default()
-            },
+        let tg = if ki + 1 < keys.len() && time >= keys[ki].t {
+            let (a, b) = (&keys[ki], &keys[ki + 1]);
+            a.target.lerp(&b.target, (time - a.t) / (b.t - a.t).max(1e-6))
+        } else if ki + 1 < keys.len() {
+            Target { f: keys[0].target.f, ..Default::default() }
+        } else {
+            Target { f: keys[ki].target.f, ..Default::default() }
         };
-        for k in 0..3 {
-            cur.f[k] += (tg.f[k] - cur.f[k]) * k_form;
-        }
+        cur.f = tg.f;
+        cur.nasal = tg.nasal;
         cur.voice += (tg.voice - cur.voice) * k_amp;
         cur.asp += (tg.asp - cur.asp) * k_amp;
         cur.noise += (tg.noise - cur.noise) * k_amp;
-        cur.nasal += (tg.nasal - cur.nasal) * k_slow;
-        if tg.noise > 0.0 {
+        if tg.noise > 1e-4 {
             cur.nf = tg.nf;
             cur.nbw = tg.nbw;
         }
@@ -1558,12 +1595,10 @@ pub fn speak(u: &Utterance, tb: Timbre, seed: u64) -> Vec<f64> {
         } else {
             0.0
         };
-        // the spectrum falls off, more for a soft voice
         tilt += (pulse - tilt) * 0.8;
         let open = if phase < oq { 1.0 } else { 0.35 };
         let noise = rng.next();
-        let src =
-            tilt * cur.voice * period_amp + noise * (cur.asp + tb.breath * 0.12 * cur.voice) * open;
+        let src = tilt * cur.voice * period_amp + noise * (cur.asp + tb.breath * 0.12 * cur.voice) * open;
 
         // the tract: five formants in a row
         let bw1 = 70.0 + 90.0 * cur.nasal;
@@ -1576,12 +1611,11 @@ pub fn speak(u: &Utterance, tb: Timbre, seed: u64) -> Vec<f64> {
         let nas = nasal_pole.tick(src, 260.0 * scale, 100.0);
         let tract = x * (1.0 - 0.45 * cur.nasal) + nas * 0.8 * cur.nasal;
 
-        // the fricatives: noise through their own resonance
+        // the fricatives and the bursts: noise through their own resonance
         let fr = if cur.noise > 1e-4 {
             let a = nres[0].tick(noise, cur.nf.min(SR * 0.42), cur.nbw);
             let b = nres[1].tick(a, cur.nf.min(SR * 0.42), cur.nbw * 1.4);
-            // resonators of this kind are made for 1 at 0 Hz: bring the peak down to size
-            b * cur.noise * (cur.nbw / cur.nf.max(1.0)).min(1.0) * 6.0
+            b * cur.noise * (cur.nbw / cur.nf.max(1.0)).min(1.0) * 1.1
         } else {
             0.0
         };
@@ -1649,7 +1683,7 @@ mod tests {
     #[test]
     fn english_words_by_rule_and_by_list() {
         // the stress mark is written before its vowel
-        assert_eq!(transcribe("the cat", Lang::En), "D@ k'{t");
+        assert_eq!(transcribe("the cat", Lang::En), "D@ k'&t");
         assert_eq!(transcribe("hello world", Lang::En), "h@l'oU w'3ld");
         assert_eq!(transcribe("ship", Lang::En), "S'Ip");
         assert_eq!(transcribe("CPU", Lang::En), "s,ip,ij'u");
@@ -1680,6 +1714,18 @@ mod tests {
             .map(|w| transcribe(w, lang))
             .collect();
         std::fs::write(format!("{path}.out"), out.join("\n")).expect("write");
+    }
+
+    /// `ALEA_PLAN=lines.txt cargo test plan_dump -- --ignored --nocapture`: the duration of each line
+    #[test]
+    #[ignore]
+    fn plan_dump() {
+        let path = std::env::var("ALEA_PLAN").expect("ALEA_PLAN");
+        let lang = Lang::parse(&std::env::var("ALEA_LANG").unwrap_or("en".into())).expect("lang");
+        for line in std::fs::read_to_string(&path).expect("read").lines() {
+            let u = plan(line, lang, 1.0, &[]);
+            println!("{:.2}\t{line}", u.duration);
+        }
     }
 
     #[test]
