@@ -52,6 +52,7 @@ exponent notation. Negative numbers are written with the minus operator: `-2`.
 have no escape sequences and can't contain a double quote. `{expr}` inside a
 text puts a value there (a fixed number, or a text); `{expr:02}` pads a whole
 number with zeros to that many digits: `"{h:02}:00"` with h = 8 is `08:00`.
+`{{` writes a brace: `"work Seed {{"`.
 Other numbers are written with up to six decimals.
 
 **Keywords** (reserved, can't be used as names):

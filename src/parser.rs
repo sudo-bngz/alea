@@ -417,13 +417,19 @@ impl Parser {
         }
     }
 
-    /// A text with `{value}` or `{value:02}` inside.
+    /// A text with `{value}` or `{value:02}` inside; `{{` writes a brace.
     fn template(&mut self, s: &str, span: Span) -> Res<Expr> {
         let mut parts = Vec::new();
         let mut lit = String::new();
         let mut rest = s;
         while let Some(open) = rest.find('{') {
             lit.push_str(&rest[..open]);
+            // `{{` is a brace itself
+            if rest[open + 1..].starts_with('{') {
+                lit.push('{');
+                rest = &rest[open + 2..];
+                continue;
+            }
             let Some(close) = rest[open..].find('}') else {
                 return Err(Error::new("a `{` in this text is not closed by `}`", span));
             };
