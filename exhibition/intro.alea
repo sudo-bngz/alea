@@ -1,0 +1,201 @@
+// alea — the introduction: alea speaks. A minute, calm and typographic, ink
+// and one red on paper, the opposite of the other rooms: a cursor; a voice
+// (alea's own `say`, no recording) that says what alea is while its words
+// are typed below as it speaks; the lines of a small work typed key by key,
+// and what they make: a flower, a tune, a voice; then the `~` lighting up,
+// chance, and the flower redrawn on every beat, a new edition each time; one
+// idea splitting into 4, 16, 64, 256 editions, all different, while the
+// voice sings; the name, and the address. Every flower, every edition, the
+// voice's pitch and grain, and the tune are drawn for each edition of the
+// Reel itself.
+
+use "intro/flower.alea"
+
+work Intro {
+  let seed = ~between(0, 1000)
+  let total = 60
+  let T = t * total
+
+  // ── the voice: one voice for the whole minute, drawn once ──
+  let pitch = ~between(96, 122)
+  let size = ~between(0.94, 1.04)
+  let rough = ~between(0.05, 0.2)
+  let v1 = say("Hello.", at: 0.9, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
+  let v2 = say("I am alea.", at: v1.end + 0.25, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
+  let v3 = say("You write a few lines of code.", at: 7.6, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
+  let v4 = say("And I draw.", at: 14.2, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
+  let v5 = say("I sing.", at: v4.end + 0.7, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
+  let v6 = say("I speak.", at: v5.end + 0.7, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
+  let v7 = say("But every time I run, chance decides.", at: 20.6, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
+  let v8 = say("Nothing comes out the same.", at: v7.end + 1.6, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
+  let v9 = say("One idea.", at: 32.4, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
+  let v10 = say("A thousand editions.", at: v9.end + 0.8, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
+  let v11 = say("I never make the same thing twice.", at: 40.6, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6, melody: [7, 5, 3, 5, 7, 10, 12, 10], speed: 0.9)
+  let v12 = say("I am alea.", at: 50.2, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
+  let v13 = say("Run me again.", at: v12.end + 0.9, pitch: pitch, size: size, rough: rough, breath: 0.15, gain: 2.6)
+
+  // ── the paper: 0 paper, 0.333 grey, 0.667 ink, 1 red ──
+  let GREY = 0.333
+  let INK = 0.667
+  let RED = 1
+  let px = 1 / 1080
+  let blink = fract(T * 1.6) < 0.55
+
+  // ── the captions: each line typed below as it is said, word by word ──
+  let cap_y = 1.0
+  let adv = 0.023791
+  let c_v1 = text("Hello.", x: 0.42863, y: cap_y, size: 0.046, font: "mono", align: "left") * (x < 0.42863 + ((T >= v1.words[0]) * 6) * adv) * (T >= v1.start) * (T < min(v1.end + 1.2, v2.start))
+  let c_v2 = text("I am alea.", x: 0.38104, y: cap_y, size: 0.046, font: "mono", align: "left") * (x < 0.38104 + ((T >= v2.words[0]) * 2 + (T >= v2.words[1]) * 3 + (T >= v2.words[2]) * 5) * adv) * (T >= v2.start) * (T < min(v2.end + 1.2, v3.start))
+  let c_v3 = text("You write a few lines of code.", x: 0.14313, y: cap_y, size: 0.046, font: "mono", align: "left") * (x < 0.14313 + ((T >= v3.words[0]) * 4 + (T >= v3.words[1]) * 6 + (T >= v3.words[2]) * 2 + (T >= v3.words[3]) * 4 + (T >= v3.words[4]) * 6 + (T >= v3.words[5]) * 3 + (T >= v3.words[6]) * 5) * adv) * (T >= v3.start) * (T < min(v3.end + 1.2, v4.start))
+  let c_v4 = text("And I draw.", x: 0.36915, y: cap_y, size: 0.046, font: "mono", align: "left") * (x < 0.36915 + ((T >= v4.words[0]) * 4 + (T >= v4.words[1]) * 2 + (T >= v4.words[2]) * 5) * adv) * (T >= v4.start) * (T < min(v4.end + 1.2, v5.start))
+  let c_v5 = text("I sing.", x: 0.41673, y: cap_y, size: 0.046, font: "mono", align: "left") * (x < 0.41673 + ((T >= v5.words[0]) * 2 + (T >= v5.words[1]) * 5) * adv) * (T >= v5.start) * (T < min(v5.end + 1.2, v6.start))
+  let c_v6 = text("I speak.", x: 0.40484, y: cap_y, size: 0.046, font: "mono", align: "left") * (x < 0.40484 + ((T >= v6.words[0]) * 2 + (T >= v6.words[1]) * 6) * adv) * (T >= v6.start) * (T < v6.end + 1.2)
+  let c_v7 = text("But every time I run, chance decides.", x: 0.05986, y: cap_y, size: 0.046, font: "mono", align: "left") * (x < 0.05986 + ((T >= v7.words[0]) * 4 + (T >= v7.words[1]) * 6 + (T >= v7.words[2]) * 5 + (T >= v7.words[3]) * 2 + (T >= v7.words[4]) * 5 + (T >= v7.words[5]) * 7 + (T >= v7.words[6]) * 8) * adv) * (T >= v7.start) * (T < min(v7.end + 1.2, v8.start))
+  let c_v8 = text("Nothing comes out the same.", x: 0.17882, y: cap_y, size: 0.046, font: "mono", align: "left") * (x < 0.17882 + ((T >= v8.words[0]) * 8 + (T >= v8.words[1]) * 6 + (T >= v8.words[2]) * 4 + (T >= v8.words[3]) * 4 + (T >= v8.words[4]) * 5) * adv) * (T >= v8.start) * (T < min(v8.end + 1.2, v9.start))
+  let c_v9 = text("One idea.", x: 0.39294, y: cap_y, size: 0.046, font: "mono", align: "left") * (x < 0.39294 + ((T >= v9.words[0]) * 4 + (T >= v9.words[1]) * 5) * adv) * (T >= v9.start) * (T < min(v9.end + 1.2, v10.start))
+  let c_v10 = text("A thousand editions.", x: 0.26209, y: cap_y, size: 0.046, font: "mono", align: "left") * (x < 0.26209 + ((T >= v10.words[0]) * 2 + (T >= v10.words[1]) * 9 + (T >= v10.words[2]) * 9) * adv) * (T >= v10.start) * (T < min(v10.end + 1.2, v11.start))
+  let c_v11 = text("I never make the same thing twice.", x: 0.09555, y: cap_y, size: 0.046, font: "mono", align: "left") * (x < 0.09555 + ((T >= v11.words[0]) * 2 + (T >= v11.words[1]) * 6 + (T >= v11.words[2]) * 5 + (T >= v11.words[3]) * 4 + (T >= v11.words[4]) * 5 + (T >= v11.words[5]) * 6 + (T >= v11.words[6]) * 6) * adv) * (T >= v11.start) * (T < v11.end + 1.2)
+  let c_v12 = text("I am alea.", x: 0.38104, y: cap_y, size: 0.046, font: "mono", align: "left") * (x < 0.38104 + ((T >= v12.words[0]) * 2 + (T >= v12.words[1]) * 3 + (T >= v12.words[2]) * 5) * adv) * (T >= v12.start) * (T < min(v12.end + 1.2, v13.start))
+  let c_v13 = text("Run me again.", x: 0.34536, y: cap_y, size: 0.046, font: "mono", align: "left") * (x < 0.34536 + ((T >= v13.words[0]) * 4 + (T >= v13.words[1]) * 3 + (T >= v13.words[2]) * 6) * adv) * (T >= v13.start) * (T < v13.end + 1.2)
+  let captions = INK * merge(c_v1, c_v2, c_v3, c_v4, c_v5, c_v6)
+  let captions2 = INK * merge(c_v7, c_v8, c_v9, c_v10, c_v11, c_v12, c_v13)
+
+  // ── the code: typed from 7.9s, forty keys a second ──
+  let typed = (T - 7.9) * 40
+  let cadv = 0.016550
+  let cx0 = 0.07
+  let k0 = text("work Seed {{", x: cx0, y: -0.200, size: 0.032, font: "mono", align: "left") * (x < cx0 + clamp(typed - 0, 0, 11) * cadv)
+  let k1 = text("  let sides = ~between(3, 9)", x: cx0, y: -0.145, size: 0.032, font: "mono", align: "left") * (x < cx0 + clamp(typed - 13, 0, 28) * cadv)
+  let k2 = text("  let turn = ~between(0, 360)", x: cx0, y: -0.090, size: 0.032, font: "mono", align: "left") * (x < cx0 + clamp(typed - 43, 0, 29) * cadv)
+  let k3 = text("  let petal = blob(0.6, 0.5, 0.1)", x: cx0, y: -0.035, size: 0.032, font: "mono", align: "left") * (x < cx0 + clamp(typed - 74, 0, 33) * cadv)
+  let k4 = text("  let flower = kaleidoscope(petal, sides)", x: cx0, y: 0.020, size: 0.032, font: "mono", align: "left") * (x < cx0 + clamp(typed - 109, 0, 41) * cadv)
+  let k5 = text("  let tune = notes(pattern, key: 220)", x: cx0, y: 0.075, size: 0.032, font: "mono", align: "left") * (x < cx0 + clamp(typed - 152, 0, 37) * cadv)
+  let k6 = text("  let voice = say(“I am alea.”)", x: cx0, y: 0.130, size: 0.032, font: "mono", align: "left") * (x < cx0 + clamp(typed - 191, 0, 31) * cadv)
+  let k7 = text("  render video(flower, sound: [tune, voice])", x: cx0, y: 0.185, size: 0.032, font: "mono", align: "left") * (x < cx0 + clamp(typed - 224, 0, 44) * cadv)
+  let k8 = text("}", x: cx0, y: 0.240, size: 0.032, font: "mono", align: "left") * (x < cx0 + clamp(typed - 270, 0, 1) * cadv)
+  let codeink = merge(k0, k1, k2, k3, k4, k5, k6, k7, k8)
+  let tilde1 = text("              ~", x: cx0, y: -0.145, size: 0.032, font: "mono", align: "left")
+  let tilde2 = text("             ~", x: cx0, y: -0.090, size: 0.032, font: "mono", align: "left")
+  let tildes = merge(tilde1, tilde2)
+  // the cursor, where the next key goes
+  let cursor = ((typed >= 0) * (typed < 13) * (abs(y - -0.200) < 0.0134) * (abs(x - (cx0 + (clamp(typed - 0, 0, 11) + 0.5) * cadv)) < cadv * 0.45) + (typed >= 13) * (typed < 43) * (abs(y - -0.145) < 0.0134) * (abs(x - (cx0 + (clamp(typed - 13, 0, 28) + 0.5) * cadv)) < cadv * 0.45) + (typed >= 43) * (typed < 74) * (abs(y - -0.090) < 0.0134) * (abs(x - (cx0 + (clamp(typed - 43, 0, 29) + 0.5) * cadv)) < cadv * 0.45) + (typed >= 74) * (typed < 109) * (abs(y - -0.035) < 0.0134) * (abs(x - (cx0 + (clamp(typed - 74, 0, 33) + 0.5) * cadv)) < cadv * 0.45) + (typed >= 109) * (typed < 152) * (abs(y - 0.020) < 0.0134) * (abs(x - (cx0 + (clamp(typed - 109, 0, 41) + 0.5) * cadv)) < cadv * 0.45) + (typed >= 152) * (typed < 191) * (abs(y - 0.075) < 0.0134) * (abs(x - (cx0 + (clamp(typed - 152, 0, 37) + 0.5) * cadv)) < cadv * 0.45) + (typed >= 191) * (typed < 224) * (abs(y - 0.130) < 0.0134) * (abs(x - (cx0 + (clamp(typed - 191, 0, 31) + 0.5) * cadv)) < cadv * 0.45) + (typed >= 224) * (typed < 270) * (abs(y - 0.185) < 0.0134) * (abs(x - (cx0 + (clamp(typed - 224, 0, 44) + 0.5) * cadv)) < cadv * 0.45) + (typed >= 270) * (typed < 273) * (abs(y - 0.240) < 0.0134) * (abs(x - (cx0 + (clamp(typed - 270, 0, 1) + 0.5) * cadv)) < cadv * 0.45)) * blink * (T < 20.6)
+  let code_done = 7.9 + 273 / 40
+
+  // ── A, 0–7.3 s: a cursor; the name, typed as it is said ──
+  let nsize = 0.17
+  let nadv = 0.5172 * nsize
+  let nx0 = 0.5 - 2 * nadv
+  let ny = 0.42
+  let nkeys = clamp((T - v2.words[2]) / 0.09, 0, 4)
+  let name_typed = text("alea", x: nx0, y: ny, size: nsize, font: "mono", align: "left") * (x < nx0 + nkeys * nadv)
+  let bigcursor = (abs(x - (nx0 + (nkeys + 0.5) * nadv)) < nadv * 0.42) * (abs(y - ny) < nsize * 0.4) * blink
+  let sceneA = max(name_typed * INK, bigcursor * RED)
+
+  // ── B, 7.3–20.4 s: the code, and what it makes ──
+  let fy = 0.5
+  let opening = clamp((T - v4.words[2]) / 0.45, 0, 1)
+  let eased = opening * opening * (3 - 2 * opening)
+  let fr = 0.17 * eased + 0.0001
+  let flower0 = Flower(u: (x - 0.5) / fr, v: (y - fy) / fr, e: 0, seed: seed, px: px / fr) * (T >= v4.words[2])
+  // sing: a staff, its notes appearing one by one
+  let staff = (T >= v5.words[1]) * (x > 0.2) * (x < 0.8) * (abs(fract((y - 0.76) / 0.016 + 0.5) - 0.5) * 0.016 < 0.0012) * (y > 0.752) * (y < 0.832)
+  let nslot = floor((x - 0.22) / 0.07)
+  let nh = fract(sin(nslot * 91.7 + seed) * 4375.85)
+  let shown = (nslot >= 0) * (nslot < 8) * (T >= v5.words[1] + nslot * 0.16)
+  let notehead = shown * (distance(x, y, 0.22 + (nslot + 0.5) * 0.07, 0.824 - floor(nh * 9) * 0.008) < 0.0095)
+  // speak: the voice as a line, moving with its syllables
+  let sylls = join(v6.syllables, join(v4.syllables, v5.syllables))
+  let loud = sum([exp(-max(T - s, 0) * 7) * (T >= s) for s in sylls])
+  let wave = (T >= v6.words[1]) * (x > 0.12) * (x < 0.88) * (abs(y - (0.9 + 0.045 * clamp(loud, 0, 1.2) * sin(x * 90 + T * 11) * sin((x - 0.12) * 3.1416 / 0.76))) < 0.0018)
+  let sceneB = merge(codeink * INK, cursor * RED, flower0, staff * GREY, notehead * INK, wave * RED)
+
+  // ── C, 20.4–32 s: chance: the ~ lights up, a new edition on every beat ──
+  let ed = 1 + floor((T - 20.4) * 1.5)
+  let flowerC = Flower(u: (x - 0.5) / 0.17, v: (y - fy) / 0.17, e: ed, seed: seed, px: px / 0.17)
+  let tally = (abs(y - 0.73) < 0.006) * (abs(fract((x - 0.2) / 0.025) - 0.5) < 0.22) * (x > 0.2) * (x < 0.2 + 0.025 * min(ed, 24))
+  let beatpulse = 0.7 + 0.3 * exp(-fract((T - 20.4) * 1.5) * 4)
+  let sceneC = merge(codeink * GREY, tildes * RED * beatpulse, flowerC, tally * INK)
+
+  // ── D, 32–48 s: one idea, then 4, 16, 64, 256 editions ──
+  let stage = (T >= 34.6) + (T >= 36.6) + (T >= 38.6) + (T >= 40.6)
+  let m = exp(stage * 0.6931)
+  let cell = 0.92 / m
+  let gx = (x - 0.04) / cell
+  let gy = (y + 0.04) / cell
+  let inside = (gx >= 0) * (gx < m) * (gy >= 0) * (gy < m)
+  let wavefront = floor(max(T - 43.4, 0) * 1.5 - (floor(gx) + floor(gy)) / m * 1.5)
+  let ecell = 100 + floor(gx) + floor(gy) * m + 1000 * stage + 5000 * max(wavefront, 0)
+  let gridf = Flower(u: (fract(gx) - 0.5) * 2.5, v: (fract(gy) - 0.5) * 2.5, e: ecell, seed: seed, px: 2.5 * px / cell) * inside
+  let lab0 = text("1 edition", x: 0.5, y: -0.17, size: 0.044, font: "mono") * (stage == 0)
+  let lab1 = text("4 editions", x: 0.5, y: -0.17, size: 0.044, font: "mono") * (stage == 1)
+  let lab2 = text("16 editions", x: 0.5, y: -0.17, size: 0.044, font: "mono") * (stage == 2)
+  let lab3 = text("64 editions", x: 0.5, y: -0.17, size: 0.044, font: "mono") * (stage == 3)
+  let lab4 = text("256 editions", x: 0.5, y: -0.17, size: 0.044, font: "mono") * (stage == 4)
+  let sceneD = max(gridf, merge(lab0, lab1, lab2, lab3, lab4) * INK)
+
+  // ── E, 48–60 s: the name, the address; then the cursor again ──
+  let flowerE = Flower(u: (x - 0.5) / 0.085, v: (y - 0.1) / 0.085, e: 9000 + floor(T * 1.5), seed: seed, px: px / 0.085)
+  let nameE = text("alea", x: 0.5, y: 0.36, size: nsize, font: "mono")
+  let line1 = text("every run, a different artwork", x: 0.5, y: 0.54, size: 0.038, font: "mono")
+  let line2 = text("github.com/sudo-bngz/alea", x: 0.5, y: 0.62, size: 0.034, font: "mono")
+  let sceneE = merge(flowerE, nameE * INK, line1 * GREY * 1.6, line2 * RED)
+  let endcursor = (abs(x - 0.5) < nadv * 0.42) * (abs(y - ny) < nsize * 0.4) * blink
+
+  // ── the minute ──
+  let inA = (T < 7.3)
+  let inB = (T >= 7.3) * (T < 20.4)
+  let inC = (T >= 20.4) * (T < 32)
+  let inD = (T >= 32) * (T < 48)
+  let inE = (T >= 48) * (T < 58.7)
+  let inF = (T >= 58.7)
+  let page = merge(sceneA * inA, sceneB * inB, sceneC * inC, sceneD * inD, sceneE * inE, endcursor * RED * inF, captions * (T < 20.4), captions2 * (T >= 20.4) * (T < 58.7))
+  let ink_ = paint(page, palette: ["#efebe2", "#8d877c", "#141414", "#e0462b"], range: [0, 1])
+  let look = vignette(film(ink_, amount: 0.035), amount: 0.18)
+
+  // ── the music: 90 BPM, a pad, the machine answering its own voice ──
+  let semi(s) = 1 - (s + 0.5) / 36
+  let pad = synth {
+    let f = note.freq * (1 + 0.002 * sine(0.3))
+    chorus(lowpass(triangle(f) + triangle(f * 1.003) + saw(f * 0.5) * 0.15, cutoff: 900, resonance: 0.2)
+           * adsr(attack: 0.8, decay: 0.6, sustain: 0.7, release: 1.6) * 0.3, depth: 0.8, rate: 0.3)
+  }
+  let kick = synth { sine(note.freq * (1 + 2.5 * perc(attack: 0.0005, release: 0.04))) * perc(attack: 0.001, release: 0.3) }
+  let tick = synth { highpass(noise(), cutoff: 6000, resonance: 0.3) * perc(release: 0.03) * note.velocity }
+  let bass = synth { lowpass(saw(note.freq) * 0.5 + sine(note.freq), cutoff: 400, resonance: 0.2) * adsr(attack: 0.005, decay: 0.3, sustain: 0.4, release: 0.2) }
+  // the chords: A minor 9, F major 7, C major 7, G 6, two bars each
+  let chordnotes = [[0, 7, 12, 14], [8, 12, 15, 19], [3, 7, 10, 14], [10, 14, 17, 19]]
+  let bar = 60 / 90 * 4
+  pattern pads = repeat 23 * 4 event(t: floor(i / 4) * bar / total, x: 0.3 + 0.13 * (i % 4), y: semi(chordnotes[floor(i / 8) % 4][i % 4] + 12), size: 0.13,
+      intensity: 0.5 - 0.25 * (floor(i / 4) >= 21))
+  // the machine answers: a kalimba on the syllables of "and I draw, I sing, I speak", then on the sung line
+  let syl = join(v4.syllables, join(v5.syllables, v6.syllables))
+  pattern answers = repeat sum([1 for s in syl]) event(t: (syl[i] + 0.12) / total, x: 0.2 + 0.6 * fract(i * 0.37), y: semi(choose { 12 | 15 | 19 | 22 | 24 | 26 }), size: 0.02, intensity: 0.6)
+  let tune = [7, 5, 3, 5, 7, 10, 12, 10]
+  pattern sung = repeat sum([1 for s in v11.syllables]) event(t: v11.syllables[i] / total, x: 0.5 + 0.3 * sin(i), y: semi(tune[i % 8] + 12), size: 0.05, intensity: 0.5)
+  // a new edition, a glass note
+  pattern editions = repeat 17 event(t: (20.4 + i / 1.5) / total, x: ~between(0.2, 0.8), y: semi(choose { 12 | 15 | 17 | 19 | 22 | 24 | 27 }), size: 0.03, intensity: 0.55)
+  pattern stages = repeat 5 * 3 event(t: [32, 34.6, 36.6, 38.6, 40.6][floor(i / 3)] / total, x: 0.3 + 0.2 * (i % 3), y: semi([12, 19, 24][i % 3] + [0, 3, 8, 10, 12][floor(i / 3)]), size: 0.08, intensity: 0.5)
+  // the pulse, from chance on: a beat, ticks, then sixteenths with the editions
+  let s16 = 60 * 6
+  let sixteenth(j) = j / s16
+  pattern kicks = repeat s16 event(t: sixteenth(i), x: 0.5, y: 0.99, intensity: (i / 6 >= 20.4) * (i / 6 < 48) * (i % 4 == 0) * 0.85)
+  pattern ticks = repeat s16 event(t: sixteenth(i), x: 0.5 + 0.3 * sin(i * 1.3), y: 0.5,
+      intensity: ((i / 6 >= 26) * (i % 4 == 2) * 0.5 + (i / 6 >= 32) * (i / 6 < 48) * (i % 2 == 1) * (0.15 + 0.1 * ((i / 6 >= 38.6)))) * (i / 6 < 48))
+  pattern basses = repeat s16 event(t: sixteenth(i), x: 0.5, y: semi(chordnotes[floor(i / 32) % 4][0]), size: 0.012,
+      intensity: (i / 6 >= 32) * (i / 6 < 48) * ((i % 16 == 0) + (i % 16 == 10) * 0.7) * 0.7)
+
+  let music = [
+    v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13,
+    notes(pads, instrument: pad, scale: "chromatic", key: 110, gain: 0.8),
+    notes(answers, instrument: "kalimba", scale: "chromatic", key: 220, gain: 0.5),
+    notes(sung, instrument: "kalimba", scale: "chromatic", key: 220, gain: 0.45),
+    notes(editions, instrument: "glass", scale: "chromatic", key: 220, gain: 0.45),
+    notes(stages, instrument: "bell", scale: "chromatic", key: 220, gain: 0.5),
+    notes(kicks, instrument: kick, scale: "chromatic", key: 55, gain: 0.9),
+    notes(ticks, instrument: tick, gain: 0.35),
+    notes(basses, instrument: bass, scale: "chromatic", key: 55, gain: 0.8),
+  ]
+
+  render image(look, width: 1080, height: 1920, at: 45 / 60)
+  render video(look, fps: 30, width: 1080, height: 1920, duration: total, sound: music, room: 0.3, echo: 0.12)
+}
