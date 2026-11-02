@@ -16,7 +16,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Atardecer** | `atardecer.alea` | A sunset on the sea, the sun a record setting into it: grooves, a turning sheen, a label with the side it plays, the reflection broken into slats, palms in silhouette, in washed-out colours. Also a Reel of slow, lofi house. |
 | **Kikai** (機械図) | `kikai.alea` (+ `fonts/`) | The technical drawing of an analog machine that never existed: a cassette deck, a radio-cassette, a portable radio or a rhythm machine, in off-white line on washed charcoal, labelled in Japanese like a service manual. Each edition draws another machine. Also a Reel: the machine plays a techno track in the spirit of Detroit, with its acid line written below. |
 | **Parasite** | `parasite.alea` (+ `parasite/`) | A broadcast being lost: snow, someone who appears in it made of the same blocks, a desktop filling with windows, a test card counting down, the figure again. Five works on a timeline, crossed with glitches, a morph and a fade, in a loop; a drone of pulses and a burst of static at every cut. |
-| **Requête** | `requete.alea` (+ `requete/`) | The life of one request, layer by layer: the address typed, the name resolved down a tree, the handshake and the lock, packets finding their way across a grid of routers, bits and pulses of light on the wire, and the page building itself. Six works on a timeline, in a loop, each with its own sound. |
+| **Requête** | `requete.alea` (+ `requete/`) | The life of one request, explained by a voice, layer by layer: the address typed, the name resolved down a tree, the handshake and the lock, packets finding their way across a grid of routers, bits and pulses of light on the wire, and the page building itself; a step header, the words typed as they are said, a stack of the five layers lighting the one we are in. Seven works on a timeline, in a loop, each with its own sound. |
 | **Signal** | `signal.alea` (+ `signal/`) | Detroit techno, seen as it is made: the kick as rings, the drum machine's steps, the bass on a scope, the chord stabs and their echoes, the lead on a piano roll, the three at once on a split screen; sixty cuts on the beat, the track built a layer at a time. |
 | **Hana** (花) | `hana.alea` (+ `hana/`) | An electronic flower, from seed to seed, in a network: a seed calling in the grid, roots along its links, a stem of square cells, a bud of nested squares, the bloom of square petals, the seeds leaving along the links and on the wind, flowers everywhere, the petals falling apart into grain. Forty-one cuts in a minute, glitches drawn anew every edition, an IDM track in the Boards of Canada way. |
 | **Babel** | `babel.alea` (+ `babel/`) | The library that holds every book: pages of a script of twenty-five symbols rewritten on every tick, a book in three dimensions turning in the dark, the shelves, a hexagonal gallery from above, the hallways, the shaft and its stair, the mirror, and one long rise out of a gallery until the floor of galleries runs to the horizon. Forty-one cuts in a minute, a dark choir and a broken beat. |
@@ -40,7 +40,7 @@ alea vektor.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Ree
 alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
 alea signal.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop
-alea requete.alea --seed 0xa1ea01            # the 1080×1920 Reel: 28.5 s, in a loop
+alea requete.alea --seed 0xa1ea01            # the cover, and the 1080×1920 Reel: 60 s, explained by a voice (needs voices/kokoro.py)
 alea parasite.alea --seed 0xa1ea01          # the 1080×1920 Reel: 24 s, in a loop
 alea kikai.alea --seed 0xa1ea05              # the drawing, and the 1080×1920 Reel of the machine playing (about 10 minutes)
 ```
@@ -534,42 +534,49 @@ jamais. Édition 0xa1ea01.
 
 | # | Post | Files |
 |---|---|---|
-| 16 | Requête, Reel (28.5 s, a loop) | `16-requete-reel.mp4` (cover: `16-requete-reel-cover.jpg`) |
+| 16 | Requête, Reel (60 s, a loop), explained by a voice | `16-requete-reel.mp4` (cover: `16-requete-reel-cover.jpg`) |
 
-**How it is made.** One work per layer, in `requete/`, on a timeline:
-*Url* (the address typed into the bar, Enter, the request line), *Dns* (a
-query climbs the tree, root, `io`, `bngz`, `alea`, and the answer comes back
-as an address), *Handshake* (SYN, SYN-ACK, ACK between two rails, then two
-rings mesh and a lock closes: TLS), *Packets* (the request cut into packets,
-each taking its own staircase across a grid of routers, the TTL counting
-down), *Bits* (the frame as a stream of ones and zeros, the signal they make
-on the wire, pulses of light down a fibre) and *Page* (the response: the
-page builds itself, block by block, 200 OK). Each is painted in its own
-colour; the timeline crosses them with `pixels`, `slide`, `wipe`, `glitch`,
-`morph` and a fade through black that leads back to the bar. Every layer has
-its sound: keys, blips and an answer, three tones and a chord for the lock,
-pulses at every hop, a modem's two-tone song under the bits, and the chord
-of the page resolving. The addresses are the ones kept for documentation
-(192.0.2.44, 203.0.113.7): nobody's.
+**How it is made.** The life of one request, explained: one work per layer,
+in `requete/`, on a timeline, each the diagram of what happens there: *Url*
+(the address typed into the bar, Enter, the request line), *Dns* (a query
+climbs the tree, root, `io`, `bngz`, `alea`, and the answer comes back as an
+address), *Handshake* (SYN, SYN-ACK, ACK between two rails, then two rings
+mesh and a lock closes: TLS), *Packets* (the request cut into packets, each
+taking its own staircase across a grid of routers, the TTL counting down),
+*Bits* (the frame as a stream of ones and zeros, the signal they make on the
+wire, pulses of light down a fibre), *Page* (the response: the page builds
+itself, block by block, 200 OK) and *End* (two hundred milliseconds, the six
+steps in a column). A voice says what is going on, in plain words (`say`
+through a neural engine, `voices/kokoro.py`), its words typed under the step
+header as it speaks; a small stack of the five layers at the top right,
+application to physical, lights the one we are in. Each layer is painted in
+its own colour, fitted under the captions; the timeline crosses them with
+`pixels`, `slide`, `wipe`, `glitch`, `morph` and a fade through black that
+leads back to the bar. Every layer keeps its sound, under the voice: keys,
+blips and an answer, three tones and a chord for the lock, pulses at every
+hop, a modem's two-tone song under the bits, the chord of the page
+resolving, and a clock ticking under everything. The addresses are the ones
+kept for documentation (192.0.2.44, 203.0.113.7): nobody's.
 
 ### 16 · Requête (Reel)
 
 **EN**
 
-REQUÊTE — the life of one request. An address is typed; the name becomes a
-number; two machines shake hands and lock the line; the request is cut into
-packets that find their way across the network; on the wire, bits and light;
-and back at the top, the page builds itself. One work per layer, on a
-timeline, each with its own sound. Edition 0xa1ea01.
+REQUÊTE — what happens when you press Enter. In the next two hundred
+milliseconds the name becomes a number, two machines shake hands and lock
+the line, your request is cut into packets that find their own way across
+the network, on the wire it is nothing but ones and zeros and light, and
+the page builds itself. A minute, layer by layer, explained. Edition
+0xa1ea01.
 
 **FR**
 
-REQUÊTE — la vie d'une requête. Une adresse est tapée ; le nom devient un
-nombre ; deux machines se serrent la main et verrouillent la ligne ; la
-requête est découpée en paquets qui trouvent leur chemin à travers le
-réseau ; sur le fil, des bits et de la lumière ; et de retour en haut, la
-page se construit. Une œuvre par couche, sur une timeline, chacune avec son
-propre son. Édition 0xa1ea01.
+REQUÊTE — ce qui se passe quand vous appuyez sur Entrée. Dans les deux
+cents millisecondes qui suivent, le nom devient un nombre, deux machines se
+serrent la main et verrouillent la ligne, votre requête est découpée en
+paquets qui trouvent chacun leur chemin à travers le réseau, sur le fil ce
+n'est plus que des uns, des zéros et de la lumière, et la page se
+construit. Une minute, couche par couche, expliquée. Édition 0xa1ea01.
 
 ## Ninth room: Signal
 
