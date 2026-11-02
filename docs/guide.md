@@ -398,12 +398,26 @@ render sound(drone(sky, instrument: "strings", scale: "dorian", key: 110),
   rings, its `intensity` how loud.
 - **`texture(field)`**: an ambience (`"wind"`, `"waves"`, `"rain"`,
   `"crackle"`) that grows louder as more of the field lights up.
+- **`say(text)`**: a voice that reads the text, in English or in French
+  (`lang: "fr"`), from `at` seconds. No recording: an old speaking machine,
+  built of a pulse, noise and resonances, so its pitch, its pace, the size
+  of its throat and its roughness can be drawn by chance, and it can sing
+  (`melody:`, a semitone per syllable).
 
 Each layer has an `instrument` (strings, choir, organ, glass…; for notes:
 bell, pluck, marimba, kalimba, drum…), a `scale` (major, minor, dorian,
 pentatonic, blues…), a `key` in hertz and a `gain`. Around the mix, `room`
 gives a space (0 none, 0.9 a cathedral) and `echo` a repeat between left and
 right.
+
+```alea
+let voice = say("I never make the same thing twice.", at: 1, pitch: ~between(90, 140), rough: ~between(0, 0.3))
+render sound(voice, drone(sky), duration: voice.end + 1, room: 0.4)
+```
+
+A voice knows when it speaks: `voice.duration`, `voice.start`, `voice.end`,
+and the time each word starts and ends (`voice.words`, `voice.ends`) and
+each syllable (`voice.syllables`), in seconds, to draw it as it speaks.
 
 A layer can listen to anything, not only what's on screen: the drone of a
 video can follow the sky while the picture shows the sea. In a video, give

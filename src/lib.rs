@@ -20,6 +20,7 @@ pub mod parser;
 pub mod prims;
 pub mod raster;
 pub mod sound;
+pub mod speech;
 pub mod synth;
 pub mod timeline;
 pub mod vfs;

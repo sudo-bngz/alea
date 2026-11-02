@@ -207,7 +207,7 @@ numbers, not all zero. A branch can give any kind of value.
 | **list** | `[1, 2, 3]`, `[0.3, 0.5]` (a point) | indexing, loops, arithmetic (element by element), list functions, `merge`, `path`… |
 | **function** | `let f(a) = …` | calls only |
 | **painting** | `paint(f, palette: "sea")` | `mosaic`, `place`, `overlay`, `render image`, `render video`, `output` (not arithmetic) |
-| **sound** | `drone(f)`, `notes(p)`, `texture(f)` | `render sound`, a video's `sound:` |
+| **sound** | `drone(f)`, `notes(p)`, `texture(f)`, `say(text)` | `render sound`, a video's `sound:` |
 
 A number is a field that is the same everywhere. A **fixed value** is a
 number that doesn't depend on `x`, `y`, `t` or a grain. Fixed values are
@@ -829,6 +829,39 @@ takes).
 |---|---|---|
 | `kind` | `"wind"` | `"wind"` (brighter when louder), `"waves"` (slow swells, out of step between the ears), `"rain"` (drops, more of them), `"crackle"` (sparse pops) |
 | `gain` | 1 | 0–10 |
+
+**`say(text, at, lang, pitch, speed, size, rough, breath, pan, gain, melody)`**:
+a voice that reads `text`, from `at` seconds. The text becomes phonemes by
+spelling rules (English: the NRL rules, after Elovitz et al., 1976; French:
+rules of the same kind), each with a short list of exceptions; numbers are
+read out, short words in capitals are spelled (`"CPU"`), punctuation sets
+the pauses and the melody (a phrase falls at `.`, rises at `?`, stays up at
+`,`). The phonemes become sound by formant synthesis: a glottal pulse or
+noise through resonators that glide from one sound to the next, the voice of
+the first speaking machines. A word can be written in phonemes between
+slashes, with `'` before the stressed syllable: `say("/h@'loU/")`
+(vowels `i I e E { a A O o U u V @ 3 y 2 9 a~ e~ o~ 9~ aI aU OI eI oU`,
+consonants `p b t d k g f v T D s z S Z h m n N J l r R w j H tS dZ`).
+The voice has its own level in the mix, then goes through the echo and the
+room with the rest.
+
+| Parameter | Default | Values |
+|---|---|---|
+| `at` | 0 | seconds: when it starts (the sound fades in over its first half second) |
+| `lang` | `"en"` | `"en"`, `"fr"` |
+| `pitch` | 110 | 40–600 Hz, or a note name (`"A2"`): the voice's own pitch |
+| `speed` | 1 | 0.25–4 |
+| `size` | 1 | 0.5–1.6: the size of the throat (1 a man, 0.85 a woman, 0.7 a child) |
+| `rough` | 0 | 0–1: an unsteady pitch and loudness, a worn voice |
+| `breath` | 0.1 | 0–1: air in the voice |
+| `pan` | 0.5 | 0 (left) – 1 (right) |
+| `gain` | 1 | 0–10 |
+| `melody` | none | a list of semitones, one per syllable (in a loop): sung instead of spoken |
+
+A voice has `.duration`, `.start`, `.end` (seconds), and `.words`, `.ends`
+and `.syllables`: lists of the times (seconds) each word starts and ends and
+each vowel starts, to draw it as it speaks. They are known before anything is
+rendered.
 
 **Synths**: an instrument of your own, built from oscillators, envelopes,
 filters and effects, and played once per note. `synth { … }` is a few `let`s,
