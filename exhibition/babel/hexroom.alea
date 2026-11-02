@@ -1,0 +1,27 @@
+// Hexroom — one of the galleries, from above: six walls, four of them lined
+// with shelves (the books seen from the top), two open onto the hallways,
+// the shaft in the middle with its railing, and the next galleries beyond.
+// It turns by steps. What it returns: 0 dark, up to 1 light.
+
+work Hexroom(size = 0.42, rate = 8, spin = 1) {
+  let tick = floor(t * rate)
+  let a0 = (floor(t * 6) * 10 * spin + t * 12 * spin) / 57.2958
+  let qx = (x - 0.5) * cos(a0) + (y - 0.5) * sin(a0)
+  let qy = -(x - 0.5) * sin(a0) + (y - 0.5) * cos(a0)
+  let hexd = max(abs(qy), abs(qx) * 0.866 + abs(qy) * 0.5)    // flat sides top and bottom, edges at hexd = r
+  let r = size
+  let ang = atan2(qy, qx)
+  let k = floor((ang + 3.1416) / 1.0472)                       // which wall (0..5)
+  let mid = (k + 0.5) * 1.0472 - 3.1416
+  let along = -qx * sin(mid) + qy * cos(mid)                   // the position along the wall
+  let door = (k % 3 == 1) * (abs(along) < r * 0.16)            // two walls open on hallways
+  let wall = (hexd > r) * (hexd < r + 0.02) * (1 - door)
+  let shelved = (k % 3 != 1)
+  let books = shelved * (hexd > r - 0.07) * (hexd < r) * (0.35 + 0.35 * (fract(along * 70) < 0.6))
+  let shaft = abs(distance(qx, qy, 0, 0) - r * 0.32) < 0.006
+  let rail = abs(distance(qx, qy, 0, 0) - r * 0.36) < 0.003
+  let stair = (distance(qx, qy, 0, 0) < r * 0.3) * (fract(ang / 6.2832 * 12 + t * 2) < 0.12) * (distance(qx, qy, 0, 0) > r * 0.08) * 0.5
+  let beyond = (hexd > r + 0.06) * (abs(fract(hexd / (r * 0.5) - t * 0.3) - 0.5) < 0.04) * clamp(1.2 - hexd * 1.2, 0, 1) * 0.35
+  let lamp = glow(x: 0.5, y: 0.5, size: 0.9) * 0.25 * (0.8 + 0.2 * (fract(tick * 0.618) > 0.3))
+  output merge(wall, books, shaft * 0.8, rail * 0.6, stair, beyond, lamp)
+}

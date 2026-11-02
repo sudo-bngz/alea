@@ -1,0 +1,22 @@
+// Shaft — looking down the air shaft at the heart of every gallery: the
+// railings of the floors below, ring after ring, the spiral stair winding
+// into the depth, galleries without end above and below.
+// What it returns: 0 dark, up to 1 light.
+
+work Shaft(speed = 0.6, rate = 10, up = 1) {
+  let tick = floor(t * rate)
+  let go = (t * speed + floor(t * 3) * 0.04) * up
+  let qx = x - 0.5 + 0.004 * sin(tick * 2.7)
+  let qy = y - 0.5
+  let rr = distance(qx, qy, 0, 0) + 0.0001
+  let hexd = max(abs(qy), abs(qx) * 0.866 + abs(qy) * 0.5) + 0.0001
+  let zr = 0.1 / rr
+  let zh = 0.16 / hexd
+  let rails = (fract(zr * 0.9 - go) < 0.06)
+  let floors = (fract(zh * 0.9 - go) < 0.05) * (hexd > 0.2)
+  let ang = atan2(qy, qx)
+  let stair = (fract(ang / 6.2832 + zr * 0.45 - go * 0.5) < 0.1) * (rr < 0.22) * (fract(zr * 9) < 0.6)
+  let fog = clamp(rr * 4, 0, 1)
+  let deep = glow(x: 0.5, y: 0.5, size: 0.08) * 0.5
+  output merge(merge(rails * 0.9, floors * 0.4, stair * 0.7) * fog, deep)
+}

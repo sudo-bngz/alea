@@ -1,0 +1,12 @@
+// Books — several of the books at once, turning in the dark, each its own
+// way, at its own place: one among them is the one that explains them all.
+// What it returns: 0 dark, up to 1 light.
+
+use "book.alea"
+
+work Books(count = 4) {
+  let spots = [[0.3, 0.1], [0.7, 0.35], [0.32, 0.72], [0.68, 1.05], [0.5, 0.5], [0.25, 1.2]]
+  let shift = [[~between(-0.06, 0.06), ~between(-0.05, 0.05)] for k in range(count)]
+  output merge([Book(size: ~between(0.45, 0.7), spin: choose { -1.6 | -0.8 | 0.9 | 1.7 }, tilt: ~between(10, 50),
+                     at: [spots[k].x + shift[k].x, spots[k].y + shift[k].y]) for k in range(count)])
+}
