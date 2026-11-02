@@ -20,40 +20,40 @@ use "requete/page.alea"
 use "requete/end.alea"
 
 work Requete {
-  let total = 60
+  let total = 82.0
   let T = t * total
   let ENGINE = "../voices/kokoro.py"
   let VOICE = "af_heart"
 
   // ── the voice ──
-  let v1 = say("You type an address, and press Enter.", at: 0.5, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v2 = say("What happens in the next two hundred milliseconds?", at: v1.end + 0.35, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v3 = say("First, the name.", at: 6.3, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v4 = say("Computers only know numbers.", at: v3.end + 0.3, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v4b = say("So yours asks the name servers, step by step: root, io, bngz, alea.", at: v4.end + 0.2, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v5 = say("The answer is an address.", at: v4b.end + 0.35, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v6 = say("Then the two machines agree to talk.", at: 14.3, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v7 = say("Hello. Hello back. Okay. That is a handshake.", at: v6.end + 0.3, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v8 = say("And they lock the line: from here on, everything is encrypted.", at: v7.end + 0.5, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v9 = say("Your request is cut into packets.", at: 24.3, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v10 = say("Each one finds its own way, router to router, across the network.", at: v9.end + 0.3, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v11 = say("At every hop, its time to live counts down.", at: v10.end + 0.5, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v12 = say("On the wire, a packet is only ones and zeros:", at: 36.3, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v13 = say("a signal of pulses, or light in a fibre.", at: v12.end + 0.15, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v14 = say("At the other end, the server answers: two hundred, okay.", at: 44.3, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v15 = say("And the page builds itself, block by block.", at: v14.end + 0.4, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
-  let v16 = say("Two hundred milliseconds. Every time.", at: 56.3, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v1 = say("You type an address, and press Enter.", at: 1.40, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v2 = say("What happens in the next two hundred milliseconds?", at: v1.end + 1.2, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v3 = say("First, the name.", at: 10.90, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v4 = say("Computers only know numbers.", at: v3.end + 1.0, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v4b = say("So yours asks the name servers, step by step: root, io, bngz, alea.", at: v4.end + 0.7, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v5 = say("The answer is an address.", at: v4b.end + 1.0, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v6 = say("Then the two machines agree to talk.", at: 26.90, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v7 = say("Hello. Hello back. Okay. That is a handshake.", at: v6.end + 1.0, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v8 = say("And they lock the line: from here on, everything is encrypted.", at: v7.end + 1.3, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v9 = say("Your request is cut into packets.", at: 41.40, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v10 = say("Each one finds its own way, router to router, across the network.", at: v9.end + 1.0, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v11 = say("At every hop, its time to live counts down.", at: v10.end + 1.2, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v12 = say("On the wire, a packet is only ones and zeros:", at: 55.90, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v13 = say("a signal of pulses, or light in a fibre.", at: v12.end + 0.5, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v14 = say("At the other end, the server answers: two hundred, okay.", at: 65.40, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v15 = say("And the page builds itself, block by block.", at: v14.end + 1.2, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
+  let v16 = say("Two hundred milliseconds. Every time.", at: 77.00, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.3)
 
   // ── the layers, each in its colour, fitted under the captions ──
   let ink(piece, colours) = paint(zoom(piece, by: 0.82, x: 0.5, y: 0.66), palette: colours, range: [0, 1])
   let reel = timeline([
-      scene(ink(Url(), ["#07080c", "#2a3a4a", "#dfe9f2", "#ffffff"]), 6),  pixels(0.5, size: 0.05),
-      scene(ink(Dns(), ["#030905", "#0f4a2a", "#49d68a", "#d9ffe8"]), 8),  slide(0.6, angle: 90),
-      scene(ink(Handshake(), ["#0b0703", "#5a3310", "#f0a030", "#fff0d0"]), 10),  wipe(0.7, angle: 0, softness: 0.08),
-      scene(ink(Packets(), ["#03060e", "#153a7a", "#4fa8ff", "#e6f3ff"]), 12),  glitch(0.7, amount: 0.8),
-      scene(ink(Bits(), ["#0a0410", "#5a1a6e", "#e86ad0", "#fff0fa"]), 8),  morph(1, amount: 0.2),
-      scene(ink(Page(), ["#f4f1ea", "#c9c2b4", "#4a4640", "#14120f"]), 12),  pixels(0.6, size: 0.04),
-      scene(ink(End(), ["#07080c", "#2a3a4a", "#dfe9f2", "#ffffff"]), 4),  fade(1, through: 0),
+      scene(ink(Url(type0: (v1.words[1] - 0.0) / 9.5, type1: (v1.ends[3] + 0.4 - 0.0) / 9.5, enter: (v1.words[6] + 0.15 - 0.0) / 9.5), ["#07080c", "#2a3a4a", "#dfe9f2", "#ffffff"]), 9.5),  pixels(0.5, size: 0.05),
+      scene(ink(Dns(c0: (v4b.words[9] - 9.5) / 16.0, c1: (v4b.ends[12] - 9.5) / 16.0, answer: (v5.words[4] - 9.5) / 16.0), ["#030905", "#0f4a2a", "#49d68a", "#d9ffe8"]), 16.0),  slide(0.6, angle: 90),
+      scene(ink(Handshake(at_syn: (v7.words[0] - 25.5) / 14.5, at_synack: (v7.words[1] - 25.5) / 14.5, at_ack: (v7.words[3] - 25.5) / 14.5, flight: 0.0379, at_lock: (v8.words[2] - 25.5) / 14.5, closing: 0.0897), ["#0b0703", "#5a3310", "#f0a030", "#fff0d0"]), 14.5),  wipe(0.7, angle: 0, softness: 0.08),
+      scene(ink(Packets(), ["#03060e", "#153a7a", "#4fa8ff", "#e6f3ff"]), 14.5),  glitch(0.7, amount: 0.8),
+      scene(ink(Bits(), ["#0a0410", "#5a1a6e", "#e86ad0", "#fff0fa"]), 9.5),  morph(1, amount: 0.2),
+      scene(ink(Page(ok: (v14.words[7] - 64.0) / 12.0, build: (v15.words[3] - 64.0) / 12.0), ["#f4f1ea", "#c9c2b4", "#4a4640", "#14120f"]), 12.0),  pixels(0.6, size: 0.04),
+      scene(ink(End(), ["#07080c", "#2a3a4a", "#dfe9f2", "#ffffff"]), 6.0),  fade(1, through: 0),
   ], loop: 1)
 
   // ── over it: the step, the stack, the captions ──
@@ -116,18 +116,20 @@ work Requete {
   let burst = synth { highpass(noise(), cutoff: 3000, resonance: 0.5) * perc(attack: 0.001, release: 0.2) * note.velocity * 0.6 }
   let tick  = synth { highpass(noise(), cutoff: 5000, resonance: 0.3) * perc(release: 0.02) * note.velocity }
 
-  // the scenes' moments, in seconds: url 0, dns 6, handshake 14, packets 24, bits 36, page 44, end 56
-  pattern keys = repeat 23 event(t: (0 + 6 * (0.08 + 0.55 * i / 22)) / total, x: 0.3 + 0.4 * (i % 2), y: ~between(0.4, 0.7), intensity: ~between(0.5, 1))
-  pattern asks = repeat 4 event(t: (6 + 8 * (i / 3 * 0.55)) / total, x: 0.4 + 0.2 * (i % 2), y: 0.6 - i * 0.12, intensity: 0.7)
-  pattern answer = repeat 3 event(t: (6 + 8 * (0.64 + i * 0.03)) / total, x: 0.5, y: 0.3 - i * 0.1, intensity: 0.8)
-  pattern tones = repeat 3 event(t: (14 + 10 * [0.04, 0.24, 0.44][i]) / total, x: 0.25 + 0.5 * (i % 2), y: [0.8, 0.4, 0.8][i], size: 0.03, intensity: 0.8)
-  pattern lock = repeat 3 event(t: (14 + 10 * 0.9) / total, x: 0.5, y: 0.7 - i * 0.15, size: 0.08, intensity: 0.6)
-  pattern hops = repeat 60 event(t: (24 + 12 * (0.05 + floor(i / 10) * 0.08 + 0.5 * (i % 10) / 10)) / total, x: 0.2 + 0.6 * (i % 10) / 9,
+  // the sounds, on the voice's moments: the keys as the address is typed, the
+  // query climbing, the answer, a tone for each message of the handshake,
+  // the lock, the hops, the page's blocks and its 200
+  pattern keys = repeat 23 event(t: (v1.words[1] + (v1.ends[3] + 0.4 - v1.words[1]) * i / 22) / total, x: 0.3 + 0.4 * (i % 2), y: ~between(0.4, 0.7), intensity: ~between(0.5, 1))
+  pattern asks = repeat 4 event(t: (v4b.words[9] + (v4b.ends[12] - v4b.words[9]) * i / 3) / total, x: 0.4 + 0.2 * (i % 2), y: 0.6 - i * 0.12, intensity: 0.7)
+  pattern answer = repeat 3 event(t: (v5.words[4] + i * 0.25) / total, x: 0.5, y: 0.3 - i * 0.1, intensity: 0.8)
+  pattern tones = repeat 3 event(t: [v7.words[0], v7.words[1], v7.words[3]][i] / total, x: 0.25 + 0.5 * (i % 2), y: [0.8, 0.4, 0.8][i], size: 0.03, intensity: 0.8)
+  pattern lock = repeat 3 event(t: (v8.words[2] + 1.3) / total, x: 0.5, y: 0.7 - i * 0.15, size: 0.08, intensity: 0.6)
+  pattern hops = repeat 60 event(t: (40.0 + 14.5 * (0.05 + floor(i / 10) * 0.08 + 0.5 * (i % 10) / 10)) / total, x: 0.2 + 0.6 * (i % 10) / 9,
                                  y: ~between(0.3, 0.8), intensity: 0.5 + 0.4 * ((i % 10) == 9))
-  pattern builds = repeat 9 event(t: (44 + 12 * (0.1 + i * 0.07)) / total, x: 0.3 + 0.05 * i, y: 0.8 - i * 0.06, size: 0.1, intensity: 0.5)
-  pattern okay = repeat 3 event(t: (44 + 12 * 0.78) / total, x: 0.5, y: [0.55, 0.4, 0.25][i], size: 0.2, intensity: 0.7)
+  pattern builds = repeat 9 event(t: (v15.words[3] + 12.0 * i * 0.06) / total, x: 0.3 + 0.05 * i, y: 0.8 - i * 0.06, size: 0.1, intensity: 0.5)
+  pattern okay = repeat 3 event(t: v14.words[7] / total, x: 0.5, y: [0.55, 0.4, 0.25][i], size: 0.2, intensity: 0.7)
   // a clock, under everything: the two hundred milliseconds ticking by
-  pattern clock = repeat 240 event(t: i / 240, x: 0.5 + 0.3 * (i % 2), y: 0.5, intensity: 0.25 + 0.2 * (i % 4 == 0))
+  pattern clock = repeat 328.0 event(t: i / 328.0, x: 0.5 + 0.3 * (i % 2), y: 0.5, intensity: 0.25 + 0.2 * (i % 4 == 0))
 
   let music = [
 v1, v2, v3, v4, v4b, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16,
@@ -145,6 +147,6 @@ v1, v2, v3, v4, v4b, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16,
     notes(reel.cues, instrument: burst, scale: "chromatic", key: 100, gain: 0.35),
   ]
 
-  render image(look, width: 1080, height: 1920, at: 30 / total)
+  render image(look, width: 1080, height: 1920, at: 46.0 / total)
   render video(look, fps: 30, width: 1080, height: 1920, sound: music, room: 0.4, echo: 0.15)
 }

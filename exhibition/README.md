@@ -40,7 +40,7 @@ alea vektor.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Ree
 alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
 alea signal.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop
-alea requete.alea --seed 0xa1ea01            # the cover, and the 1080×1920 Reel: 60 s, explained by a voice (needs voices/kokoro.py)
+alea requete.alea --seed 0xa1ea01            # the cover, and the 1080×1920 Reel: 82 s, explained by a voice (needs voices/kokoro.py)
 alea parasite.alea --seed 0xa1ea01          # the 1080×1920 Reel: 24 s, in a loop
 alea kikai.alea --seed 0xa1ea05              # the drawing, and the 1080×1920 Reel of the machine playing (about 10 minutes)
 ```
@@ -534,7 +534,7 @@ jamais. Édition 0xa1ea01.
 
 | # | Post | Files |
 |---|---|---|
-| 16 | Requête, Reel (60 s, a loop), explained by a voice | `16-requete-reel.mp4` (cover: `16-requete-reel-cover.jpg`) |
+| 16 | Requête, Reel (82 s, a loop), explained by a voice | `16-requete-reel.mp4` (cover: `16-requete-reel-cover.jpg`) |
 
 **How it is made.** The life of one request, explained: one work per layer,
 in `requete/`, on a timeline, each the diagram of what happens there: *Url*
@@ -546,9 +546,13 @@ taking its own staircase across a grid of routers, the TTL counting down),
 *Bits* (the frame as a stream of ones and zeros, the signal they make on the
 wire, pulses of light down a fibre), *Page* (the response: the page builds
 itself, block by block, 200 OK) and *End* (two hundred milliseconds, the six
-steps in a column). A voice says what is going on, in plain words (`say`
-through a neural engine, `voices/kokoro.py`), its words typed under the step
-header as it speaks; a small stack of the five layers at the top right,
+steps in a column). Each stage takes the time it needs: a moment of the
+picture alone, then a voice that says what is going on, in plain words (`say`
+through a neural engine, `voices/kokoro.py`, `af_heart`), with a breath
+between its sentences, its words typed letter by letter under the step
+header as it speaks, and the picture alone again before the cut; the
+diagrams move on its words (the handshake on *hello*, the lock on *lock*,
+the page on *builds*); a small stack of the five layers at the top right,
 application to physical, lights the one we are in. Each layer is painted in
 its own colour, fitted under the captions; the timeline crosses them with
 `pixels`, `slide`, `wipe`, `glitch`, `morph` and a fade through black that
@@ -566,7 +570,7 @@ REQUÊTE — what happens when you press Enter. In the next two hundred
 milliseconds the name becomes a number, two machines shake hands and lock
 the line, your request is cut into packets that find their own way across
 the network, on the wire it is nothing but ones and zeros and light, and
-the page builds itself. A minute, layer by layer, explained. Edition
+the page builds itself. Layer by layer, explained. Edition
 0xa1ea01.
 
 **FR**
@@ -576,7 +580,7 @@ cents millisecondes qui suivent, le nom devient un nombre, deux machines se
 serrent la main et verrouillent la ligne, votre requête est découpée en
 paquets qui trouvent chacun leur chemin à travers le réseau, sur le fil ce
 n'est plus que des uns, des zéros et de la lumière, et la page se
-construit. Une minute, couche par couche, expliquée. Édition 0xa1ea01.
+construit. Couche par couche, expliquée. Édition 0xa1ea01.
 
 ## Ninth room: Signal
 
