@@ -2,12 +2,12 @@
 // block by block, in the browser: a title, lines of text, a picture, the
 // status in the corner. What it returns: 0 dark, up to 1 light.
 
-work Page {
+work Page(ok = 0.02, build = 0.1) {
   let win = cut(rect(0.5, 0.62, 0.86, 1.1, 0, 0.002), rect(0.5, 0.62 + 0.02, 0.86 - 0.008, 1.1 - 0.048, 0, 0.002))
   let dots = merge([circle(0.1 + j * 0.03, 0.09, 0.013, 0.001) for j in range(3)]) * 0.6
-  let status = text("200 OK", 0.84, 0.09, 0.026, 0, "mono") * smoothstep(0.02, 0.1, t) * 0.8
+  let status = text("200 OK", 0.84, 0.09, 0.026, 0, "mono") * smoothstep(ok, ok + 0.06, t) * 0.8
   // the blocks arrive one after another, from a little below their place
-  let arrive(k) = smoothstep(0.1 + k * 0.07, 0.2 + k * 0.07, t)
+  let arrive(k) = smoothstep(build + k * 0.06, build + 0.08 + k * 0.06, t)
   let drop(k) = 0.04 * (1 - arrive(k))
   let title = text("ALEA", 0.17, 0.26 + drop(0), 0.1, 0, "sans", "left") * arrive(0)
   let sub   = text("a language where every run is a new edition", 0.17, 0.34 + drop(1), 0.026, 0, "mono", "left") * arrive(1) * 0.7
