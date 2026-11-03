@@ -15,7 +15,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Correspondances** | `correspondances.alea` (+ `correspondances/`) | The plan of a metro for a Paris that was never built: the real city's grammar, a new geometry every edition, and a Reel of one day of service. |
 | **Atardecer** | `atardecer.alea` | A sunset on the sea, the sun a record setting into it: grooves, a turning sheen, a label with the side it plays, the reflection broken into slats, palms in silhouette, in washed-out colours. Also a Reel of slow, lofi house. |
 | **Kikai** (機械図) | `kikai.alea` (+ `fonts/`) | The technical drawing of an analog machine that never existed: a cassette deck, a radio-cassette, a portable radio or a rhythm machine, in off-white line on washed charcoal, labelled in Japanese like a service manual. Each edition draws another machine. Also a Reel: the machine plays a techno track in the spirit of Detroit, with its acid line written below. |
-| **Parasite** | `parasite.alea` (+ `parasite/`) | A broadcast being lost: snow, someone who appears in it made of the same blocks, a desktop filling with windows, a test card counting down, the figure again. Five works on a timeline, crossed with glitches, a morph and a fade, in a loop; a drone of pulses and a burst of static at every cut. |
+| **Parasite** | `parasite.alea` (+ `parasite/`) | A broadcast being lost, to a UK breakbeat of the nineties: snow, the television turning in the dark, someone appearing in the snow, then into the signal: a tunnel lined with screens, a wireframe landscape under a banded sun, the someone as a figure of boxes in wire, a desktop filling with windows; a test card counts down to the drop. Twenty-eight scenes cut on the bar through smooth crossings, four of them in 3D; an amen break, a reese, rave stabs and a hoover, a speaking machine. |
 | **Requête** | `requete.alea` (+ `requete/`) | The life of one request, explained by a voice, layer by layer: the address typed, the name resolved down a tree, the handshake and the lock, packets finding their way across a grid of routers, bits and pulses of light on the wire, and the page building itself; a step header, the words typed as they are said, a stack of the five layers lighting the one we are in. Seven works on a timeline, in a loop, each with its own sound. |
 | **Signal** | `signal.alea` (+ `signal/`) | Detroit techno, seen as it is made: the kick as rings, the drum machine's steps, the bass on a scope, the chord stabs and their echoes, the lead on a piano roll, the three at once on a split screen; sixty cuts on the beat, the track built a layer at a time. |
 | **Hana** (花) | `hana.alea` (+ `hana/`) | An electronic flower, from seed to seed, in a network: a seed calling in the grid, roots along its links, a stem of square cells, a bud of nested squares, the bloom of square petals, the seeds leaving along the links and on the wind, flowers everywhere, the petals falling apart into grain. Forty-one cuts in a minute, glitches drawn anew every edition, an IDM track in the Boards of Canada way. |
@@ -43,7 +43,7 @@ alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Ree
 alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
 alea signal.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop
 alea requete.alea --seed 0xa1ea01            # the cover, and the 1080×1920 Reel: 82 s, explained by a voice (needs voices/kokoro.py)
-alea parasite.alea --seed 0xa1ea01          # the 1080×1920 Reel: 24 s, in a loop
+alea parasite.alea --seed 0xa1ea01          # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 45 minutes)
 alea kikai.alea --seed 0xa1ea05              # the drawing, and the 1080×1920 Reel of the machine playing (about 10 minutes)
 ```
 
@@ -502,36 +502,53 @@ Dessiné, composé et synthétisé par le même programme. Édition 0xa1ea01.
 
 | # | Post | Files |
 |---|---|---|
-| 15 | Parasite, Reel (24 s, a loop) | `15-parasite-reel.mp4` (cover: `15-parasite-reel-cover.jpg`) |
+| 15 | Parasite, Reel (60 s, a loop) | `15-parasite-reel.mp4` (cover: `15-parasite-reel-cover.jpg`) |
 
 **How it is made.** Parasite is the first work on a `timeline`. Its scenes
 are works of their own, in `parasite/`: *Static* (snow in blocks, new every
 frame), *Figure* (someone made of the same blocks in other colours, a
 screen on the chest, flickering in and out), *Windows* (a desktop that fills
-with windows, one with snow, one a scope, one blinds, one "NO SIGNAL") and
-*TestCard* (colour bars, a dial, a countdown). The timeline crosses them with
-`glitch` (slices torn sideways, blocks out of place, bursts of static, red
-and blue apart), `pixels` and `morph`, and loops: the last glitch leads back
-to the snow. The sound is the set's: a drone of pulse waves through a slow
-filter, hiss and crackle that rise in the snow, blips, chatter, and, at
-every cut, a burst of static (`film.cues`, one event per transition).
+with windows, one with snow, one a scope, one blinds, one "NO SIGNAL"),
+*TestCard* (colour bars, a dial, a countdown), and four in three dimensions:
+*Set* (the television, a box ray-cast point by point with a perspective eye,
+lit, its rounded screen showing snow or bars, two rabbit ears), *Tube* (a
+tunnel lined with screens rushing at the eye), *Terrain* (a wireframe ground
+of hills flown low, each point found from its row on the screen and lifted
+twice by the hill there, a sun cut in bands on the horizon) and *Body* (the
+someone again, a figure of boxes in wire turning on a ring).
+
+The reworked Reel is a minute: 33 bars at 132 BPM, each scene a bar, two
+bars or half a bar, so every cut lands on the beat. The crossings are smooth
+ones, drawn anew for each edition (`morph`, `fade`, `wipe` with a soft edge,
+`slide`, small `pixels`), with one `glitch`, into the drop. The track is a UK
+breakbeat of the nineties, written step by step: an amen-style break whose
+bars chance turns now and then into a broken two-step, heard through a wall
+in the intro, chopped into rolls at the end of phrases and built up in
+snares before the drop; a sub bass, then a reese of three detuned saws; rave
+stabs and a rave piano on four minor chords in F; a hoover swooping over the
+breakdown; the snow's hiss; alea's own speaking machine saying "no signal"
+and "parasite"; and a breath of noise at every cut (`reel.cues`).
 
 ### 15 · Parasite (Reel)
 
 **EN**
 
-PARASITE — a broadcast being lost. Snow; someone appears in it, made of the
-same blocks; the screen fills with windows; a test card counts down; the
-figure comes back and dissolves. Five works on a timeline, cut with glitches,
-and a sound made of the same static. The loop never ends. Edition 0xa1ea01.
+PARASITE — a broadcast being lost, to a nineties breakbeat. Snow; the TV
+turning in the dark; someone appears in the snow, made of the same blocks;
+then into the signal: a tunnel of screens, a wireframe land under a banded
+sun, the someone as boxes in wire. A test card counts down to the drop.
+Eight works in twenty-eight scenes, cut on the bar, and a break written
+step by step. The loop never ends. Edition 0xa1ea01.
 
 **FR**
 
-PARASITE — une émission qui se perd. De la neige ; quelqu'un y apparaît,
-fait des mêmes blocs ; l'écran se remplit de fenêtres ; une mire compte à
-rebours ; la silhouette revient et se dissout. Cinq œuvres sur une timeline,
-montées au glitch, et un son fait de la même neige. La boucle ne finit
-jamais. Édition 0xa1ea01.
+PARASITE — une émission qui se perd, sur un breakbeat des années 90. De la
+neige ; la télé qui tourne dans le noir ; quelqu'un apparaît dans la neige,
+fait des mêmes blocs ; puis on entre dans le signal : un tunnel d'écrans, un
+paysage en fil de fer sous un soleil en bandes, la silhouette en boîtes de
+fil de fer. Une mire compte à rebours jusqu'au drop. Huit œuvres en
+vingt-huit scènes, coupées sur la mesure, et un break écrit pas à pas. La boucle
+ne finit jamais. Édition 0xa1ea01.
 
 ## Eighth room: Requête
 

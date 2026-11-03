@@ -1,0 +1,42 @@
+// Terrain — the signal as a landscape: a wireframe ground of hills and
+// troughs rolling towards the eye, flown low, a road of flat ground down
+// its middle; on the horizon a sun cut in bands, as on a test card; above,
+// the sky in snow. Every point of the ground is found from its row on the
+// screen (twice, to lift it by the height of the hills there).
+// What it returns: 0 dark, up to 1 light.
+
+work Terrain(speed = 1, height = 0.26, horizon = 0.42, sun = 1, rate = 24) {
+  let cam = 0.3                                               // the eye's height above the ground
+  let F = 1.4                                                 // its focal length
+  let below = y > horizon
+  let dy = max(y - horizon, 0.0015)
+  let travel = t * speed * 9
+  // the hills: noise, low in the middle (the road), high on the sides, and a swell that runs along
+  let hill(a, b) = height * (0.5 + 0.5 * noise(a * 0.55, b * 0.3, 3)) * smoothstep(0.08, 0.7, abs(a))
+                 + height * 0.25 * (0.5 + 0.5 * sin(b * 0.9 + a * 0.4))
+  // the ground at this row: flat first, then lifted by the hill found there, twice
+  let z0 = cam * F / dy
+  let h0 = min(hill((x - 0.5) * z0 / F, z0 + travel), cam * 0.85)
+  let z1 = (cam - h0) * F / dy
+  let h1 = min(hill((x - 0.5) * z1 / F, z1 + travel), cam * 0.85)
+  let z = (cam - h1) * F / dy
+  let gx = (x - 0.5) * z / F
+  let gz = z + travel
+  // the wires: a line every quarter unit across and every half unit along, thicker near, thinner far
+  let w = 0.02 * z + 0.03
+  let across = 1 - smoothstep(0, w, min(fract(gx * 4), 1 - fract(gx * 4)))
+  let rows = 1 - smoothstep(0, w * 0.8, min(fract(gz * 2), 1 - fract(gz * 2)))
+  let wire = max(across, rows)
+  let fog = clamp(1.6 / z, 0, 1)
+  let ground = below * (wire * (0.35 + 0.65 * fog) + (1 - wire) * (0.05 + 0.25 * h1 / height * fog))
+  // the sky: the sun in bands, cut by the horizon; faint snow above
+  let sy = horizon - 0.13
+  let disc = circle(0.5, sy, 0.5, 0.004)
+  let bands = (fract((y - sy) * 22 - t * 2) > 0.18 + 0.6 * smoothstep(sy - 0.2, sy + 0.25, y)) + (y < sy - 0.05)
+  let sunlit = disc * clamp(bands, 0, 1) * (y < horizon) * sun * (0.6 + 0.4 * smoothstep(sy + 0.25, sy - 0.25, y))
+  let tick = floor(t * rate * 8)
+  let snow = fract(sin(floor(x * 90) * 12.9898 + floor(y * 90) * 78.233 + tick * 3.1) * 43758.5453)
+  let sky = (1 - below) * max(sunlit, snow * 0.12 * smoothstep(horizon, horizon - 0.5, y))
+  let haze = glow(x: 0.5, y: horizon, size: 0.9) * 0.15
+  output merge(ground, sky, haze * (1 - wire * below))
+}

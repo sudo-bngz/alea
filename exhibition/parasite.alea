@@ -1,70 +1,228 @@
-// Parasite — a broadcast being lost. Snow; someone appears in it, made of
-// the same blocks; the screen fills with windows; a test card counts down;
-// the figure comes back and dissolves; snow again. The scenes are works of
-// their own (parasite/), put on a timeline and crossed with glitches, a
-// morph and a fade, in a loop. The sound is the set's: a drone of pulses,
-// hiss that rises in the snow, and a burst of static at every cut.
+// Parasite — a broadcast being lost, a minute long, to a UK breakbeat of
+// the nineties. Snow; the television itself turning in the dark; someone
+// appears in the snow, made of the same blocks; then the signal takes us
+// in: a tunnel lined with screens, a wireframe landscape under a banded
+// sun, the someone again as a figure of boxes in wire, a desktop filling
+// with windows. The breakdown: the figure turning slowly, a test card
+// counting four, three, two, one; the drop; and the snow again. Twenty-eight scenes
+// cut on the bar (some on the half bar), each through a smooth crossing drawn
+// anew every edition: morphs, crossfades, soft wipes, slides; one glitch,
+// at the drop. The scenes are works of their own (parasite/), four of them
+// in three dimensions: Set, Tube, Terrain and Body.
+//
+// The track: 33 bars at 132 BPM, a minute. An amen-style break, drawn bar
+// by bar (the second pattern of a bar is chance's), filtered in the intro,
+// chopped into rolls at the end of some phrases, building in snares before
+// the drop; a sub bass, then a reese for the drop; rave stabs and a rave
+// piano, minor chords in F; a hoover over the breakdown; the snow's hiss;
+// a speaking machine says "no signal" and "parasite"; a breath of noise at
+// every cut.
 
 use "parasite/static.alea"
 use "parasite/figure.alea"
 use "parasite/windows.alea"
 use "parasite/testcard.alea"
+use "parasite/set.alea"
+use "parasite/tube.alea"
+use "parasite/terrain.alea"
+use "parasite/body.alea"
 
 work Parasite {
+  // ── the colours: the snow's blues, the someone's vivid blocks, the desk's greys, the card's amber,
+  //    and one set for each of the 3D scenes: ice, rave, dusk, phosphor ──
   let blues  = ["#0a1230", "#1c3a7a", "#3f7ac4", "#9fd2f2", "#eaf6ff"]
   let vivid  = ["#111144", "#1f5fe0", "#f0d020", "#e23a8a", "#2ad8c8", "#ffffff"]
   let greys  = ["#05060a", "#2a2e3a", "#8d94a6", "#e4e8f0"]
   let amber  = ["#0b0804", "#5a3a08", "#e6a019", "#fff1c8"]
+  let ice    = ["#04060d", "#16223e", "#4a72b8", "#bfe3ff", "#ffffff"]
+  let rave   = ["#07020f", "#3a0f5a", "#e0287a", "#35e0d0", "#fff6e0"]
+  let dusk   = ["#0a0410", "#40104a", "#ff3d6e", "#ffb347", "#fff3c0"]
+  let phos   = ["#020a06", "#0c3a24", "#2fe08a", "#d8ffe8"]
+  let ink(piece, colours) = paint(piece, palette: colours, range: [0, 1])
 
-  let snow = paint(Static(), palette: blues, range: [0, 1])
+  let snow = ink(Static(), blues)
   let someone(figure) = overlay(
-      paint(Static(size: 0.012), palette: blues, range: [0, 1]),
+      ink(Static(size: 0.012), blues),
       paint(figure, palette: vivid, range: [0, 1], alpha: figure > 0.02))
-  let arriving = Figure(appear: 0.3, vanish: 0.1)
-  let leaving  = Figure(appear: 0.15, vanish: 0.45)
-  let desk = paint(Windows(), palette: greys, range: [0, 1])
-  let card = paint(TestCard(), palette: amber, range: [0, 1])
+  let desk = ink(Windows(), greys)
 
-  let film = timeline([
-      scene(snow, 2.5),                  glitch(0.6, amount: 0.9),
-      scene(someone(arriving), 5),       pixels(0.5, size: 0.06),
-      scene(desk, 5),                    glitch(0.8, amount: 1),
-      scene(card, 5),                    morph(1.2, amount: 0.25),
-      scene(someone(leaving), 4.5),   glitch(0.6, amount: 0.9),
-      scene(snow, 2, from: 0.5, to: 1),
-  ], loop: 1)
+  // a crossing, drawn anew each time it is used: smooth ones only
+  let xf(s) = choose { 3: morph(s, amount: ~between(0.12, 0.25)) | 2: fade(s) | 2: wipe(s, angle: ~between(0, 360), softness: 0.3)
+                     | 2: slide(s, angle: choose { 0 | 90 | 180 | 270 }) | 1: pixels(s, size: ~between(0.02, 0.05)) }
 
-  // ── the sound ──
-  let drone = synth {
-    let env = adsr(attack: 2, decay: 1, sustain: 1, release: 3)
-    let osc = pulse(note.freq, width: 0.18) + pulse(note.freq * 1.5, width: 0.3) * 0.4 + saw(note.freq * 0.5 * (1 + 0.004 * sine(0.3)))
-    lowpass(osc, cutoff: 120 + 380 * (0.5 + 0.5 * sine(0.07)) + 600 * note.level, resonance: 0.55) * env
+  let B = 60 / 132 * 4                                                        // a bar, in seconds
+  let reel = timeline([
+      // intro (bars 0–4): the snow, the set, the someone
+      scene(snow, B),                                                       xf(0.45),
+      scene(ink(Set(size: 1.2, spin: 0.5), ice), 2 * B),                    xf(0.5),
+      scene(someone(Figure(appear: 0.4, vanish: 0.05)), B),                 morph(0.5, amount: 0.25),
+      // the break (bars 4–12)
+      scene(ink(Tube(), rave), 2 * B),                                      xf(0.45),
+      scene(ink(Terrain(), dusk), 2 * B),                                   xf(0.45),
+      scene(ink(Body(spin: 0.6), phos), B),                                 xf(0.4),
+      scene(desk, B),                                                       xf(0.4),
+      scene(ink(Set(size: 1.7, spin: -0.8, tilt: 30, show: 1), ice), B),    xf(0.35),
+      scene(ink(Tube(speed: 2, twist: 0.8), rave), B),                      fade(0.6),
+      // the breakdown (bars 12–16): the figure turning slowly, the count
+      scene(ink(Body(size: 1.3, spin: 0.25, tilt: 20), phos), 2 * B),       xf(0.5),
+      scene(ink(TestCard(from: 4), amber), 2 * B),                          glitch(0.4, amount: 1),
+      // the drop (bars 16–28)
+      scene(ink(Terrain(speed: 3, height: 0.32), dusk), B),                 xf(0.35),
+      scene(someone(Figure(appear: 0.05, vanish: 0.05)), B / 2),            xf(0.3),
+      scene(ink(Tube(speed: 3, twist: -0.6), rave), B),                     xf(0.35),
+      scene(ink(Set(size: 2.3, spin: 0.4, tilt: 6), ice), B),               xf(0.35),
+      scene(ink(Body(spin: 1.5), phos), B / 2),                             xf(0.3),
+      scene(desk, B),                                                       xf(0.35),
+      scene(ink(Tube(speed: 2.5, twist: 1.2, cells: 16), rave), B),         xf(0.35),
+      scene(ink(Set(size: 0.9, spin: 1.2, show: 1), ice), B / 2),             xf(0.3),
+      scene(ink(Static(size: 0.03), blues), B / 2),                         xf(0.3),
+      scene(ink(Terrain(speed: 4, height: 0.4, horizon: 0.3), dusk), B),    xf(0.35),
+      scene(ink(Body(size: 1.6, spin: -1.5), phos), B),                     xf(0.35),
+      scene(ink(Set(size: 1.4, spin: -1, tilt: 24), ice), B),             xf(0.35),
+      scene(ink(Tube(speed: 4, twist: 0.5), rave), B),                      xf(0.35),
+      scene(someone(Figure(appear: 0.3, vanish: 0.1)), B),                  morph(0.6, amount: 0.25),
+      // the outro (bars 28–33): the landscape slowing, the someone leaving, the snow
+      scene(ink(Terrain(speed: 0.7, sun: 1), dusk), 2 * B),                 xf(0.6),
+      scene(someone(Figure(appear: 0.1, vanish: 0.5)), 2 * B),              fade(0.6),
+      scene(snow, B, from: 0.5, to: 1),                                     morph(0.6, amount: 0.2),
+  ], loop: 1)                                                               // 33 bars, 60 s
+  let look = chroma(vignette(film(reel, amount: 0.06), amount: 0.45), amount: 0.6)
+
+  // ── the instruments ──
+  let m = meter(132, bars: 33)
+  let kick = synth {
+    drive(sine(note.freq * (1 + 4 * perc(attack: 0.0005, release: 0.03))) * perc(attack: 0.001, release: 0.28)
+          + bandpass(noise(), cutoff: 3000, resonance: 0.2) * perc(release: 0.01) * 0.3, amount: 0.45)
   }
-  let hiss = synth { highpass(noise(), cutoff: 1800 + 3000 * note.level, resonance: 0.25) * adsr(attack: 0.5, decay: 0.1, sustain: 1, release: 0.8) * 0.5 }
-  let burst = synth {
-    let v = note.velocity
-    sine(note.freq * (1 + 12 * perc(attack: 0.0005, release: 0.12))) * perc(attack: 0.001, release: 0.3) * v
-    + bandpass(noise(), cutoff: 2200, resonance: 0.6) * perc(attack: 0.001, release: 0.35) * v
-    + square(note.freq * 8) * perc(attack: 0.001, release: 0.03) * 0.5
+  let snare = synth {                                                         // a sampled break's snare: bright, crunchy, a short room
+    drive(bandpass(noise(), cutoff: 2600, resonance: 0.25) * perc(attack: 0.001, release: 0.16)
+          + highpass(noise(), cutoff: 5000, resonance: 0.1) * perc(release: 0.06) * 0.6
+          + triangle(205 * (1 + 0.5 * perc(release: 0.02))) * perc(release: 0.08) * 0.7, amount: 0.55) * note.velocity
   }
-  let blip = synth { square() * perc(attack: 0.001, release: 0.045) * note.velocity }
-  let data = synth { highpass(pulse(note.freq, width: 0.1), cutoff: 2000) * perc(release: 0.012) * note.velocity }
+  let hat = synth { highpass(noise(), cutoff: 8000, resonance: 0.3) * perc(release: 0.025) * note.velocity }
+  let open = synth { highpass(noise() + square(5400) * 0.2, cutoff: 7000, resonance: 0.3) * perc(attack: 0.002, release: 0.22) * note.velocity }
+  // the same break heard through a wall: the intro, and before the end
+  let kickf = synth { lowpass(sine(note.freq * (1 + 4 * perc(attack: 0.0005, release: 0.03))) * perc(release: 0.25), cutoff: 400, resonance: 0.2) }
+  let snaref = synth { lowpass(drive(bandpass(noise(), cutoff: 2000, resonance: 0.3) * perc(release: 0.15), amount: 0.4), cutoff: 700, resonance: 0.35) * note.velocity }
+  let sub = synth { (sine(note.freq) + sine(note.freq * 2) * 0.15) * adsr(attack: 0.005, decay: 0.3, sustain: 0.8, release: 0.12) }
+  let reese = synth {
+    let f = note.freq
+    let saws = saw(f) + saw(f * 1.0071) + saw(f * 0.9932)
+    drive(lowpass(saws, cutoff: 320 + 260 * (0.5 + 0.5 * sine(0.9)) + 900 * perc(release: 0.25), resonance: 0.35), amount: 0.6) * 0.5
+      * adsr(attack: 0.01, decay: 0.2, sustain: 0.85, release: 0.15)
+    + sine(f) * 0.7 * adsr(attack: 0.005, decay: 0.2, sustain: 0.9, release: 0.1)
+  }
+  let stab = synth {                                                          // a rave stab: detuned saws, a filter snapping shut
+    let f = note.freq * (1 + 0.04 * perc(attack: 0.0005, release: 0.05))
+    chorus(drive(lowpass(saw(f) + saw(f * 1.006) + square(f * 0.5) * 0.5, cutoff: 500 + 5000 * perc(release: 0.14), resonance: 0.4)
+                 * perc(attack: 0.002, release: 0.32), amount: 0.4), depth: 0.6, rate: 0.5)
+  }
+  let piano = synth {                                                         // a rave piano: a bright, hard, short tone
+    let f = note.freq
+    (sine(f) + sine(f * 2.002) * 0.5 * perc(release: 0.5) + sine(f * 3.003) * 0.3 * perc(release: 0.2) + sine(f * 4.01) * 0.2 * perc(release: 0.08)
+      + saw(f) * 0.15 * perc(release: 0.15)) * perc(attack: 0.002, release: 1.1)
+  }
+  let hoover = synth {                                                        // the hoover: pulses swooping into the note, a chorus, a slow filter
+    let f = note.freq * (1 - 0.18 * perc(attack: 0.0005, release: 0.35))
+    chorus(lowpass(pulse(f, width: 0.3 + 0.2 * sine(3)) + pulse(f * 1.008, width: 0.15) + saw(f * 0.5) * 0.6,
+                   cutoff: 900 + 1600 * adsr(attack: 0.6, decay: 1, sustain: 0.6, release: 1), resonance: 0.3)
+           * adsr(attack: 0.08, decay: 0.6, sustain: 0.8, release: 1), depth: 1, rate: 0.7, mix: 0.6)
+  }
+  let pad = synth {
+    let env = adsr(attack: 1.2, decay: 1, sustain: 0.8, release: 2)
+    chorus(lowpass(saw(note.freq) + saw(note.freq * 1.005) + pulse(note.freq * 0.5, width: 0.2) * 0.5, cutoff: 500 + 400 * sine(0.15), resonance: 0.2) * env * 0.4,
+           depth: 0.8, rate: 0.3)
+  }
+  let hiss = synth { highpass(noise(), cutoff: 2400, resonance: 0.2) * adsr(attack: 0.3, decay: 0.1, sustain: 1, release: 0.6) * 0.4 }
+  let breath = synth { bandpass(noise(), cutoff: 700 + 4000 * perc(attack: 0.18, release: 0.3), resonance: 0.4) * perc(attack: 0.18, release: 0.3) }
+  let boom = synth { drive(sine(note.freq * (1 + 2 * perc(release: 0.12))) * perc(attack: 0.002, release: 1.4) + lowpass(noise(), cutoff: 500) * perc(release: 0.5) * 0.5, amount: 0.5) }
 
-  // snow (scenes 0 and 5) is loud with hiss; the test card ticks
-  let snowy = (film.index < 0.5) + (film.index > 4.5)
-  let carded = (film.index > 2.5) * (film.index < 3.5)
-  pattern ticks = repeat 48 event(t: i / n, x: 0.5, y: 0.3, intensity: 0.7)
-  pattern chatter = repeat 90 event(t: ~uniform(0.1, 0.95), x: ~uniform(0.2, 0.8), y: ~uniform(0.2, 0.9), size: 0.001, intensity: ~between(0.2, 0.7))
+  // ── the arrangement: 33 bars of sixteenths. intro 0–4, break 4–12, breakdown 12–16, drop 16–28, outro 28–33 ──
+  let s16 = 33 * 16
+  let s32 = 33 * 32
+  let semi(s) = 1 - (s + 0.5) / 36                                            // s semitones above the key, as a height
+  let bar(j) = floor(j / 16)
+  let step(j) = j % 16
+  let in_(j, a, b) = (bar(j) >= a) * (bar(j) < b)
+  let full(j) = in_(j, 4, 12) + in_(j, 16, 31)
+  let walled(j) = in_(j, 1, 4) + in_(j, 31, 32)
+  // the phrases chopped into rolls on their last beat
+  let chop(b) = (b == 7) + (b == 11) + (b == 19) + (b == 23) + (b == 27) + (b == 30)
+  let open_(j) = 1 - chop(bar(j)) * (step(j) >= 12)
+  // the break, bar by bar: the amen, or now and then a broken two-step
+  let other = [~between(0, 1) < 0.3 for k in range(33)]
+  let amen_k(s) = (s == 0) + (s == 2) * 0.75 + (s == 10) * 0.9 + (s == 11) * 0.7
+  let step_k(s) = (s == 0) + (s == 6) * 0.7 + (s == 10) * 0.85 + (s == 13) * 0.5
+  let kicked(j) = (1 - other[bar(j)]) * amen_k(step(j)) + other[bar(j)] * step_k(step(j))
+  let snared(j) = (step(j) == 4) + (step(j) == 12) + (step(j) == 7) * 0.4 + (step(j) == 9) * 0.45 + (step(j) == 15) * 0.5
+                + (step(j) % 2 == 1) * (step(j) != 7) * (step(j) != 15) * (~between(0, 1) < 0.18) * 0.2
+  pattern kicks = repeat s16 event(t: i / s16, x: 0.5, y: 0.99, intensity: full(i) * open_(i) * kicked(i))
+  pattern snares = repeat s16 event(t: i / s16, x: 0.52, y: 0.5, intensity: full(i) * open_(i) * snared(i))
+  pattern hats = repeat s16 event(t: i / s16, x: 0.5 + 0.25 * sin(i * 1.3), y: 0.5,
+      intensity: full(i) * open_(i) * ((step(i) % 2 == 0) * (0.35 + 0.3 * (step(i) % 4 == 2)) + in_(i, 16, 28) * (step(i) % 2 == 1) * (~between(0, 1) < 0.6) * 0.22))
+  pattern opens = repeat s16 event(t: i / s16, x: 0.6, y: 0.5, intensity: full(i) * open_(i) * (step(i) == 14) * (~between(0, 1) < 0.5) * 0.5)
+  pattern kicksf = repeat s16 event(t: i / s16, x: 0.5, y: 0.99, intensity: walled(i) * kicked(i) * (0.5 + 0.5 * (bar(i) >= 2)))
+  pattern snaresf = repeat s16 event(t: i / s16, x: 0.5, y: 0.5, intensity: walled(i) * snared(i) * (bar(i) >= 2))
+  // the rolls: thirty-seconds on the chopped beats, rising; the build: snares in eighths, sixteenths, thirty-seconds before the drop
+  let bar32(j) = floor(j / 32)
+  let pos32(j) = j % 32
+  pattern rolls = repeat s32 event(t: i / s32, x: 0.5 + 0.4 * sin(i * 0.7), y: 0.5,
+      intensity: chop(bar32(i)) * (pos32(i) >= 24) * (0.3 + 0.08 * (pos32(i) - 24))
+               + (bar32(i) == 14) * (pos32(i) % 4 == 0) * (0.2 + 0.4 * pos32(i) / 32)
+               + (bar32(i) == 15) * ((pos32(i) < 16) * (pos32(i) % 2 == 0) + (pos32(i) >= 16)) * (0.45 + 0.5 * pos32(i) / 32))
+
+  // the harmony: four minor chords in F, two bars each (one bar each in the breakdown): Fm, Db, Eb, Cm
+  let roots = [0, 8, 10, 7]
+  let chords = [[12, 15, 19, 24], [8, 12, 15, 20], [10, 14, 17, 22], [7, 10, 15, 19]]
+  let at_chord(b) = (b >= 12) * (b < 16) * (b - 12) + (1 - (b >= 12) * (b < 16)) * (floor(b / 2) % 4)
+  // the sub in the break, the reese in the drop: the root on the one, then syncopated
+  let bassline(s) = (s == 0) * 1 + (s == 6) * 0.7 + (s == 10) * 0.85 + (s == 14) * 0.5
+  pattern subs = repeat s16 event(t: i / s16, x: 0.5, y: semi(roots[at_chord(bar(i))]), size: 0.012,
+      intensity: in_(i, 4, 12) * open_(i) * ((step(i) == 0) + (step(i) == 10) * 0.8 + (step(i) == 3) * (~between(0, 1) < 0.4) * 0.6))
+  pattern reeses = repeat s16 event(t: i / s16, x: 0.5, y: semi(roots[at_chord(bar(i))] + 12 * (step(i) == 14) * (bar(i) % 2 == 1)), size: 0.01 + 0.01 * (step(i) == 0),
+      intensity: (in_(i, 16, 28) + in_(i, 28, 30) * 0.7) * open_(i) * bassline(step(i)))
+  // the stabs of the drop: x..x..x...x..x.. on the chord, every note of it
+  let hit(s) = (s == 0) + (s == 3) + (s == 6) + (s == 10) + (s == 13) * 0.7
+  pattern stabs = repeat s16 * 3 event(t: floor(i / 3) / s16, x: 0.3 + 0.2 * (i % 3), y: semi(chords[at_chord(bar(floor(i / 3)))][i % 3]), size: 0.01,
+      intensity: (in_(floor(i / 3), 16, 28) + in_(floor(i / 3), 10, 12) * 0.6) * open_(floor(i / 3)) * hit(step(floor(i / 3))) * 0.8)
+  // the rave piano of the break: the chord on the one and on the and of two, and in the drop's second half
+  pattern keys = repeat s16 * 4 event(t: floor(i / 4) / s16, x: 0.35 + 0.1 * (i % 4), y: semi(chords[at_chord(bar(floor(i / 4)))][i % 4]), size: 0.04,
+      intensity: (in_(floor(i / 4), 4, 10) + in_(floor(i / 4), 22, 28)) * open_(floor(i / 4))
+               * ((step(floor(i / 4)) == 0) + (step(floor(i / 4)) == 6) * 0.8 + (step(floor(i / 4)) == 11) * (~between(0, 1) < 0.5) * 0.7) * 0.7)
+  // the hoover over the breakdown, one swoop a bar; the pads under the intro, the breakdown and the outro
+  pattern hoovers = repeat 4 event(t: (12 + i) / 33, x: 0.5, y: semi(12 + roots[i]), size: 0.08, intensity: 0.8)
+  let padded(b) = (b < 4) + (b >= 12) * (b < 16) + (b >= 28)
+  pattern pads = repeat 33 * 4 event(t: floor(i / 4) / 33, x: 0.3 + 0.13 * (i % 4), y: semi(chords[at_chord(floor(i / 4))][i % 4]), size: 0.1,
+      intensity: padded(floor(i / 4)) * 0.6)
+  pattern snowy = repeat 33 event(t: i / 33, x: 0.5, y: 0.5, size: 0.1, intensity: ((i < 1) + (i >= 32)) * 0.9 + ((i >= 1) * (i < 4) + (i >= 28) * (i < 32)) * 0.25)
+  pattern drops = repeat 2 event(t: (16 * i) / 33, x: 0.5, y: 0.99, size: 0.06, intensity: 1)
+
+  // a speaking machine, between the stations
+  let says1 = say("No signal.", at: 0.3, pitch: 92, size: 0.95, rough: 0.5, breath: 0.35, gain: 0.9)
+  let says2 = say("/'p&r@saIt/.", at: 16 * B - 1.15, pitch: 84, size: 1, rough: 0.6, breath: 0.25, gain: 1.1)
+  let says3 = say("No signal.", at: 32 * B + 0.15, pitch: 92, size: 0.95, rough: 0.5, breath: 0.35, gain: 0.8)
 
   let music = [
-    drone(0.4 + 0.3 * lfo(2) + x * 0, voices: 3, instrument: drone, scale: "phrygian", key: 41.2, gain: 1.2),
-    drone(0.15 + 0.85 * snowy + x * 0, voices: 1, instrument: hiss, gain: 0.5),
-    notes(film.cues, instrument: burst, scale: "chromatic", key: 55, gain: 0.6),
-    notes(euclid(5, 16, bars: meter(100, bars: 10), y: 0.75), instrument: blip, scale: "minor-pentatonic", key: 880, gain: 0.25),
-    notes(chatter, instrument: data, scale: "chromatic", key: 1760, gain: 0.3),
-    texture(0.3 + 0.7 * snowy + x * 0, kind: "crackle", gain: 0.3),
+    notes(kicks,   instrument: kick, scale: "chromatic", key: 52, tempo: m.tempo, swing: 0.54, gain: 1.6),
+    notes(snares,  instrument: snare, tempo: m.tempo, swing: 0.54, gain: 1.0),
+    notes(hats,    instrument: hat, tempo: m.tempo, swing: 0.56, gain: 0.35),
+    notes(opens,   instrument: open, tempo: m.tempo, swing: 0.54, gain: 0.3),
+    notes(kicksf,  instrument: kickf, scale: "chromatic", key: 52, tempo: m.tempo, swing: 0.54, gain: 1.1),
+    notes(snaresf, instrument: snaref, tempo: m.tempo, swing: 0.54, gain: 0.6),
+    notes(rolls,   instrument: snare, gain: 0.55),
+    notes(subs,    instrument: sub, scale: "chromatic", key: 43.65, tempo: m.tempo, swing: 0.54, gain: 1.2),
+    notes(reeses,  instrument: reese, scale: "chromatic", key: 43.65, tempo: m.tempo, swing: 0.54, gain: 1.2),
+    notes(stabs,   instrument: stab, scale: "chromatic", key: 87.31, tempo: m.tempo, swing: 0.54, gain: 0.55),
+    notes(keys,    instrument: piano, scale: "chromatic", key: 174.61, tempo: m.tempo, swing: 0.54, gain: 0.45),
+    notes(hoovers, instrument: hoover, scale: "chromatic", key: 87.31, gain: 0.7),
+    notes(pads,    instrument: pad, scale: "chromatic", key: 87.31, gain: 0.55),
+    notes(snowy,   instrument: hiss, gain: 0.45),
+    notes(drops,   instrument: boom, scale: "chromatic", key: 43.65, gain: 0.9),
+    notes(reel.cues, instrument: breath, gain: 0.22),
+    texture(0.4 + x * 0, kind: "crackle", gain: 0.2),
+    says1, says2, says3,
   ]
 
-  render image(film, width: 1080, height: 1920, at: 4.2 / 24)
-  render video(film, fps: 30, width: 1080, height: 1920, sound: music, room: 0.5, echo: 0.25)
+  render image(look, width: 1080, height: 1920, at: 19 / 33)                 // the cover: the set, close, in the drop
+  render video(look, fps: 30, width: 1080, height: 1920, sound: music, room: 0.25, echo: 0.1)
 }

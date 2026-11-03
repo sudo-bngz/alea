@@ -1,0 +1,49 @@
+// Body — the someone of the snow, in three dimensions: a figure of boxes
+// (a head, a neck, a body, two arms, two legs) drawn in wire, turning on a
+// ring, with the screen on its chest and the line of signal running in it.
+// Slices of it tear sideways now and then. `spin` is how far it turns over
+// the scene, `size` how close it is. What it returns: 0 dark, up to 1 light.
+
+work Body(size = 1, spin = 1, tilt = 12, rate = 24) {
+  let seed = ~between(0, 100)
+  let yaw = t * spin * tau * 0.5 + seed
+  let pitch = (tilt + 5 * sin(t * 4)) / 57.2958
+  let D = 5                                                    // the eye, D in front
+  let F = 2.6 * size
+  let cy = 0.5
+  // turn a point (the yaw, then the pitch) and put it on the screen
+  let tx(p) = p[0] * cos(yaw) + p[2] * sin(yaw)
+  let tz(p) = p[2] * cos(yaw) - p[0] * sin(yaw)
+  let ty(p) = p[1] * cos(pitch) - tz(p) * sin(pitch)
+  let tw(p) = p[1] * sin(pitch) + tz(p) * cos(pitch) + D
+  let sx(p) = 0.5 + F * tx(p) / tw(p)
+  let sy(p) = cy + F * ty(p) / tw(p)
+  let seg(a, b) = line(sx(a), sy(a), sx(b), sy(b), 0.0032 * size, 0.0022)
+  // a box: its eight corners (bit 0 is x, bit 1 y, bit 2 z) and its twelve edges
+  let corner(c, h, k) = [c[0] + h[0] * (2 * (k % 2) - 1), c[1] + h[1] * (2 * (floor(k / 2) % 2) - 1), c[2] + h[2] * (2 * floor(k / 4) - 1)]
+  let EDGES = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]]
+  let box(c, h) = merge([seg(corner(c, h, e[0]), corner(c, h, e[1])) for e in EDGES])
+  let joints(c, h) = merge([circle(sx(corner(c, h, k)), sy(corner(c, h, k)), 0.011 * size, 0.002) for k in range(8)])
+  let PARTS = [[[0, -1.05, 0], [0.17, 0.19, 0.17]], [[0, -0.8, 0], [0.06, 0.06, 0.06]], [[0, -0.33, 0], [0.3, 0.41, 0.15]],
+               [[-0.43, -0.32, 0], [0.07, 0.38, 0.07]], [[0.43, -0.32, 0], [0.07, 0.38, 0.07]],
+               [[-0.13, 0.57, 0], [0.1, 0.48, 0.1]], [[0.13, 0.57, 0], [0.1, 0.48, 0.1]]]
+  let frame = merge([box(q[0], q[1]) for q in PARTS])
+  let dots = merge([joints(q[0], q[1]) for q in PARTS]) * 0.8
+  // the chest screen, and the signal in it
+  let zf = -0.152
+  let screen = merge(seg([-0.2, -0.52, zf], [0.2, -0.52, zf]), seg([0.2, -0.52, zf], [0.2, -0.2, zf]),
+                     seg([0.2, -0.2, zf], [-0.2, -0.2, zf]), seg([-0.2, -0.2, zf], [-0.2, -0.52, zf]))
+  let wave(k) = [-0.18 + 0.036 * k, -0.36 + 0.1 * sin(k * 1.3 + t * tau * 5) * sin(k * 0.4 + t * 3), zf]
+  let signal = merge([seg(wave(k), wave(k + 1)) for k in range(10)])
+  // the ring it stands on
+  let ring_(k) = [0.7 * cos(k * tau / 24), 1.06, 0.7 * sin(k * tau / 24)]
+  let floor_ = merge([seg(ring_(k), ring_(k + 1)) for k in range(24)]) * 0.5
+  let figure = merge(frame, dots, screen * 0.7, signal, floor_)
+  // the tear: slices pushed sideways when the noise says so
+  let jit(k) = 0.5 + 0.5 * noise(t * 50 + k * 7, 0, 3)
+  let tear = (jit(1) > 0.78) * (floor(y * 36 + jit(2) * 10) % 3 == 0) * (jit(3) - 0.5) * 0.1
+  let torn = move(figure, x: tear, y: 0)
+  let tick = floor(t * rate * 8)
+  let dusk = fract(sin(floor(x * 80) * 12.9898 + floor(y * 80) * 78.233 + tick) * 43758.5453) * 0.06
+  output merge(torn, dusk + glow(x: 0.5, y: 0.5, size: 1.2) * 0.1)
+}
