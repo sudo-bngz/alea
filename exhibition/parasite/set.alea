@@ -1,0 +1,95 @@
+// Set — the television itself, in three dimensions: a deep box of dark
+// plastic with a rounded screen on its front, two rabbit ears, turning in
+// the dark. Ray-cast point by point with a perspective eye: where the ray
+// meets the box, and which face; lit from the upper left. On the screen,
+// snow (`show: 0`) or colour bars (`show: 1`), and a bright band rolling
+// down. What it returns: 0 dark, up to 1 light.
+
+work Set(size = 1, spin = 1, tilt = 14, at = [0.5, 0.5], show = 0, rate = 24) {
+  let yaw = ((t - 0.5) * 110 * spin) / 57.2958 + ~between(-0.4, 0.4)       // turning about the front, so the screen is seen
+  let pitch = (tilt + 8 * sin(t * 2.7)) / 57.2958
+  let hx = 0.3 * size                                           // half the width, the height, the depth
+  let hy = 0.23 * size
+  let hz = 0.22 * size
+  let cw = cos(yaw)
+  let sw = sin(yaw)
+  let cp = cos(pitch)
+  let sp = sin(pitch)
+  let E = 3                                                     // the eye, E in front of the set
+  let F = 2.4                                                   // its focal length, in canvas units
+  // the ray from (0, 0, -E) through the pixel, taken into the set's frame (the pitch undone, then the yaw)
+  let qx = (x - at.x) / F
+  let qy = (y - at.y) / F
+  let o1y = 0 - E * sp
+  let o1z = 0 - E * cp
+  let ox = 0 - o1z * sw
+  let oy = o1y
+  let oz = o1z * cw
+  let d1y = qy * cp + sp
+  let d1z = cp - qy * sp
+  let dx = qx * cw - d1z * sw + 0.00001
+  let dy = d1y + 0.00001
+  let dz = qx * sw + d1z * cw + 0.00001
+  // where it enters and leaves each slab
+  let ax = (-hx - ox) / dx
+  let bx = (hx - ox) / dx
+  let ay = (-hy - oy) / dy
+  let by = (hy - oy) / dy
+  let az = (-hz - oz) / dz
+  let bz = (hz - oz) / dz
+  let nx_ = min(ax, bx)
+  let ny_ = min(ay, by)
+  let nz_ = min(az, bz)
+  let tn = max(max(nx_, ny_), nz_)
+  let tf = min(min(max(ax, bx), max(ay, by)), max(az, bz))
+  let hit = (tn < tf) * (tn > 0)
+  let fx = (nx_ >= ny_) * (nx_ >= nz_)                          // which face it enters by
+  let fy = (1 - fx) * (ny_ >= nz_)
+  let fz = (1 - fx) * (1 - fy)
+  let px = ox + dx * tn                                         // the point it meets
+  let py = oy + dy * tn
+  let pz = oz + dz * tn
+  // the face's normal, back into the eye's frame, and the light on it
+  let nbx = fx * (1 - 2 * (dx > 0))
+  let nby = fy * (1 - 2 * (dy > 0))
+  let nbz = fz * (1 - 2 * (dz > 0))
+  let n1x = nbx * cw + nbz * sw
+  let n1z = nbz * cw - nbx * sw
+  let ncy = nby * cp - n1z * sp
+  let ncz = nby * sp + n1z * cp
+  let light = clamp(n1x * -0.45 + ncy * -0.5 + ncz * -0.74, 0, 1)
+  // the front: a rounded screen in a bezel; the top: a grille; every face: bright edges
+  let front = fz * (nbz < 0)
+  let u = px / (hx * 0.8)
+  let v = py / (hy * 0.78)
+  let glass = front * ((u * u * u * u + v * v * v * v) < 1)
+  let frame = front * (1 - glass) * ((u * u * u * u + v * v * v * v) < 1.35)
+  let grille = fy * (nby < 0) * (fract(pz / size * 26) < 0.45) * (abs(px) < hx * 0.7)
+  let edge = clamp(((abs(px) > hx - 0.012 * size) + (abs(py) > hy - 0.012 * size) + (abs(pz) > hz - 0.012 * size)) - 1, 0, 1)
+  // what plays on the glass: snow, or bars; a band rolling down, the glass curving into dark at its border
+  let tick = floor(t * rate * 8)
+  let snow = fract(sin(floor(u * 34) * 12.9898 + floor(v * 26) * 78.233 + tick * 3.17) * 43758.5453)
+  let bars = (floor((u + 1) * 4) + 0.5) / 8 * 0.8 + 0.15
+  let band = 0.35 * smoothstep(0.25, 0, abs(fract(v * 0.5 - t * 2.5) - 0.5))
+  let picture = clamp(((show < 0.5) * (0.25 + 0.75 * snow) + (show >= 0.5) * bars) * (1 - 0.4 * (u * u * u * u + v * v * v * v)) + band, 0, 1)
+  let casing = 0.16 + 0.14 * grille + 0.1 * frame
+  let surface = glass * picture + (1 - glass) * (casing * (0.25 + 0.75 * light) + 0.55 * edge)
+  // the ears: two rods from the top, drawn behind and around the box
+  let ear(sx_) = [sx_ * 0.32 * size, -hy - 0.42 * size, 0.06 * size]
+  let base = [0, -hy, 0.04 * size]
+  // forward: the yaw, then the pitch, then onto the screen
+  let fwx(p) = p[0] * cw + p[2] * sw
+  let fwz(p) = p[2] * cw - p[0] * sw
+  let fwy(p) = p[1] * cp - fwz(p) * sp
+  let fwz2(p) = p[1] * sp + fwz(p) * cp + E
+  let scx(p) = at.x + F * fwx(p) / fwz2(p)
+  let scy(p) = at.y + F * fwy(p) / fwz2(p)
+  let ears = merge(line(scx(base), scy(base), scx(ear(-1)), scy(ear(-1)), 0.004 * size, 0.002),
+                   line(scx(base), scy(base), scx(ear(1)), scy(ear(1)), 0.004 * size, 0.002),
+                   circle(scx(ear(-1)), scy(ear(-1)), 0.014 * size, 0.002),
+                   circle(scx(ear(1)), scy(ear(1)), 0.014 * size, 0.002)) * 0.7
+  // the dark around it: a faint snow and the screen's light thrown on the floor
+  let dusk = fract(sin(floor(x * 120) * 12.9898 + floor(y * 120) * 78.233 + tick) * 43758.5453) * 0.07
+  let spill = glow(x: at.x, y: at.y + hy * 1.6, size: 1.1 * size) * 0.16
+  output merge(hit * surface, (1 - hit) * merge(ears, dusk + spill))
+}
