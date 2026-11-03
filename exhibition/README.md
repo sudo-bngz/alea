@@ -24,6 +24,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **RING 0** | `ring0.alea` (+ `ring0/`) | How the kernel of an operating system works, abstract and on the beat: the boot log, the shell, processes in their time slices, the rings of protection, system calls through the gate, interrupts climbing from the devices, the disk and the bus, pages and their frames, the run queue, the fork, and the three layers at once; then the halt, an old screen switched off. Fifty-five cuts in a minute, glitches drawn anew every edition, an IDM track of clicks, metal and wood in the Autechre way. |
 | **alea speaks** | `intro.alea` (+ `intro/`) | The introduction, and an invitation: what alea is and what it does, one feature to a cut on the beat: editions of a work, one per run; the same seed, the same picture; images, video, sound, a voice, inputs, MIDI and the DAW, 3D, the web; a voice says it, its words typed as it speaks; ink and one red on paper. |
 | **Kairo** (回路) | `kairo.alea` (+ `fonts/`) | After Kikai, a modular synthesizer that never existed: two rows of modules racked in another order each edition, patched with hanging cables. Also a Reel without drums: a slow piano waltz over a deep drone, the melody written on a staff as it plays. |
+| **Houle** | `houle.alea` (+ `houle/`) | The swell, in half a minute, white and blue: what a wave is and how the sea moves, abstract. The horizon; grains of water turning in circles as the wave passes through them; rows of water lifted by waves of three lengths; rings crossing and adding up; the open sea in 3D; the same rows curled over into a breaking crest; the foam on the sand. Seven works crossed slowly by morphs and fades; a pad, the waves and drops of glass, breathing with the sea. |
 
 ## Replaying the editions
 
@@ -36,6 +37,7 @@ alea culture.alea --seed 0xc06               # the plate, and the Reel of its gr
 alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
 alea intro.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 69 s, in a loop (about 1.5 hours; needs voices/kokoro.py: pip install sherpa-onnx numpy)
 alea ring0.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
+alea houle.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 30 s, in a loop (about 15 minutes)
 alea vektor.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 45 minutes)
 alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
@@ -72,6 +74,7 @@ The posted editions:
 | VEKTOR Reel | 0xa1ea01 |
 | RING 0 Reel | 0xa1ea01 |
 | alea speaks Reel | 0xa1ea01 |
+| Houle Reel | 0xa1ea01 |
 
 All images are 1080 × 1350 (4:5, Instagram's portrait format); the Reel is
 1080 × 1920 (9:16), 15 seconds, with sound.
@@ -851,6 +854,51 @@ cadres, un fork, et l'arrêt : un vieil écran qu'on éteint. Cinquante-cinq
 coupes tirées au hasard, phosphore et grain, une IDM de clics, de métal et de
 bois. Une minute, en boucle. Édition 0xa1ea01.
 
+## Fourteenth room: Houle
+
+| # | Post | Files |
+|---|---|---|
+| 23 | Houle, Reel (30 s, a loop) | `23-houle-reel.mp4` (cover: `23-houle-reel-cover.jpg`) |
+
+**How it is made.** Seven works in `houle/`, each the sea seen another way,
+in one palette from white to the blue of deep water. *Horizon*: rows of
+swell crowding towards the line, found from their row on the screen, a path
+of glitter. *Orbits*: what a wave is: a grid of grains, each turning in a
+circle whose phase follows its place across and whose size shrinks with
+depth; the top grains draw the surface. *Lines*: rows of water lifted by
+three swells of their own lengths and speeds. *Meet*: rings from three
+drops, summed, drawn as lines of equal height. *Swell*: the open sea in
+3D, sharp crests and round troughs, each point found from its row and
+lifted twice by the waves there, drawn in rows that bunch on the faces and
+fade where they would be closer than a few pixels. *Crest*: the same rows,
+turned by an eddy whose twist falls off with distance and tightens as the
+wave breaks, so straight lines curl into the tube; spray off the lip.
+*Foam*: the wash seen from above, its edge noise, lace where the noise
+crosses zero. The timeline crosses them with slow morphs and fades and loops.
+The sound breathes five times in the half minute: a pad in D lydian whose
+filter opens with the swell, the sound of waves in time with it, a low sine
+tide, forty drops of glass drawn by chance, a wash at every crossing.
+
+### 23 · Houle (Reel)
+
+**EN**
+
+HOULE — the swell. What a wave is: not water going somewhere, but energy
+passing through it, each drop turning in its circle as the wave goes by.
+Lines of sea that rise, cross, roll and curl over, and end as foam on the
+sand. Seven works in white and blue, and a sea that breathes. Edition
+0xa1ea01.
+
+**FR**
+
+HOULE. Ce qu'est une vague : pas de l'eau qui avance, mais de l'énergie qui
+la traverse, chaque goutte tournant sur son cercle quand la vague passe. Des
+lignes de mer qui se lèvent, se croisent, roulent et déferlent, et finissent
+en écume sur le sable. Sept œuvres en blanc et bleu, et une mer qui respire.
+Édition 0xa1ea01.
+
+**Hashtags**: `#generativeart #creativecoding #ocean #waves #ambient`
+
 ## Prologue: alea speaks
 
 | # | Post | Files |
@@ -914,4 +962,5 @@ lien en bio. Édition 0xa1ea01.
 #linux #kernel #operatingsystem #syscall #interrupt #terminal #autechre #idm #phosphor
 #detroittechno #carlcraig #model500 #drummachine #909 #splitscreen
 #synthesizer #juno #modular #signalpath #vinyl #http #dns #tcp #osi #networking #glitch #glitchart #vhs #nosignal #idm #piano #modularsynth #eurorack #detroittechno #acid #techno #drummachine #synthesizer #japanesedesign
+#ocean #waves #sea #swell #physics #ambient
 ```
