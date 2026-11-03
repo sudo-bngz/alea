@@ -34,7 +34,7 @@ alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
 alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
-alea intro.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 58.5 s, in a loop (about 1.5 hours; needs voices/kokoro.py: pip install sherpa-onnx numpy)
+alea intro.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 69 s, in a loop (about 1.5 hours; needs voices/kokoro.py: pip install sherpa-onnx numpy)
 alea ring0.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea vektor.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 45 minutes)
 alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
@@ -855,10 +855,12 @@ bois. Une minute, en boucle. Édition 0xa1ea01.
 
 | # | Post | Files |
 |---|---|---|
-| 22 | alea speaks, Reel (58.5 s, a loop): the introduction, post it first and pin it | `22-alea-speaks-reel.mp4` (cover: `22-alea-speaks-reel-cover.jpg`) |
+| 22 | alea speaks, Reel (69 s, a loop): the introduction, post it first and pin it | `22-alea-speaks-reel.mp4` (cover: `22-alea-speaks-reel-cover.jpg`) |
 
 **How it is made.** An invitation, in a minute of cuts on a 120 BPM grid:
-what alea is, then what it does, one feature to a cut. A low voice says it
+what alea is, then what it does, one feature to a cut. Each cut lets its
+picture breathe a moment before the voice speaks, with room after the line,
+and a longer stop before the features begin. A low voice says it
 (`say` through a neural engine, `voices/kokoro.py`, `af_kore`), its words
 typed letter by letter as it speaks; ink and one red on paper. Every picture
 is new, made for this Reel by five small works in `intro/works/` (Trame,
