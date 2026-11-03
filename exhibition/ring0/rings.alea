@@ -1,0 +1,23 @@
+// Rings — the rings of protection, from three outside (the programs) to
+// zero inside (the kernel): a call falls from the outside in, through each
+// ring, flashing as it crosses, and climbs back out with the answer.
+// What it returns: 0 dark, up to 1 light.
+
+work Rings(at = 0, beats = 4) {
+  let b = at + t * beats
+  let ph = fract(b)                                               // each beat a call, in and out
+  let d = max(abs(x - 0.5), abs(y - 0.5) * 0.72)
+  let ringr(k) = 0.08 + 0.11 * k
+  let rings = merge([(abs(d - ringr(k)) < 0.004 + 0.002 * (k == 0)) * (0.35 + 0.15 * (3 - k)) for k in range(4)])
+  let depth = 1 - abs(ph * 2 - 1)                                 // 0 outside, 1 at ring zero, back to 0
+  let rr = 0.45 - 0.42 * depth
+  let ang = floor(b) * 2.4
+  let px = 0.5 + rr * cos(ang)
+  let py = 0.5 + rr * sin(ang) / 0.72
+  let call = square(px, py, 0.03, 45, 0.002)
+  let trail = (abs(atan2((y - 0.5) * 0.72, x - 0.5) - ang + 6.2832 * (atan2((y - 0.5) * 0.72, x - 0.5) - ang < -3.1416)) < 0.04) * (d < 0.45) * (d > rr) * 0.25
+  let cross = merge([(abs(d - ringr(k)) < 0.012) * (abs(rr - ringr(k)) < 0.03) for k in range(4)])
+  let core = (d < 0.05) * (0.5 + 0.5 * depth)
+  let labels = merge(text("3", 0.5, 0.5 - 0.4 / 0.72 - 0.03, 0.03, 0, "mono"), text("0", 0.5, 0.5 - 0.1 / 0.72 - 0.02, 0.025, 0, "mono")) * 0.5
+  output merge(rings, call, trail, cross, core, labels)
+}

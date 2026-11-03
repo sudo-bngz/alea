@@ -1,0 +1,13 @@
+// Points — a halftone of a cloud that isn't there: dots grow where it is
+// dense; a few, in red, are the sun behind it.
+
+work Points {
+  let sky   = clouds(scale: ~between(1.5, 4), detail: 3)
+  let count = choose { 22 | 30 | 40 }
+  let ink   = dots(count: count, size: sky * 1.1, softness: 0.04)
+  let sun   = circle(size: ~between(0.2, 0.45), softness: 0.004)
+  let red   = dots(count: count, size: 0.75, softness: 0.04) * sun
+  output cut(ink, sun) * 0.5 + red
+  render image(output, width: 1080, height: 1350, range: [0, 1],
+    palette: [[0, "#efebe2"], [0.5, "#141414"], [0.75, "#141414"], [0.75, "#e0462b"], [1, "#e0462b"]])
+}

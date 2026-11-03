@@ -1,0 +1,22 @@
+// Procs — the scheduler at work: a lane per CPU, the time slices of the
+// processes sliding past the now-line, each process its own shade, the
+// switch from one to the next flashing as it crosses.
+// What it returns: 0 dark, up to 1 light.
+
+work Procs(at = 0, beats = 4, cpus = 6, speed = 1) {
+  let seed = ~between(0, 100)
+  let hash(a, b) = fract(sin(a * 12.9898 + b * 78.233 + seed) * 43758.5453)
+  let b = at + t * beats
+  let lane = floor((y + 0.25) / 1.5 * cpus)
+  let inlane = (lane >= 0) * (lane < cpus)
+  let ly = fract((y + 0.25) / 1.5 * cpus)
+  let s = x * 6 + b * 1.5 * speed * (0.8 + 0.4 * hash(lane, 9))   // time along the lane
+  let slot = floor(s + hash(lane, 1) * 3)
+  let pid = floor(hash(slot, lane) * 9)
+  let shade = 0.25 + 0.6 * hash(pid, 4)
+  let block = (ly > 0.18) * (ly < 0.82) * (fract(s + hash(lane, 1) * 3) > 0.04) * shade
+  let now = abs(x - 0.62) < 0.003
+  let switch_ = (abs(x - 0.62) < 0.02) * (fract(s + hash(lane, 1) * 3) < 0.12) * (ly > 0.1) * (ly < 0.9)
+  let idle = (pid == 0) * 0.3
+  output inlane * merge(block * (1 - idle), now * 0.9, switch_ * 1)
+}

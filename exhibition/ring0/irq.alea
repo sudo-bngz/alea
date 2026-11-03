@@ -1,0 +1,25 @@
+// Irq — the devices along the bottom raise their lines; the interrupt
+// controller picks one, the signal climbs to the CPU, which drops what it
+// was doing (its lane cut) to run the handler, then goes back to it.
+// irq: on which sixteenths of the bar an interrupt comes (the track plays them).
+// What it returns: 0 dark, up to 1 light.
+
+work Irq(at = 0, beats = 4, irq = [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0]) {
+  let pick(l, j) = sum([l[k] * (j == k) for k in range(16)])
+  let b = at + t * beats
+  let step = floor(b * 4) % 16
+  let since = fract(b * 4)
+  let hit = pick(irq, step)
+  let dev = floor(b * 4 * 0.37) % 6                              // which device raised it
+  let dx(k) = 0.12 + 0.152 * k
+  let devices = merge([rect(dx(k), 1.2, 0.1, 0.07, 0, 0.002) * (0.3 + 0.7 * (k == dev) * hit * exp(-since * 3)) for k in range(6)])
+  let wires = merge([line(dx(k), 1.16, 0.5, 0.62, 0.002, 0.002) * (0.2 + 0.8 * (k == dev) * hit * (since < 0.5)) for k in range(6)])
+  let apic = rect(0.5, 0.58, 0.22, 0.08, 0, 0.002) * (0.4 + 0.6 * hit * exp(-since * 4)) - rect(0.5, 0.58, 0.2, 0.06, 0, 0.002) * 0.3
+  let rise = hit * (since < 0.6) * (abs(x - 0.5) < 0.006) * (y < 0.54) * (y > 0.54 - since * 0.9) * 1
+  let cpu = rect(0.5, 0.0, 0.5, 0.14, 0, 0.002) * (0.35 + 0.65 * hit * exp(-since * 3)) - rect(0.5, 0.0, 0.47, 0.11, 0, 0.002) * 0.25
+  // the CPU's lane of work, cut by the handler
+  let lane = (abs(y + 0.22) < 0.025) * (fract(x * 7 - b) > 0.08) * 0.5 * (1 - hit * (since < 0.5) * (abs(x - 0.5) < 0.12))
+  let handler = (abs(y + 0.22) < 0.025) * hit * (since < 0.5) * (abs(x - 0.5) < 0.12) * 1
+  let ring_ = hit * (abs(distance(x, y, 0.5, 0.0) - since * 0.6) < 0.006) * (1 - since)
+  output merge(devices, wires, apic, rise, cpu, lane, handler, ring_)
+}

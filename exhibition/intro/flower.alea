@@ -1,0 +1,22 @@
+// Flower — an edition of a small work, drawn without a single draw: its
+// petals (three to nine), their turn, how sharp they are, a hole, a heart, a
+// red one now and then, all from `e`, the number of the edition. `u`, `v`:
+// where we are around its centre (its petals reach about 1); `px`: how much
+// of that a pixel is. 0 the paper, 0.667 the ink, 1 the red.
+
+work Flower(u = 0, v = 0, e = 0, seed = 0, px = 0.01) {
+  let h(j) = fract(sin(e * 12.9898 + j * 78.233 + seed) * 43758.5453)
+  let k = 3 + floor(h(1) * 7)
+  let turn = h(2) * 6.2832
+  let sharp = 0.3 + 2.6 * h(3)
+  let hole = (h(4) > 0.62) * (0.18 + 0.2 * h(7))
+  let r = sqrt(u * u + v * v)
+  let a = atan2(v, u)
+  let lobe = exp(sharp * ln(abs(cos(k * (a + turn) / 2)) + 0.0001))
+  let edge = 0.42 + 0.55 * lobe
+  let w = 1.2 * px
+  let ink = clamp((edge - r) / w + 0.5, 0, 1) * clamp((r - hole) / w + 0.5, 0, 1)
+  let heart = (h(5) > 0.5) * clamp((0.11 - r) / w + 0.5, 0, 1)
+  let colour = 0.667 + 0.333 * (h(6) > 0.82)
+  output max(ink * colour, heart)
+}
