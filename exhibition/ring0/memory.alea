@@ -1,0 +1,23 @@
+// Memory — the pages a program thinks it has (left), the frames there really
+// are (right), and the table between: lines from page to frame, remapped on
+// every beat; a page that is not there faults (a flash), and is brought in.
+// What it returns: 0 dark, up to 1 light.
+
+work Memory(at = 0, beats = 4, pages = 14) {
+  let seed = ~between(0, 100)
+  let hash(a, b) = fract(sin(a * 12.9898 + b * 78.233 + seed) * 43758.5453)
+  let b = at + t * beats
+  let k0 = floor(b)
+  let since = fract(b)
+  let py(k) = -0.25 + 1.5 * (k + 0.5) / pages
+  let fy(k) = -0.25 + 1.5 * (floor(hash(k, k0) * pages) + 0.5) / pages
+  let mapped(k) = hash(k + 31, k0) > 0.2
+  let faulting = floor(hash(77, k0) * pages)
+  let vcol = (abs(x - 0.16) < 0.09) * (abs(fract((y + 0.25) / 1.5 * pages) - 0.5) < 0.38) * (y > -0.25) * (y < 1.25) * 0.35
+  let fcol = (abs(x - 0.84) < 0.09) * (abs(fract((y + 0.25) / 1.5 * pages) - 0.5) < 0.38) * (y > -0.25) * (y < 1.25) * 0.25
+  let links = merge([line(0.25, py(k), 0.75, fy(k), 0.0025, 0.002) * mapped(k) * (0.35 + 0.4 * (since < 0.2)) for k in range(pages)])
+  let fault = (abs(x - 0.16) < 0.1) * (abs(y - py(faulting)) < 0.75 / pages) * exp(-since * 5) * 1
+  let brought = line(0.25, py(faulting), 0.75, fy(faulting), 0.006, 0.003) * (since > 0.3) * 0.9
+  let tlb = (abs(y - 1.33) < 0.02) * (abs(fract(x * 8) - 0.5) < 0.4) * (0.3 + 0.7 * (hash(floor(x * 8), floor(b * 4)) > 0.6))
+  output merge(vcol, fcol, links, fault, brought, tlb)
+}

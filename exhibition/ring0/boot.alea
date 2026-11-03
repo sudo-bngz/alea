@@ -1,0 +1,30 @@
+// Boot — the kernel waking: lines of its log scrolling up faster than they
+// can be read, each with its timestamp, in a script of its own (every
+// character a few cells of a 3 × 5 grid); a bar filling. rev: 1 for the
+// shutdown, the lines going the other way.
+// What it returns: 0 dark, up to 1 light.
+
+work Boot(at = 0, beats = 4, rev = 0, rate = 18) {
+  let seed = ~between(0, 100)
+  let hash(a, b) = fract(sin(a * 12.9898 + b * 78.233 + seed) * 43758.5453)
+  let b = at + t * beats
+  let scroll = t * beats * rate * (1 - 2 * rev)
+  let lh = 0.032
+  let v = (y + 0.35) / lh + scroll
+  let r = floor(v)
+  let u = (x - 0.05) / 0.9 * 56
+  let c = floor(u)
+  let len = 14 + floor(hash(r, 1) * 40)
+  let stamp = (c < 12) * (c != 0) * (c != 11) * (c != 6)
+  let g = floor(hash(c, r + 0.5) * 24)
+  let gx = floor(fract(u) * 4)
+  let gy = floor(fract(v) * 7) - 1
+  let ch = (c >= 0) * (c < len) * (gx < 3) * (gy >= 0) * (gy < 5) * (g > 1) * (hash(g * 13 + gx, gy + 70) > 0.45)
+  let bright = 0.45 + 0.4 * stamp + 0.3 * (hash(r, 5) > 0.92)
+  let bracket = (c == 0) + (c == 11)
+  let brk = bracket * (gy >= 0) * (gy < 5) * ((gx == 1) + (gy == 0) * (gx == 2 - (c == 11) * 2) + (gy == 4) * (gx == 2 - (c == 11) * 2))
+  let lines = (y > -0.35) * (y < 1.15) * merge(ch * bright, brk * 0.6)
+  let barfill = (abs(y - 1.25) < 0.012) * (x > 0.1) * (x < 0.1 + 0.8 * fract(t * (1 - rev) + rev * (1 - t))) * 1
+  let barframe = (abs(abs(y - 1.25) - 0.02) < 0.002) * (x > 0.095) * (x < 0.905) * 0.6
+  output merge(lines, barfill, barframe)
+}
