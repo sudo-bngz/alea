@@ -1,15 +1,17 @@
 // alea speaks — the introduction, and an invitation: what alea is, and what it
-// does, in a minute of quick cuts on the beat. A voice (`say` through a
+// does, in a minute of quick cuts on the beat. A low voice (`say` through a
 // neural engine, voices/kokoro.py) says it, its words typed letter by letter
-// as it speaks; ink and one red on paper. Real works first: a montage of
-// the exhibition; the code of a work; six of its editions, one per beat,
-// each a run; the same seed twice, the same picture; then what alea makes,
-// one feature to a cut: images, videos, sound (a step sequencer playing the
-// track you hear), a voice, inputs, MIDI and the DAW, 3D, the web; the
-// exhibition again; the name, and where to try it. The pictures in the
-// montages are editions of the other rooms, read from instagram/; the
-// flowers, the registration, the piano roll and the sequencer are drawn
-// for each edition.
+// as it speaks; ink and one red on paper. A montage of new works, one per
+// beat; the code of one of them, Trame (intro/works/trame.alea), typed a
+// line to an eighth note; six of its editions, each a run; the same seed
+// twice, the same picture; then what alea makes, one feature to a cut:
+// images (Isohypses, the map), videos, sound (a step sequencer reading the
+// very patterns you hear), a voice, inputs, MIDI and the DAW, 3D, the web;
+// the editions again; the name, and where to try it. The pictures are
+// editions of the five works in intro/works/ (Trame, Orbites, Points,
+// Blocs, Prisme), kept in intro/stills/. The score is broken on purpose:
+// beats redrawn every two bars, ratchets, FM ticks and bells, a stutter
+// into every cut, a pad on a worn tape.
 
 use "intro/flower.alea"
 
@@ -18,7 +20,7 @@ work Intro {
   let total = 58.5
   let T = t * total
   let ENGINE = "../voices/kokoro.py"
-  let VOICE = "af_heart"
+  let VOICE = "af_kore"
   let win(a, b) = (T >= a) * (T < b)
   let beat = floor(T * 2)                         // 120 BPM: a cut can fall on any beat
 
@@ -36,7 +38,7 @@ work Intro {
   let l11 = say("It plays live, in your DAW and on your synths.", at: 35.30, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
   let l12 = say("Sculptures, for your 3D printer.", at: 38.80, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
   let l13 = say("Web pages that draw a new one at every visit.", at: 41.80, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l14 = say("Thirteen exhibitions. Every one, a program.", at: 45.80, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
+  let l14 = say("Every picture you saw: a few lines of code.", at: 45.80, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
   let l15 = say("Your turn. Try it in your browser.", at: 51.80, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
 
   // ── the paper: 0 paper, 0.333 grey, 0.667 ink, 1 red ──
@@ -45,6 +47,15 @@ work Intro {
   let RED = 1
   let px = 1 / 1080
   let blink = fract(T * 2) < 0.5
+
+  // ── the rhythms, on sixteenths (j): redrawn every two bars, so the beat never settles ──
+  let h(a, b) = fract(sin(a * 12.9898 + b * 78.233 + 0.5) * 43758.5453)
+  let st(j) = j % 16
+  let br(j) = floor(j / 16)
+  let kon(j) = max(st(j) == 0, (h(st(j), floor(j / 32)) > 0.8) * (st(j) % 2 == 0))
+  let son(j) = max(st(j) == 12, max((st(j) == 4) * (h(br(j), 1) > 0.4), h(st(j), br(j) + 7) > 0.9))
+  let hon(j) = h(st(j), br(j) + 3) > 0.42
+  let bon(j) = max(st(j) == 0, (h(st(j), floor(j / 64) + 11) > 0.74) * (1 - kon(j) * (st(j) != 0)))
   // the section, top left, in red
   let h_code = text("the code", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(7.5, 10.5)
   let h_runs = text("every run", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(10.5, 14.0)
@@ -57,7 +68,7 @@ work Intro {
   let h_midi = text("midi  ·  daw  ·  synths", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(35.0, 38.5)
   let h_sculpt = text("3d", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(38.5, 41.5)
   let h_web = text("web", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(41.5, 45.5)
-  let h_gallery = text("the exhibition", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(45.5, 51.5)
+  let h_gallery = text("the editions", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(45.5, 51.5)
   let header = merge(h_code, h_runs, h_seed, h_image, h_video, h_sound, h_voice, h_input, h_midi, h_sculpt, h_web, h_gallery)
 
   // the captions, typed letter by letter as they are said
@@ -88,27 +99,31 @@ work Intro {
   let c_l12 = merge(text("Sculptures, for your 3D", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l12 - 0, 0, 23) * adv), text("printer.", x: 0.06, y: -0.059, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l12 - 24, 0, 8) * adv)) * win(l12.start, 41.5)
   let n_l13 = clamp((T - l13.words[0]) / (l13.ends[0] - l13.words[0]), 0, 1) * 4 + clamp((T - l13.words[1]) / (l13.ends[1] - l13.words[1]), 0, 1) * 6 + clamp((T - l13.words[2]) / (l13.ends[2] - l13.words[2]), 0, 1) * 5 + clamp((T - l13.words[3]) / (l13.ends[3] - l13.words[3]), 0, 1) * 5 + clamp((T - l13.words[4]) / (l13.ends[4] - l13.words[4]), 0, 1) * 2 + clamp((T - l13.words[5]) / (l13.ends[5] - l13.words[5]), 0, 1) * 4 + clamp((T - l13.words[6]) / (l13.ends[6] - l13.words[6]), 0, 1) * 4 + clamp((T - l13.words[7]) / (l13.ends[7] - l13.words[7]), 0, 1) * 3 + clamp((T - l13.words[8]) / (l13.ends[8] - l13.words[8]), 0, 1) * 6 + clamp((T - l13.words[9]) / (l13.ends[9] - l13.words[9]), 0, 1) * 6
   let c_l13 = merge(text("Web pages that draw a new one", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l13 - 0, 0, 29) * adv), text("at every visit.", x: 0.06, y: -0.059, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l13 - 30, 0, 15) * adv)) * win(l13.start, 45.5)
-  let n_l14 = clamp((T - l14.words[0]) / (l14.ends[0] - l14.words[0]), 0, 1) * 9 + clamp((T - l14.words[1]) / (l14.ends[1] - l14.words[1]), 0, 1) * 13 + clamp((T - l14.words[2]) / (l14.ends[2] - l14.words[2]), 0, 1) * 6 + clamp((T - l14.words[3]) / (l14.ends[3] - l14.words[3]), 0, 1) * 5 + clamp((T - l14.words[4]) / (l14.ends[4] - l14.words[4]), 0, 1) * 2 + clamp((T - l14.words[5]) / (l14.ends[5] - l14.words[5]), 0, 1) * 8
-  let c_l14 = merge(text("Thirteen exhibitions. Every", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l14 - 0, 0, 27) * adv), text("one, a program.", x: 0.06, y: -0.059, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l14 - 28, 0, 15) * adv)) * win(l14.start, 51.5)
+  let n_l14 = clamp((T - l14.words[0]) / (l14.ends[0] - l14.words[0]), 0, 1) * 6 + clamp((T - l14.words[1]) / (l14.ends[1] - l14.words[1]), 0, 1) * 8 + clamp((T - l14.words[2]) / (l14.ends[2] - l14.words[2]), 0, 1) * 4 + clamp((T - l14.words[3]) / (l14.ends[3] - l14.words[3]), 0, 1) * 5 + clamp((T - l14.words[4]) / (l14.ends[4] - l14.words[4]), 0, 1) * 2 + clamp((T - l14.words[5]) / (l14.ends[5] - l14.words[5]), 0, 1) * 4 + clamp((T - l14.words[6]) / (l14.ends[6] - l14.words[6]), 0, 1) * 6 + clamp((T - l14.words[7]) / (l14.ends[7] - l14.words[7]), 0, 1) * 3 + clamp((T - l14.words[8]) / (l14.ends[8] - l14.words[8]), 0, 1) * 5
+  let c_l14 = merge(text("Every picture you saw: a few", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l14 - 0, 0, 28) * adv), text("lines of code.", x: 0.06, y: -0.059, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l14 - 29, 0, 14) * adv)) * win(l14.start, 51.5)
   let n_l15 = clamp((T - l15.words[0]) / (l15.ends[0] - l15.words[0]), 0, 1) * 5 + clamp((T - l15.words[1]) / (l15.ends[1] - l15.words[1]), 0, 1) * 6 + clamp((T - l15.words[2]) / (l15.ends[2] - l15.words[2]), 0, 1) * 4 + clamp((T - l15.words[3]) / (l15.ends[3] - l15.words[3]), 0, 1) * 3 + clamp((T - l15.words[4]) / (l15.ends[4] - l15.words[4]), 0, 1) * 3 + clamp((T - l15.words[5]) / (l15.ends[5] - l15.words[5]), 0, 1) * 5 + clamp((T - l15.words[6]) / (l15.ends[6] - l15.words[6]), 0, 1) * 8
   let c_l15 = merge(text("Your turn. Try it in your", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l15 - 0, 0, 25) * adv), text("browser.", x: 0.06, y: -0.059, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l15 - 26, 0, 8) * adv)) * win(l15.start, 58.5)
   let captions = merge(c_l1, c_l2, c_l3, c_l4, c_l5, c_l6, c_l7, c_l8, c_l9, c_l10, c_l11, c_l12, c_l13, c_l14, c_l15)
 
-  // ── the code: a whole work, a line on each eighth note ──
-  let cy0 = 0.22
-  let k0 = text("work Rosace {{", x: 0.06, y: 0.220, size: 0.03, font: "mono", align: "left") * (T >= 7.75)
-  let k1 = text("  let petal  = blob(x: 0.72, y: 0.5, size: 0.22)", x: 0.06, y: 0.280, size: 0.03, font: "mono", align: "left") * (T >= 8.00)
-  let k2 = text("  let lace   = ripples(x: 0.5, y: 0.5) * 0.35", x: 0.06, y: 0.340, size: 0.03, font: "mono", align: "left") * (T >= 8.25)
-  let k3 = text("  let window = kaleidoscope(warp(merge(petal, lace)),", x: 0.06, y: 0.400, size: 0.03, font: "mono", align: "left") * (T >= 8.50)
-  let k4 = text("                 sides: choose {{ 5 | 6 | 8 | 12 }})", x: 0.06, y: 0.460, size: 0.03, font: "mono", align: "left") * (T >= 8.75)
-  let r4_24 = text("                        choose", x: 0.06, y: 0.460, size: 0.03, font: "mono", align: "left") * (T >= 8.75)
-  let k5 = text("  output window + glow(x: 0.5, y: 0.5, size: 0.25)", x: 0.06, y: 0.520, size: 0.03, font: "mono", align: "left") * (T >= 9.00)
-  let k6 = text("  render image(output,", x: 0.06, y: 0.580, size: 0.03, font: "mono", align: "left") * (T >= 9.25)
-  let k7 = text("    palette: choose {{ “ember” | “lichen” | “night” }})", x: 0.06, y: 0.640, size: 0.03, font: "mono", align: "left") * (T >= 9.50)
-  let r7_13 = text("             choose", x: 0.06, y: 0.640, size: 0.03, font: "mono", align: "left") * (T >= 9.50)
-  let k8 = text("}", x: 0.06, y: 0.700, size: 0.03, font: "mono", align: "left") * (T >= 9.75)
-  let codeink = merge(k0, k1, k2, k3, k4, k5, k6, k7, k8)
-  let codered = merge(r4_24, r7_13)
+  // ── the code: a whole work (intro/works/trame.alea), a line on each eighth note; its chances in red ──
+  let k0 = text("work Trame {{", x: 0.06, y: 0.200, size: 0.027, font: "mono", align: "left") * (T >= 7.70)
+  let k1 = text("  let lines = stripes(count: choose {{ 24 | 40 | 64 }},", x: 0.06, y: 0.252, size: 0.027, font: "mono", align: "left") * (T >= 7.91)
+  let r1_29 = text("                             choose", x: 0.06, y: 0.252, size: 0.027, font: "mono", align: "left") * (T >= 7.91)
+  let k2 = text("                      angle: ~between(0, 180), softness: 0.05)", x: 0.06, y: 0.304, size: 0.027, font: "mono", align: "left") * (T >= 8.12)
+  let r2_29 = text("                             ~between", x: 0.06, y: 0.304, size: 0.027, font: "mono", align: "left") * (T >= 8.12)
+  let k3 = text("  let bent  = warp(lines, amount: ~between(0.03, 0.12),", x: 0.06, y: 0.356, size: 0.027, font: "mono", align: "left") * (T >= 8.33)
+  let r3_34 = text("                                  ~between", x: 0.06, y: 0.356, size: 0.027, font: "mono", align: "left") * (T >= 8.33)
+  let k4 = text("                          scale: ~between(1, 4))", x: 0.06, y: 0.408, size: 0.027, font: "mono", align: "left") * (T >= 8.54)
+  let r4_33 = text("                                 ~between", x: 0.06, y: 0.408, size: 0.027, font: "mono", align: "left") * (T >= 8.54)
+  let k5 = text("  let sun   = circle(size: ~between(0.25, 0.55))", x: 0.06, y: 0.460, size: 0.027, font: "mono", align: "left") * (T >= 8.75)
+  let r5_27 = text("                           ~between", x: 0.06, y: 0.460, size: 0.027, font: "mono", align: "left") * (T >= 8.75)
+  let k6 = text("  output cut(bent, sun) * 0.5 + sun * invert(bent)", x: 0.06, y: 0.512, size: 0.027, font: "mono", align: "left") * (T >= 8.96)
+  let k7 = text("  render image(output, width: 1080, height: 1350,", x: 0.06, y: 0.564, size: 0.027, font: "mono", align: "left") * (T >= 9.17)
+  let k8 = text("    palette: [“#efebe2”, “#141414”, “#e0462b”],", x: 0.06, y: 0.616, size: 0.027, font: "mono", align: "left") * (T >= 9.38)
+  let k9 = text("    range: [0, 1])", x: 0.06, y: 0.668, size: 0.027, font: "mono", align: "left") * (T >= 9.59)
+  let k10 = text("}", x: 0.06, y: 0.720, size: 0.027, font: "mono", align: "left") * (T >= 9.80)
+  let codeink = merge(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10)
+  let codered = merge(r1_29, r2_29, r3_34, r4_33, r5_27)
 
   // ── the title: the name, typed as it is said ──
   let nsize = 0.2
@@ -129,21 +144,22 @@ work Intro {
   let videof = max(Flower(u: vu, v: vv, e: 300 + beat, seed: seed, px: px / vr), rings * GREY)
   let vcode = text("render video(output, fps: 30)", x: 0.5, y: 1.1, size: 0.03, font: "mono") * GREY * 2
 
-  // ── sound: a step sequencer playing the very track you hear ──
+  // ── sound: a step sequencer reading the very patterns you hear (kon, son, hon, bon above) ──
   let step = floor(T * 8) % 16
+  let bar0 = floor(T * 8 / 16) * 16
   let sx = (x - 0.16) / 0.05
   let sc = floor(sx)
   let srow = floor((y - 0.36) / 0.07)
   let incell = (sc >= 0) * (sc < 16) * (srow >= 0) * (srow < 4) * (abs(fract(sx) - 0.5) < 0.38) * (abs(fract((y - 0.36) / 0.07) - 0.5) < 0.38)
-  let on = (srow == 0) * (sc % 4 == 0) + (srow == 1) * (sc % 8 == 4) + (srow == 2) * 1 + (srow == 3) * ((sc * 5) % 16 < 5)
+  let on = clamp((srow == 0) * kon(bar0 + sc) + (srow == 1) * son(bar0 + sc) + (srow == 2) * hon(bar0 + sc) + (srow == 3) * bon(bar0 + sc), 0, 1)
   let lit = incell * on * (sc == step)
   let seqf = max(incell * (GREY * 0.6 + on * (INK - GREY * 0.6)), lit * RED)
-  let rowlab = merge(text("kick", x: 0.14, y: 0.395, size: 0.024, font: "mono", align: "right"), text("clap", x: 0.14, y: 0.465, size: 0.024, font: "mono", align: "right"),
+  let rowlab = merge(text("kick", x: 0.14, y: 0.395, size: 0.024, font: "mono", align: "right"), text("snare", x: 0.14, y: 0.465, size: 0.024, font: "mono", align: "right"),
                      text("hats", x: 0.14, y: 0.535, size: 0.024, font: "mono", align: "right"), text("bass", x: 0.14, y: 0.605, size: 0.024, font: "mono", align: "right")) * GREY * 2
-  let chordnames = ["Am", "F", "C", "G"]
-  let bar = floor(T / 2) % 4
-  let chordf = merge([text(chordnames[k], x: 0.26 + k * 0.16, y: 0.8, size: 0.05, font: "mono") * (GREY + (INK - GREY) * (bar == k)) for k in range(4)])
-  let scode = text("notes(euclid(5, 16), instrument: synth {{ … })", x: 0.5, y: 1.1, size: 0.028, font: "mono") * GREY * 2
+  let chordnames = ["Dm9", "Bbmaj7", "Gm7", "A7sus"]
+  let bar = floor(T / 4) % 4
+  let chordf = merge([text(chordnames[k], x: 0.2 + k * 0.2, y: 0.8, size: 0.04, font: "mono") * (GREY + (INK - GREY) * (bar == k)) for k in range(4)])
+  let scode = text("notes(broken, instrument: synth {{ fm … })", x: 0.5, y: 1.1, size: 0.028, font: "mono") * GREY * 2
   let soundf = max(seqf, max(rowlab, max(chordf, scode)))
 
   // ── voice: the line of the voice, moving with its syllables ──
@@ -182,10 +198,10 @@ work Intro {
 
   // ── web: a page that draws a new one at every visit ──
   let winf = cut(rect(0.5, 0.64, 0.84, 0.92, 0, 0.002), rect(0.5, 0.65, 0.832, 0.896, 0, 0.002))
-  let urlbar = text("alea.bngz.io/rosace.html", x: 0.13, y: 0.21, size: 0.026, font: "mono", align: "left")
+  let urlbar = text("alea.bngz.io/flower.html", x: 0.13, y: 0.21, size: 0.026, font: "mono", align: "left")
   let reload = ring(0.84, 0.21, 0.015, 0.004, 0.001) * (1 + exp(-fract(T * 2) * 8))
   let webflower = Flower(u: (x - 0.5) / 0.26, v: (y - 0.66) / 0.26, e: 700 + beat, seed: seed, px: px / 0.26)
-  let wcode = text("alea rosace.alea --web rosace.html", x: 0.5, y: 1.15, size: 0.028, font: "mono") * GREY * 2
+  let wcode = text("alea flower.alea --web flower.html", x: 0.5, y: 1.15, size: 0.028, font: "mono") * GREY * 2
   let webf = max(winf * INK, max(urlbar * GREY * 2, max(clamp(reload, 0, 1) * RED, max(webflower, wcode))))
 
   // ── the end: the name, what it is, where to try it ──
@@ -203,43 +219,43 @@ work Intro {
   let over = merge(header * RED, captions * INK)
   let base = paint(max(drawn, over), palette: ["#efebe2", "#8d877c", "#141414", "#e0462b"], range: [0, 1])
 
-  // ── the pictures: editions of the other rooms ──
+  // ── the pictures: editions of the five works in intro/works/, and of Isohypses ──
   let p0 = open("instagram/1-isohypses-1-0xa1ea03.jpg").painting
   let p1 = open("instagram/1-isohypses-2-0xa1ea0a.jpg").painting
   let p2 = open("instagram/1-isohypses-3-0xa1ea01.jpg").painting
   let p3 = open("instagram/1-isohypses-4-0xa1ea06.jpg").painting
   let p4 = open("instagram/1-isohypses-5-0xa1ea0d.jpg").painting
   let p5 = open("instagram/1-isohypses-6-0xa1ea07.jpg").painting
-  let p6 = open("instagram/10-culture-reel-cover.jpg").painting
-  let p7 = open("instagram/12-kikai-1-0xa1ea05.jpg").painting
-  let p8 = open("instagram/12-kikai-reel-cover.jpg").painting
-  let p9 = open("instagram/13-atardecer-1-0xa1ea01.jpg").painting
-  let p10 = open("instagram/13-atardecer-reel-cover.jpg").painting
-  let p11 = open("instagram/14-kairo-1-0xa1ea01.jpg").painting
-  let p12 = open("instagram/15-parasite-reel-cover.jpg").painting
-  let p13 = open("instagram/16-requete-reel-cover.jpg").painting
-  let p14 = open("instagram/17-signal-reel-cover.jpg").painting
-  let p15 = open("instagram/18-hana-reel-cover.jpg").painting
-  let p16 = open("instagram/19-babel-reel-cover.jpg").painting
-  let p17 = open("instagram/2-nocturne-1-0xa1ea06.jpg").painting
-  let p18 = open("instagram/20-vektor-reel-cover.jpg").painting
-  let p19 = open("instagram/21-ring0-reel-cover.jpg").painting
-  let p20 = open("instagram/3-rosace-1-0xa1ea0e.jpg").painting
-  let p21 = open("instagram/3-rosace-2-0xa1ea05.jpg").painting
-  let p22 = open("instagram/3-rosace-3-0xa1ea07.jpg").painting
-  let p23 = open("instagram/3-rosace-4-0xa1ea0b.jpg").painting
-  let p24 = open("instagram/3-rosace-5-0xa1ea00.jpg").painting
-  let p25 = open("instagram/3-rosace-6-0xa1ea0f.jpg").painting
-  let p26 = open("instagram/5-nocturne-reel-cover.jpg").painting
-  let p27 = open("instagram/7-correspondances-2-0xa1ea01.jpg").painting
-  let p28 = open("instagram/8-correspondances-reel-cover.jpg").painting
-  let p29 = open("instagram/9-culture-3-0xc06.jpg").painting
-  let pics = overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(base, place(p2, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(0.00, 0.50)), place(p7, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(0.50, 1.00)), place(p17, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(1.00, 1.50)), place(p27, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(1.50, 2.00)), place(p29, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(2.00, 2.50)), place(p11, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(2.50, 3.00)), place(p9, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(3.00, 3.50)), place(p20, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(3.50, 4.00)), place(p20, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(10.50, 11.00)), place(p21, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(11.00, 11.50)), place(p22, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(11.50, 12.00)), place(p23, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(12.00, 12.50)), place(p24, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(12.50, 13.00)), place(p25, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(13.00, 13.50)), place(p20, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(13.50, 14.00)), place(p0, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(18.00, 18.50)), place(p1, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(18.50, 19.00)), place(p2, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(19.00, 19.50)), place(p3, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(19.50, 20.00)), place(p4, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(20.00, 20.50)), place(p5, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(20.50, 21.00)), place(p15, x: 0.5, y: 0.62, width: 0.58, height: 1.031), mask: win(45.50, 46.00)), place(p16, x: 0.5, y: 0.62, width: 0.58, height: 1.031), mask: win(46.00, 46.50)), place(p18, x: 0.5, y: 0.62, width: 0.58, height: 1.031), mask: win(46.50, 47.00)), place(p19, x: 0.5, y: 0.62, width: 0.58, height: 1.031), mask: win(47.00, 47.50)), place(p14, x: 0.5, y: 0.62, width: 0.58, height: 1.031), mask: win(47.50, 48.00)), place(p12, x: 0.5, y: 0.62, width: 0.58, height: 1.031), mask: win(48.00, 48.50)), place(p13, x: 0.5, y: 0.62, width: 0.58, height: 1.031), mask: win(48.50, 49.00)), place(p6, x: 0.5, y: 0.62, width: 0.58, height: 1.031), mask: win(49.00, 49.50)), place(p8, x: 0.5, y: 0.62, width: 0.58, height: 1.031), mask: win(49.50, 50.00)), place(p10, x: 0.5, y: 0.62, width: 0.58, height: 1.031), mask: win(50.00, 50.50)), place(p26, x: 0.5, y: 0.62, width: 0.58, height: 1.031), mask: win(50.50, 51.00)), place(p28, x: 0.5, y: 0.62, width: 0.58, height: 1.031), mask: win(51.00, 51.50)), place(p21, x: 0.27, y: 0.6, width: 0.42, height: 0.525), mask: win(14.20, 18.00)), place(p21, x: 0.73, y: 0.6, width: 0.42, height: 0.525), mask: win(14.90, 18.00))
-  let picl = merge(text("seed 0xa1ea0e", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(10.50, 11.00), text("seed 0xa1ea05", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(11.00, 11.50), text("seed 0xa1ea07", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(11.50, 12.00), text("seed 0xa1ea0b", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(12.00, 12.50), text("seed 0xa1ea00", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(12.50, 13.00), text("seed 0xa1ea0f", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(13.00, 13.50), text("seed 0xa1ea0e", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(13.50, 14.00), text("hana", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(45.50, 46.00), text("babel", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(46.00, 46.50), text("vektor", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(46.50, 47.00), text("ring 0", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(47.00, 47.50), text("signal", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(47.50, 48.00), text("parasite", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(48.00, 48.50), text("requête", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(48.50, 49.00), text("culture", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(49.00, 49.50), text("kikai", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(49.50, 50.00), text("atardecer", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(50.00, 50.50), text("nocturne", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(50.50, 51.00), text("correspondances", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(51.00, 51.50))
-  let seedw = merge(text("run 1  ·  seed 0xa1ea05", x: 0.27, y: 0.3, size: 0.024, font: "mono") * win(51.20, 51.50),
-                    text("run 2  ·  seed 0xa1ea05", x: 0.73, y: 0.3, size: 0.024, font: "mono") * win(51.90, 51.50),
-                    text("=", x: 0.5, y: 0.6, size: 0.08, font: "mono") * win(51.90, 51.50),
-                    text("byte for byte", x: 0.5, y: 0.95, size: 0.05, font: "mono") * (T >= l5.words[4]) * win(51.00, 51.50))
+  let p6 = open("intro/stills/blocs-0xa1ea01.jpg").painting
+  let p7 = open("intro/stills/blocs-0xa1ea03.jpg").painting
+  let p8 = open("intro/stills/blocs-0xa1ea04.jpg").painting
+  let p9 = open("intro/stills/blocs-0xa1ea05.jpg").painting
+  let p10 = open("intro/stills/blocs-0xa1ea07.jpg").painting
+  let p11 = open("intro/stills/orbites-0xa1ea00.jpg").painting
+  let p12 = open("intro/stills/orbites-0xa1ea03.jpg").painting
+  let p13 = open("intro/stills/orbites-0xa1ea04.jpg").painting
+  let p14 = open("intro/stills/orbites-0xa1ea06.jpg").painting
+  let p15 = open("intro/stills/points-0xa1ea00.jpg").painting
+  let p16 = open("intro/stills/points-0xa1ea02.jpg").painting
+  let p17 = open("intro/stills/points-0xa1ea04.jpg").painting
+  let p18 = open("intro/stills/points-0xa1ea06.jpg").painting
+  let p19 = open("intro/stills/prisme-0xa1ea01.jpg").painting
+  let p20 = open("intro/stills/prisme-0xa1ea02.jpg").painting
+  let p21 = open("intro/stills/prisme-0xa1ea04.jpg").painting
+  let p22 = open("intro/stills/prisme-0xa1ea05.jpg").painting
+  let p23 = open("intro/stills/prisme-0xa1ea07.jpg").painting
+  let p24 = open("intro/stills/trame-0xa1ea00.jpg").painting
+  let p25 = open("intro/stills/trame-0xa1ea04.jpg").painting
+  let p26 = open("intro/stills/trame-0xa1ea06.jpg").painting
+  let p27 = open("intro/stills/trame-0xa1ea09.jpg").painting
+  let p28 = open("intro/stills/trame-0xa1ea0a.jpg").painting
+  let p29 = open("intro/stills/trame-0xa1ea0b.jpg").painting
+  let pics = overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(base, place(p11, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(0.00, 0.50)), place(p7, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(0.50, 1.00)), place(p15, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(1.00, 1.50)), place(p21, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(1.50, 2.00)), place(p14, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(2.00, 2.50)), place(p8, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(2.50, 3.00)), place(p19, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(3.00, 3.50)), place(p16, x: 0.5, y: 0.64, width: 0.8, height: 1.0), mask: win(3.50, 4.00)), place(p25, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(10.50, 11.00)), place(p26, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(11.00, 11.50)), place(p24, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(11.50, 12.00)), place(p28, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(12.00, 12.50)), place(p27, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(12.50, 13.00)), place(p29, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(13.00, 13.50)), place(p25, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(13.50, 14.00)), place(p0, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(18.00, 18.50)), place(p1, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(18.50, 19.00)), place(p2, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(19.00, 19.50)), place(p3, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(19.50, 20.00)), place(p4, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(20.00, 20.50)), place(p5, x: 0.5, y: 0.66, width: 0.76, height: 0.95), mask: win(20.50, 21.00)), place(p23, x: 0.5, y: 0.64, width: 0.76, height: 0.95), mask: win(45.50, 46.00)), place(p18, x: 0.5, y: 0.64, width: 0.76, height: 0.95), mask: win(46.00, 46.50)), place(p9, x: 0.5, y: 0.64, width: 0.76, height: 0.95), mask: win(46.50, 47.00)), place(p12, x: 0.5, y: 0.64, width: 0.76, height: 0.95), mask: win(47.00, 47.50)), place(p26, x: 0.5, y: 0.64, width: 0.76, height: 0.95), mask: win(47.50, 48.00)), place(p22, x: 0.5, y: 0.64, width: 0.76, height: 0.95), mask: win(48.00, 48.50)), place(p17, x: 0.5, y: 0.64, width: 0.76, height: 0.95), mask: win(48.50, 49.00)), place(p6, x: 0.5, y: 0.64, width: 0.76, height: 0.95), mask: win(49.00, 49.50)), place(p13, x: 0.5, y: 0.64, width: 0.76, height: 0.95), mask: win(49.50, 50.00)), place(p20, x: 0.5, y: 0.64, width: 0.76, height: 0.95), mask: win(50.00, 50.50)), place(p10, x: 0.5, y: 0.64, width: 0.76, height: 0.95), mask: win(50.50, 51.00)), place(p16, x: 0.5, y: 0.64, width: 0.76, height: 0.95), mask: win(51.00, 51.50)), place(p26, x: 0.27, y: 0.6, width: 0.42, height: 0.525), mask: win(14.20, 18.00)), place(p26, x: 0.73, y: 0.6, width: 0.42, height: 0.525), mask: win(14.90, 18.00))
+  let picl = merge(text("seed 0xa1ea04", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(10.50, 11.00), text("seed 0xa1ea06", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(11.00, 11.50), text("seed 0xa1ea00", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(11.50, 12.00), text("seed 0xa1ea0a", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(12.00, 12.50), text("seed 0xa1ea09", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(12.50, 13.00), text("seed 0xa1ea0b", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(13.00, 13.50), text("seed 0xa1ea04", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(13.50, 14.00), text("prisme  ·  0xa1ea07", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(45.50, 46.00), text("points  ·  0xa1ea06", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(46.00, 46.50), text("blocs  ·  0xa1ea05", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(46.50, 47.00), text("orbites  ·  0xa1ea03", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(47.00, 47.50), text("trame  ·  0xa1ea06", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(47.50, 48.00), text("prisme  ·  0xa1ea05", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(48.00, 48.50), text("points  ·  0xa1ea04", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(48.50, 49.00), text("blocs  ·  0xa1ea01", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(49.00, 49.50), text("orbites  ·  0xa1ea04", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(49.50, 50.00), text("prisme  ·  0xa1ea02", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(50.00, 50.50), text("blocs  ·  0xa1ea07", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(50.50, 51.00), text("points  ·  0xa1ea02", x: 0.5, y: 0.13, size: 0.032, font: "mono") * win(51.00, 51.50))
+  let seedw = merge(text("run 1  ·  seed 0xa1ea06", x: 0.27, y: 0.3, size: 0.024, font: "mono") * win(14.20, 18.00),
+                    text("run 2  ·  seed 0xa1ea06", x: 0.73, y: 0.3, size: 0.024, font: "mono") * win(14.90, 18.00),
+                    text("=", x: 0.5, y: 0.6, size: 0.08, font: "mono") * win(14.90, 18.00),
+                    text("byte for byte", x: 0.5, y: 0.95, size: 0.05, font: "mono") * (T >= l5.words[4]) * win(14.00, 18.00))
   let toplab = merge(picl, seedw)
   let labp = paint(toplab, palette: ["#e0462b", "#e0462b"], range: [0, 1], alpha: toplab)
   let look = vignette(film(overlay(pics, labp), amount: 0.035), amount: 0.16)
@@ -263,53 +279,83 @@ work Intro {
       scene(look, 7.0, from: 51.5 / total, to: 58.5 / total), fade(0.5, through: 0),
   ], loop: 1)
 
-  // ── the music: 120 BPM, Am F C G, from a pulse to a full beat and back ──
+  // ── the music: broken, 120 BPM underneath. A pad on a worn tape (Dm9, Bbmaj7, Gm7, A7sus);
+  //    FM ticks like dust; from the code on, a beat redrawn every two bars, ratchets, a sub;
+  //    a stutter into every cut and a glitch on it; FM bells; then only the pad and the bells ──
   let s16 = 468
+  let s64 = 1872
   let semi(s) = 1 - (s + 0.5) / 36
   let pad = synth {
-    let f = note.freq * (1 + 0.002 * sine(0.3))
-    chorus(lowpass(saw(f) + saw(f * 1.006) + triangle(f * 0.5), cutoff: 1400, resonance: 0.2)
-           * adsr(attack: 0.05, decay: 0.4, sustain: 0.6, release: 0.8) * 0.25, depth: 0.7, rate: 0.4)
+    let wob = 1 + 0.005 * sine(0.21) + 0.0018 * sine(5.3)
+    let f = note.freq * wob
+    let osc = saw(f) * 0.5 + saw(f * 1.007) * 0.5 + triangle(f * 2.003) * 0.3 + sine(f * 0.5) * 0.4
+    chorus(lowpass(drive(osc, amount: 0.3), cutoff: 750 + 450 * sine(0.13), resonance: 0.25)
+           * adsr(attack: 0.5, decay: 0.8, sustain: 0.7, release: 1.8) * 0.22, depth: 0.8, rate: 0.27)
   }
-  let kick = synth { sine(note.freq * (1 + 3 * perc(attack: 0.0005, release: 0.035))) * perc(attack: 0.001, release: 0.28) + noise() * perc(release: 0.004) * 0.25 }
-  let clap = synth { bandpass(noise(), cutoff: 1500, resonance: 0.5) * (perc(release: 0.012) + perc(release: 0.11) * 0.7) * note.velocity }
-  let hat = synth { highpass(noise(), cutoff: 8000, resonance: 0.3) * perc(release: 0.03) * note.velocity }
-  let bass = synth { lowpass(saw(note.freq) * 0.6 + square(note.freq * 0.5) * 0.4, cutoff: 260 + 900 * perc(release: 0.12), resonance: 0.35) * adsr(attack: 0.003, decay: 0.15, sustain: 0.5, release: 0.08) }
-  let stab = synth { lowpass(saw(note.freq) + saw(note.freq * 1.01), cutoff: 2600 * perc(release: 0.18) + 300, resonance: 0.3) * perc(attack: 0.002, release: 0.25) * 0.5 }
-  let hit = synth { (sine(note.freq * (1 + 6 * perc(release: 0.02))) + highpass(noise(), cutoff: 2000) * perc(release: 0.15) * 0.6) * perc(attack: 0.001, release: 0.5) }
-  let blip = synth { sine(note.freq) * perc(attack: 0.002, release: 0.09) + sine(note.freq * 3) * perc(release: 0.03) * 0.3 }
-  let roots = [0, -4, 3, -2]
-  let chords = [[0, 7, 12, 15], [-4, 3, 8, 12], [3, 7, 10, 15], [-2, 5, 10, 14]]
-  let sixteenth(j) = j / s16
-  let sec_of(j) = j / 8
-  let full(j) = (sec_of(j) >= 18.0) * (sec_of(j) < 51.5)
-  let calm(j) = (sec_of(j) >= 51.5)
-  pattern pads = repeat 120 event(t: floor(i / 4) * 2 / total, x: 0.3 + 0.13 * (i % 4), y: semi(chords[floor(i / 4) % 4][i % 4] + 12), size: 0.09,
-      intensity: 0.4)
-  pattern kicks = repeat s16 event(t: sixteenth(i), x: 0.5, y: 0.99, intensity: (full(i) * (i % 4 == 0) + (1 - full(i)) * (1 - calm(i)) * (i % 16 == 0)) * 0.9)
-  pattern claps = repeat s16 event(t: sixteenth(i), x: 0.55, y: 0.5, intensity: full(i) * (i % 8 == 4) * 0.8)
-  pattern hats = repeat s16 event(t: sixteenth(i), x: 0.5 + 0.3 * sin(i * 1.7), y: 0.5,
-      intensity: ((sec_of(i) >= 24.5) * (sec_of(i) < 51.5) * (0.25 + 0.35 * (i % 4 == 2)) + (sec_of(i) < 24.5) * (1 - calm(i)) * (i % 4 == 2) * 0.3))
-  pattern basses = repeat s16 event(t: sixteenth(i), x: 0.5, y: semi(roots[floor(i / 16) % 4] + 12), size: 0.008,
-      intensity: full(i) * (((i % 16) * 5) % 16 < 5) * 0.8)
+  let kick = synth { drive(sine(note.freq * (1 + 4 * perc(attack: 0.0005, release: 0.03))) * perc(attack: 0.001, release: 0.2), amount: 0.4)
+                      + highpass(noise(), cutoff: 3000) * perc(release: 0.003) * 0.4 }
+  let snare = synth { drive(bandpass(noise(), cutoff: 2600, resonance: 0.4) * perc(release: 0.08)
+                       + sine(190 * (1 + 0.6 * perc(release: 0.01))) * perc(release: 0.05) * 0.7, amount: 0.6) }
+  let tick = synth { sine(note.freq * (1 + 6 * sine(note.freq * 2.76))) * perc(attack: 0.0003, release: 0.016) }
+  let hat = synth { (highpass(noise(), cutoff: 9000, resonance: 0.3) + sine(note.freq * (1 + 3 * sine(note.freq * 1.47))) * 0.25) * perc(release: 0.022) }
+  let sub = synth { sine(note.freq * (1 + 0.7 * sine(note.freq * 2.01) * perc(release: 0.1))) * adsr(attack: 0.004, decay: 0.18, sustain: 0.5, release: 0.1) }
+  let bell = synth { sine(note.freq * (1 + 1.4 * sine(note.freq * 3.53) * perc(release: 0.5))) * perc(attack: 0.002, release: 1.3) * 0.5
+                      + sine(note.freq * 2.001) * perc(release: 0.25) * 0.15 }
+  let glitch = synth { bandpass(square(note.freq * (1 + 5 * sine(note.freq * 0.51))), cutoff: 2200, resonance: 0.6) * perc(attack: 0.0005, release: 0.028) }
+  let boom = synth { drive(sine(note.freq * (1 + 2.5 * perc(release: 0.06))) * perc(attack: 0.001, release: 1.1), amount: 0.45)
+                      + bandpass(noise(), cutoff: 500, resonance: 0.3) * perc(release: 0.35) * 0.4 }
+  let glass = synth { sine(note.freq * (1 + 0.8 * sine(note.freq * 4.2) * perc(release: 0.06))) * perc(attack: 0.001, release: 0.3) }
+
+  let chords = [[12, 15, 19, 22, 26], [8, 12, 15, 19, 26], [5, 12, 15, 20, 24], [7, 14, 17, 20, 24]]
+  let roots = [12, 8, 5, 7]
+  let secs(j) = j / 8
+  let inside(j, a, b) = (secs(j) >= a) * (secs(j) < b)
+  let half(j) = inside(j, 7.5, 18.0)
+  let full(j) = inside(j, 18.0, 51.5)
+  let chord(j) = floor(secs(j) / 4) % 4
+
+  pattern pads = repeat 150 event(t: floor(i / 5) * 2 / total, x: 0.2 + 0.15 * (i % 5),
+      y: semi(chords[floor(i / 10) % 4][i % 5]), size: 0.15, intensity: (0.35 + 0.1 * (i % 5 == 0)) * (1 - 0.35 * (floor(i / 5) % 2)))
+  pattern dust = repeat s16 * 2 event(t: i / (s16 * 2), x: h(i, 41), y: semi(floor(h(i, 43) * 30)), size: 0.002,
+      intensity: (h(i, 42) > 0.72) * (0.25 + 0.5 * h(i, 44)) * (inside(i / 2, 0, 4.0) * 0.9 + inside(i / 2, 4.0, 51.5) * 0.35))
+  pattern kicks = repeat s16 event(t: i / s16, x: 0.5, y: semi(0), size: 0.01,
+      intensity: full(i) * kon(i) * (0.75 + 0.25 * (st(i) == 0)) + half(i) * ((st(i) == 0) + (st(i) == 10) * (h(br(i), 5) > 0.4)) * 0.8)
+  pattern snares = repeat s16 event(t: i / s16, x: 0.55, y: semi(0), size: 0.01,
+      intensity: full(i) * son(i) * (0.4 + 0.5 * (st(i) % 4 == 0)) + half(i) * (st(i) == 12) * 0.7)
+  pattern hats = repeat s16 event(t: i / s16, x: 0.25 + 0.5 * h(i, 9), y: semi(floor(h(i, 8) * 20)), size: 0.002,
+      intensity: inside(i, 10.5, 51.5) * hon(i) * (0.2 + 0.4 * h(i, 10)))
+  pattern rolls = repeat s64 event(t: i / s64, x: 0.3 + 0.4 * h(floor(i / 4), 21), y: semi(10 + (i % 4) * 4), size: 0.002,
+      intensity: full(floor(i / 4)) * (h(st(floor(i / 4)), br(floor(i / 4)) + 5) > 0.86) * (0.6 - (i % 4) * 0.12))
+  pattern basses = repeat s16 event(t: i / s16, x: 0.5, y: semi(roots[chord(i)] + 12 * (h(i, 31) > 0.7)), size: 0.004,
+      intensity: full(i) * bon(i) * 0.85)
+  pattern bells = repeat 146 event(t: i * 0.4 / total, x: 0.2 + 0.6 * h(i, 51),
+      y: semi([12, 14, 15, 17, 19, 21, 22, 24, 26][floor(h(i, 52) * 9)]), size: 0.05,
+      intensity: (h(i, 53) > 0.55) * (inside(i * 3.2, 24.5, 51.5) * 0.5 + inside(i * 3.2, 51.5, 57.0) * 0.8))
   let cuts = [4.0, 7.5, 10.5, 14.0, 18.0, 21.0, 24.5, 28.5, 31.0, 35.0, 38.5, 41.5, 45.5, 51.5]
-  pattern hits = repeat 14 event(t: cuts[i] / total, x: 0.5, y: semi(0), size: 0.05, intensity: 0.8)
-  pattern stabs = repeat 42 event(t: cuts[floor(i / 3)] / total, x: 0.35 + 0.15 * (i % 3), y: semi(chords[floor(cuts[floor(i / 3)] / 2) % 4][i % 3 + 1] + 12), size: 0.02, intensity: 0.55)
+  pattern stutters = repeat 112 event(t: (cuts[floor(i / 8)] - 0.25 + (i % 8) * 0.03125) / total, x: 0.5 + 0.3 * sin(i * 2.1),
+      y: semi(6 + (i % 8) * 3), size: 0.002, intensity: 0.25 + (i % 8) * 0.07)
+  pattern glitches = repeat 42 event(t: (cuts[floor(i / 3)] + (i % 3) * 0.047) / total, x: 0.5 + 0.35 * sin(i * 1.3),
+      y: semi(18 - (i % 3) * 6), size: 0.002, intensity: 0.8 - (i % 3) * 0.2)
+  pattern booms = repeat 4 event(t: [4.00, 18.00, 45.50, 51.50][i] / total, x: 0.5, y: semi(0), size: 0.05, intensity: 0.9)
   let picturetimes = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 18.0, 18.5, 19.0, 19.5, 20.0, 20.5, 45.5, 46.0, 46.5, 47.0, 47.5, 48.0, 48.5, 49.0, 49.5, 50.0, 50.5, 51.0]
-  pattern flips = repeat 33 event(t: picturetimes[i] / total, x: 0.3 + 0.4 * fract(i * 0.37), y: semi(choose { 24 | 27 | 31 | 34 | 36 }), size: 0.005, intensity: 0.5)
+  pattern flips = repeat 33 event(t: picturetimes[i] / total, x: 0.2 + 0.6 * h(i, 61), y: semi([24, 27, 29, 31, 34][floor(h(i, 62) * 5)]), size: 0.005, intensity: 0.4)
 
   let music = [
     l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15,
-    notes(pads, instrument: pad, scale: "chromatic", key: 110, gain: 0.55),
-    notes(kicks, instrument: kick, scale: "chromatic", key: 50, gain: 1.3),
-    notes(claps, instrument: clap, gain: 0.55),
-    notes(hats, instrument: hat, gain: 0.35),
-    notes(basses, instrument: bass, scale: "chromatic", key: 55, gain: 0.9),
-    notes(hits, instrument: hit, scale: "chromatic", key: 55, gain: 0.7),
-    notes(stabs, instrument: stab, scale: "chromatic", key: 220, gain: 0.45),
-    notes(flips, instrument: blip, scale: "chromatic", key: 220, gain: 0.35),
+    notes(pads, instrument: pad, scale: "chromatic", key: 73.42, gain: 0.4),
+    notes(dust, instrument: tick, scale: "chromatic", key: 1200, gain: 0.35),
+    notes(kicks, instrument: kick, scale: "chromatic", key: 48, gain: 1.3),
+    notes(snares, instrument: snare, gain: 0.7),
+    notes(hats, instrument: hat, scale: "chromatic", key: 2000, gain: 0.45),
+    notes(rolls, instrument: tick, scale: "chromatic", key: 900, gain: 0.5),
+    notes(basses, instrument: sub, scale: "chromatic", key: 36.71, gain: 0.75),
+    notes(bells, instrument: bell, scale: "chromatic", key: 293.66, gain: 0.4),
+    notes(stutters, instrument: glitch, scale: "chromatic", key: 220, gain: 0.55),
+    notes(glitches, instrument: glitch, scale: "chromatic", key: 110, gain: 0.7),
+    notes(booms, instrument: boom, scale: "chromatic", key: 36.71, gain: 1.0),
+    notes(flips, instrument: glass, scale: "chromatic", key: 587.33, gain: 0.3),
   ]
 
-  render image(reel, width: 1080, height: 1920, at: 0.7735)
-  render video(reel, fps: 30, width: 1080, height: 1920, duration: total, sound: music, room: 0.25, echo: 0.08)
+  render image(reel, width: 1080, height: 1920, at: 0.2838)
+  render video(reel, fps: 30, width: 1080, height: 1920, duration: total, sound: music, room: 0.3, echo: 0.15)
 }

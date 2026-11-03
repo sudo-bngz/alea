@@ -1,0 +1,12 @@
+// Prisme — a few bent stripes, folded into a star by a kaleidoscope; its
+// heart in red.
+
+work Prisme {
+  let bands = warp(stripes(count: choose { 6 | 9 | 14 }, angle: ~between(0, 180), softness: 0.04), amount: ~between(0.04, 0.1), scale: 2)
+  let star  = kaleidoscope(bands, sides: choose { 5 | 6 | 8 | 12 })
+  let heart = circle(x: 0.5, y: 0.5, size: ~between(0.12, 0.3))
+  let edge  = 1 - circle(x: 0.5, y: 0.5, size: ~between(0.8, 0.95))
+  output cut(cut(star, edge), heart) * 0.5 + heart * (1 - star * 0.5)
+  render image(output, width: 1080, height: 1350, range: [0, 1],
+    palette: [[0, "#efebe2"], [0.5, "#141414"], [0.75, "#141414"], [0.75, "#e0462b"], [1, "#e0462b"]])
+}
