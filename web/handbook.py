@@ -58,6 +58,8 @@ def relink(html, own):
     return html
 
 guide_html = relink(guide_html, "guide-")
+# A chapter's own number goes into its tag: <h2>3. Chance</h2> → <h2><span class="num">03</span>Chance</h2>
+guide_html = re.sub(r'(<h2 id="[^"]+">)(\d+)\. ', lambda m: f'{m.group(1)}<span class="num">{int(m.group(2)):02d}</span>', guide_html)
 ref_html = relink(ref_html, "ref-")
 
 # Illustrate each guide chapter with its tour file's renders.
