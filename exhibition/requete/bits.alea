@@ -22,6 +22,6 @@ work Bits {
   let cable = path(fibre, 0.012, 0.004) * 0.25
   let pulses = merge([glow(x: along(fibre, fract(t * 2 + p / 9) * length(fibre)).x,
                            y: along(fibre, fract(t * 2 + p / 9) * length(fibre)).y, size: 0.1) for p in range(9)]) * 0.9
-  let label = text("1 0 1 1 0 0 1 0   →   light", 0.5, 1.36, 0.026, 0, "mono") * 0.6
+  let label = text("1 0 1 1 0 0 1 0   →   light", 0.5, 1.3, 0.026, 0, "mono") * 0.6
   output merge(trace, digits, preamble, cable, pulses, label)
 }

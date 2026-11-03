@@ -2,7 +2,7 @@
 // ".", "io", "bngz", "alea"; each node lights as it is asked; the answer
 // comes back down as an address. What it returns: 0 dark, up to 1 light.
 
-work Dns {
+work Dns(c0 = 0, c1 = 0.55, answer = 0.62) {
   let nodes  = [[0.5, 0.2], [0.3, 0.42], [0.62, 0.64], [0.4, 0.86]]
   let labels = [".", "io", "bngz", "alea"]
   let edges  = merge([line(nodes[k].x, nodes[k].y, nodes[k + 1].x, nodes[k + 1].y, 0.004, 0.002) for k in range(3)]) * 0.35
@@ -11,17 +11,17 @@ work Dns {
                       for k in range(3) for d in [~between(-0.35, -0.15), ~between(0.15, 0.35)]])
   // the query: a dot that runs the path over the first 0.55 of the scene
   let route = path(nodes, 0.004, 0.002) * 0
-  let d = clamp(t / 0.55, 0, 1) * length(nodes)
+  let d = clamp((t - c0) / (c1 - c0), 0, 1) * length(nodes)
   let q = along(nodes, d)
-  let query = glow(x: q.x, y: q.y, size: 0.12) * 0.8 * (t < 0.58)
+  let query = glow(x: q.x, y: q.y, size: 0.12) * 0.8 * (t < c1 + 0.03) * (t > c0 - 0.02)
   // each node lights when the query arrives, and keeps a little
-  let asked(k) = smoothstep(k / 3 * 0.55 - 0.02, k / 3 * 0.55 + 0.02, t)
+  let asked(k) = smoothstep(c0 + k / 3 * (c1 - c0) - 0.02, c0 + k / 3 * (c1 - c0) + 0.02, t)
   let dots = merge([merge(circle(nodes[k].x, nodes[k].y, 0.045, 0.002) * (0.25 + 0.75 * asked(k)),
                           text(labels[k], nodes[k].x + 0.07, nodes[k].y, 0.045, 0, "mono", "left") * (0.3 + 0.7 * asked(k)))
                     for k in range(4)])
   // the answer: the address, typed out under the leaf
-  let answer = text("A  203.0.113.7", 0.4, 1.0, 0.045, 0, "mono") * smoothstep(0.62, 0.72, t)
-  let ttl    = text("TTL 300", 0.4, 1.06, 0.026, 0, "mono") * smoothstep(0.72, 0.8, t) * 0.6
-  let back   = line(0.4, 0.86, 0.4, 0.97, 0.004, 0.002) * smoothstep(0.58, 0.64, t) * 0.5
+  let answer = text("A  203.0.113.7", 0.4, 1.0, 0.045, 0, "mono") * smoothstep(answer, answer + 0.06, t)
+  let ttl    = text("TTL 300", 0.4, 1.06, 0.026, 0, "mono") * smoothstep(answer + 0.06, answer + 0.12, t) * 0.6
+  let back   = line(0.4, 0.86, 0.4, 0.97, 0.004, 0.002) * smoothstep(c1 + 0.02, c1 + 0.06, t) * 0.5
   output merge(edges, others, query, dots, answer, ttl, back)
 }
