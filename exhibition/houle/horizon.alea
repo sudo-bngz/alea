@@ -1,0 +1,18 @@
+// Horizon — the calm before: a pale sky, the line of the sea, and below it
+// rows of slow swell that crowd together towards the horizon; a path of
+// light glittering on it. What it returns: 0 white, up to 1 deep blue.
+
+work Horizon(line = 0.32, swell = 1) {
+  let below = y > line
+  let dy = max(y - line, 0.002)
+  let z = 0.5 / dy                                              // how far away this row of sea is
+  let gx = (x - 0.5) * z
+  let sea = 0.5 + 0.5 * sin(z * 5 - t * tau * 1.5 + 1.2 * noise(gx * 1.2, z * 0.5, t))
+  let rows = smoothstep(0.55, 0.95, sea) * swell
+  let depth = 0.25 + 0.35 * smoothstep(0, 1, dy / 1.1)
+  let glitter = (abs(x - 0.5) < 0.05 + 0.2 * dy) * (fract(sin(floor(x * 220) * 12.9898 + floor(y * 300) * 78.233 + floor(t * 60)) * 43758.5453) > 0.93)
+  let water = below * clamp(depth + 0.25 * rows - 0.3 * glitter * smoothstep(0, 0.4, dy), 0, 1)
+  let haze = (1 - below) * 0.06 * smoothstep(line - 0.6, line, y)
+  let edge = (1 - smoothstep(0, 0.004, abs(y - line))) * 0.5
+  output max(water + haze, edge)
+}

@@ -1,0 +1,60 @@
+// Houle — the swell, in half a minute, white and blue: what a wave is and
+// how the sea moves. The calm line of the horizon; grains of water turning
+// in circles as the wave passes through them, wide at the top, small below
+// (the water stays, the energy goes); rows of water lifted by waves of
+// three lengths at once; rings from three places crossing and adding up;
+// the open sea in three dimensions, rows bunching on the faces of the
+// swell; the same rows caught in an eddy and curled over into a breaking
+// crest; the wash of foam running up the sand and back. Seven works on a
+// timeline (houle/), crossed slowly by morphs and fades, in a loop.
+//
+// The sound breathes with the sea: a pad in D lydian swelling and ebbing
+// every six seconds, the sound of waves in time with it, a low tide of sine
+// under it, drops of glass here and there, and a wash at every crossing.
+
+use "houle/horizon.alea"
+use "houle/orbits.alea"
+use "houle/lines.alea"
+use "houle/meet.alea"
+use "houle/swell.alea"
+use "houle/crest.alea"
+use "houle/foam.alea"
+
+work Houle {
+  // white to the blue of deep water, nothing else
+  let sea = [[0, "#f7fafc"], [0.15, "#dcebf5"], [0.45, "#7fb3dc"], [0.75, "#2a6bb3"], [1, "#0b2f6b"]]
+  let ink(piece) = paint(piece, palette: sea, range: [0, 1])
+
+  let reel = timeline([
+      scene(ink(Horizon()), 4),                     morph(1, amount: 0.2),
+      scene(ink(Orbits()), 5),                      fade(0.9),
+      scene(ink(Lines()), 4),                       morph(1, amount: 0.25),
+      scene(ink(Meet()), 3.5),                      morph(0.9, amount: 0.2),
+      scene(ink(Swell()), 5),                       fade(0.9),
+      scene(ink(Crest()), 4.5),                     morph(1, amount: 0.25),
+      scene(ink(Foam()), 4),                        morph(1, amount: 0.2),
+  ], loop: 1)                                                                 // 30 s
+  let look = film(reel, amount: 0.025)
+
+  // ── the sound: the sea breathing five times in the half minute ──
+  let pad = synth {
+    let env = adsr(attack: 2, decay: 1, sustain: 0.9, release: 3)
+    chorus(lowpass(triangle(note.freq) + saw(note.freq * 1.003) * 0.35 + sine(note.freq * 2) * 0.2,
+                   cutoff: 500 + 1400 * note.level, resonance: 0.1) * env, depth: 0.9, rate: 0.2, mix: 0.6)
+  }
+  let tide = synth { (sine(note.freq) + sine(note.freq * 2) * 0.1) * adsr(attack: 3, decay: 1, sustain: 1, release: 3) }
+  let wash = synth { lowpass(noise(), cutoff: 600 + 2400 * perc(attack: 0.5, release: 1.4), resonance: 0.1) * perc(attack: 0.5, release: 1.4) }
+  let breathe = 0.5 - 0.5 * cos(t * tau * 5)
+  pattern drops = repeat 40 event(t: ~uniform(0.02, 0.97), x: ~uniform(0.15, 0.85), y: ~between(0.35, 0.95), size: ~between(0.02, 0.06),
+                                  intensity: ~between(0.15, 0.5))
+  let music = [
+    drone(0.25 + 0.65 * breathe + y * 0, voices: 4, instrument: pad, scale: "lydian", key: 146.83, gain: 0.9),
+    drone(0.4 + 0.5 * breathe + y * 0, voices: 1, instrument: tide, key: 73.42, gain: 0.7),
+    texture(0.2 + 0.8 * breathe + x * 0, kind: "waves", gain: 1),
+    notes(drops, instrument: "glass", scale: "pentatonic", key: 587.33, gain: 0.35),
+    notes(reel.cues, instrument: wash, gain: 0.3),
+  ]
+
+  render image(look, width: 1080, height: 1920, at: 24 / 30)                // the cover: the crest, curling
+  render video(look, fps: 30, width: 1080, height: 1920, sound: music, room: 0.6, echo: 0.25)
+}
