@@ -143,7 +143,7 @@ the ones drawn.
 |---|---|
 | `image` | a PNG, any size, painted with a named palette or your own colours |
 | `video` | an MP4 that loops, with its sound (needs [ffmpeg](https://ffmpeg.org)) |
-| `sound` | a WAV: drones, notes, textures, rhythms, drawn from the same edition |
+| `sound` | a WAV: drones, notes, textures, rhythms, a voice reading a text (its own, or a neural one through `voices/`), drawn from the same edition |
 | `sculpture` | an STL relief, ready for a 3D printer |
 | `midi` | a MIDI file, or MIDI played live into your DAW, in time with its clock |
 | `--web page.html` | one self-contained web page that draws a new edition at every visit |

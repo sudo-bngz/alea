@@ -1,0 +1,24 @@
+// A voice, drawn by chance: its pitch, its pace, the size of its throat, how
+// worn it is. It says a line in English, then in French, then sings it; the
+// circles pulse on its syllables.
+
+work Voice {
+  let pitch = ~between(85, 150)
+  let size = ~between(0.85, 1.1)
+  let rough = ~between(0, 0.35)
+  let en = say("Every run, a different artwork. I never make the same thing twice.", at: 0.8, pitch: pitch, size: size, rough: rough)
+  let fr = say("Chaque exécution, une œuvre différente. Je ne fais jamais deux fois la même chose.", at: en.end + 0.6,
+               lang: "fr", pitch: pitch, size: size, rough: rough)
+  let sung = say("I never make the same thing twice.", at: fr.end + 0.6, pitch: pitch, size: size, rough: rough,
+                 melody: [0, 3, 7, 10, 7, 3, 12, 10, 7])
+  let total = sung.end + 1.2
+
+  // a pulse on every syllable, the three voices one after the other
+  let beats = join(en.syllables, join(fr.syllables, sung.syllables))
+  let pulse = sum([exp(-max(t * total - s, 0) * 9) * (t * total >= s) for s in beats])
+  let picture = paint(ripples(0.5, 0.5, count: 6) * clamp(pulse, 0, 1) + circle(0.5, 0.5, 0.04),
+                      palette: ["#0b0b10", "#3a2f6b", "#e8d27a", "#fff8e0"])
+
+  render video(picture, fps: 30, width: 720, height: 720, duration: total,
+               sound: [en, fr, sung], room: 0.35, echo: 0.1)
+}

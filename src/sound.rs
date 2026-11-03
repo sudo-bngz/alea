@@ -208,6 +208,9 @@ pub enum Layer {
     Clip { input: Arc<crate::input::Input>, gain: f64 },
     /// `cc(field, number)`: a MIDI controller, silent in alea's own sound.
     Control { field: Field, seed: u64, number: u8, channel: u8 },
+    /// `say(text)`: a voice reading a text, at its own level, then through
+    /// the echo and the room with the rest.
+    Speech { speech: Arc<crate::speech::Speech>, gain: f64 },
 }
 
 pub struct Mix {
@@ -911,6 +914,23 @@ pub fn render(layers: &[Arc<Layer>], mix: &Mix) -> [Vec<f64>; 2] {
             }
             continue;
         }
+        if let Layer::Speech { speech, gain } = layer.as_ref() {
+            let voice = speech.sound();
+            let start = (speech.at.max(0.0) * SR) as usize;
+            // its level is its own: loud enough over a full mix, whatever its length
+            let rms = (voice.iter().map(|x| x * x).sum::<f64>() / voice.len().max(1) as f64).sqrt();
+            let g = if rms > 1e-12 { 0.16 / rms * gain } else { 0.0 };
+            let (l, r) = pan(speech.pan);
+            for (k, x) in voice.iter().enumerate() {
+                let s = start + k;
+                if s >= n {
+                    break;
+                }
+                out[0][s] += x * g * l * std::f64::consts::SQRT_2;
+                out[1][s] += x * g * r * std::f64::consts::SQRT_2;
+            }
+            continue;
+        }
         let (buf, gain) = match layer.as_ref() {
             Layer::Drone { field, seed, voices, scale, key, gain, harmony, synth: Some(sy), .. } => {
                 (drone_synth(field, *seed, *voices, sy, scale, *key, harmony.as_deref(), n, mix.duration), *gain)
@@ -926,7 +946,7 @@ pub fn render(layers: &[Arc<Layer>], mix: &Mix) -> [Vec<f64>; 2] {
                 (notes(events, *strike, scale, *key, *t, *seed, n, mix.duration, feel, synth.as_deref()), *gain)
             }
             Layer::Texture { field, seed, kind, gain } => (texture(field, *seed, *kind, n, mix.duration), *gain),
-            Layer::Clip { .. } | Layer::Control { .. } => unreachable!("handled above"),
+            Layer::Clip { .. } | Layer::Control { .. } | Layer::Speech { .. } => unreachable!("handled above"),
         };
         // Each layer at a comparable level, then its own gain.
         let rms = (buf.iter().flat_map(|c| c.iter()).map(|x| x * x).sum::<f64>() / (2 * n).max(1) as f64).sqrt();
