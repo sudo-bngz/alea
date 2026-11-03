@@ -1,0 +1,10 @@
+// End — the count: two hundred milliseconds, and the six steps in a column,
+// before it all starts again. What it returns: 0 dark, up to 1 light.
+
+work End {
+  let big = text("200 ms", 0.5, 0.42, 0.13, 0, "bold") * smoothstep(0.02, 0.12, t)
+  let steps = ["address", "name", "handshake", "packets", "wire", "page"]
+  let list = merge([text(steps[k], 0.5, 0.6 + k * 0.06, 0.034, 0, "mono") * smoothstep(0.15 + k * 0.06, 0.22 + k * 0.06, t) * 0.7 for k in range(6)])
+  let rule = line(0.3, 0.53, 0.7, 0.53, 0.003, 0.002) * smoothstep(0.1, 0.2, t) * 0.5
+  output merge(big, list, rule)
+}
