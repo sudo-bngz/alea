@@ -34,7 +34,7 @@ alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
 alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
-alea intro.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes; needs voices/kokoro.py: pip install sherpa-onnx numpy)
+alea intro.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 58.5 s, in a loop (about 1.5 hours; needs voices/kokoro.py: pip install sherpa-onnx numpy)
 alea ring0.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea vektor.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 45 minutes)
 alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
@@ -868,23 +868,26 @@ bois. Une minute, en boucle. Édition 0xa1ea01.
 |---|---|---|
 | 22 | alea speaks, Reel (58.5 s, a loop): the introduction, post it first and pin it | `22-alea-speaks-reel.mp4` (cover: `22-alea-speaks-reel-cover.jpg`) |
 
-**How it is made.** An invitation, in a minute of cuts on a 120 BPM beat:
-what alea is, then what it does, one feature to a cut. A voice says it
-(`say` through a neural engine, `voices/kokoro.py`, `af_heart`), its words
-typed letter by letter as it speaks; ink and one red on paper. A montage of
-the exhibition first (editions of the other rooms, read from `instagram/`
-with `open`); the code of a work, a line on each eighth note, its `choose`
-in red; six editions of that work, one per beat, each with its seed; the
-same seed twice and the same picture; then image, video (a flower turning,
-redrawn on every beat), sound (a step sequencer playing the very track you
-hear), voice, input (a photo printed in three inks), MIDI and the DAW (a
-piano roll), 3D (a relief, line by line), the web (a page drawing a new
-flower at each visit); the exhibition again, a room per beat; the name and
-where to try it. The whole page is one drawing over the minute; the
-timeline cuts it into a scene per section and crosses them with `glitch`,
-`pixels`, `slide` and jumps. The track: Am, F, C, G; a pulse under the
-concept, the full beat (kick, clap, hats, a Euclidean bass) under the
-features, a hit and a chord stab on every cut, a blip on every picture.
+**How it is made.** An invitation, in a minute of cuts on a 120 BPM grid:
+what alea is, then what it does, one feature to a cut. A low voice says it
+(`say` through a neural engine, `voices/kokoro.py`, `af_kore`), its words
+typed letter by letter as it speaks; ink and one red on paper. Every picture
+is new, made for this Reel by five small works in `intro/works/` (Trame,
+Orbites, Points, Blocs, Prisme; their editions kept in `intro/stills/`), but
+for the map of Isohypses. A montage of them first, one per beat; the code of
+Trame, a line on each eighth note, its chances (`choose`, `~`) in red; six
+of its editions, one per beat, each with its seed; the same seed twice and
+the same picture; then image (Isohypses), video (a flower turning, redrawn
+on every beat), sound (a step sequencer drawing the very patterns you hear),
+voice, input (a photo printed in three inks), MIDI and the DAW (a piano
+roll), 3D (a relief, line by line), the web (a page drawing a new flower at
+each visit); the editions again, one per beat; the name and where to try it.
+The whole page is one drawing over the minute; the timeline cuts it into a
+scene per section and crosses them with `glitch`, `pixels`, `slide` and
+jumps. The track is broken on purpose: a pad on a worn tape (Dm9, Bbmaj7,
+Gm7, A7sus), FM ticks like dust, a beat redrawn every two bars with ratchets
+and a sub, a stutter into every cut and a glitch on it, FM bells; at the end
+only the pad and the bells.
 
 ### 22 · alea speaks (Reel)
 
@@ -904,7 +907,7 @@ est un langage où chaque exécution tire une œuvre nouvelle : quelques lignes,
 et il dessine, chante et parle, un peu autrement à chaque fois. Open source,
 lien en bio. Édition 0xa1ea01.
 
-**Hashtags** (a few, the caption carries the keywords): `#generativeart #creativecoding #rustlang #speechsynthesis #opensource`
+**Hashtags** (a few, the caption carries the keywords): `#generativeart #creativecoding #rustlang #idm #opensource`
 
 ### Hashtags
 

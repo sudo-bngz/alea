@@ -1,0 +1,15 @@
+// Blocs — a constructivist page: bars, a disc, a grid, every edition
+// arranged anew; one red.
+
+work Blocs {
+  let bars = merge(rect(height: ~between(0.02, 0.06), width: ~between(0.5, 1.1)),
+                   rect(height: ~between(0.02, 0.06), width: ~between(0.5, 1.1)),
+                   rect(width: ~between(0.01, 0.04), height: ~between(0.5, 1.1)))
+  let grid = overlap(checker(count: choose { 8 | 12 | 16 }), square(size: ~between(0.25, 0.4)))
+  let lines = merge(line(width: 0.004), line(width: 0.004), line(width: 0.004))
+  let disc = circle(size: ~between(0.2, 0.45))
+  let arc  = ring(width: 0.012)
+  output max(merge(bars, grid, lines, arc) * 0.5, disc * choose { 1 | 0.5 } * (1 - bars))
+  render image(output, width: 1080, height: 1350, range: [0, 1],
+    palette: [[0, "#efebe2"], [0.5, "#141414"], [0.75, "#141414"], [0.75, "#e0462b"], [1, "#e0462b"]])
+}

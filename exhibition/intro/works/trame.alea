@@ -1,0 +1,14 @@
+// Trame — lines, bent; a sun that turns them inside out. The work whose
+// code is typed in the introduction (intro.alea), line for line.
+
+work Trame {
+  let lines = stripes(count: choose { 24 | 40 | 64 },
+                      angle: ~between(0, 180), softness: 0.05)
+  let bent  = warp(lines, amount: ~between(0.03, 0.12),
+                          scale: ~between(1, 4))
+  let sun   = circle(size: ~between(0.25, 0.55))
+  output cut(bent, sun) * 0.5 + sun * invert(bent)
+  render image(output, width: 1080, height: 1350,
+    palette: ["#efebe2", "#141414", "#e0462b"],
+    range: [0, 1])
+}
