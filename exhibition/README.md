@@ -24,6 +24,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **RING 0** | `ring0.alea` (+ `ring0/`) | How the kernel of an operating system works, abstract and on the beat: the boot log, the shell, processes in their time slices, the rings of protection, system calls through the gate, interrupts climbing from the devices, the disk and the bus, pages and their frames, the run queue, the fork, and the three layers at once; then the halt, an old screen switched off. Fifty-five cuts in a minute, glitches drawn anew every edition, an IDM track of clicks, metal and wood in the Autechre way. |
 | **alea speaks** | `intro.alea` (+ `intro/`) | The introduction, and an invitation: what alea is and what it does, one feature to a cut on the beat: editions of a work, one per run; the same seed, the same picture; images, video, sound, a voice, inputs, MIDI and the DAW, 3D, the web; a voice says it, its words typed as it speaks; ink and one red on paper. |
 | **Kairo** (回路) | `kairo.alea` (+ `fonts/`) | After Kikai, a modular synthesizer that never existed: two rows of modules racked in another order each edition, patched with hanging cables. Also a Reel without drums: a slow piano waltz over a deep drone, the melody written on a staff as it plays. |
+| **Couches** | `couches.alea` (+ `couches/`) | How a network works, explained by a voice in two minutes: what a protocol is, the seven layers of the OSI model, encapsulation (a message wrapped in a header at every layer on its way down, unwrapped on its way up), and each layer with its protocols: HTTP and DNS, TCP's numbered segments and UDP's stream, IP addresses and routers hop by hop, Ethernet frames and ARP on one cable, bits as voltage, light and radio. Ten works on a timeline, the words typed as they are said, a stack of seven layers lighting the one we are in. |
 | **Houle** | `houle.alea` (+ `houle/`) | The swell, in half a minute, white and blue: what a wave is and how the sea moves, abstract. The horizon; grains of water turning in circles as the wave passes through them; rows of water lifted by waves of three lengths; rings crossing and adding up; the open sea in 3D; the same rows curled over into a breaking crest; the foam on the sand. Seven works crossed slowly by morphs and fades; a pad, the waves and drops of glass, breathing with the sea. |
 
 ## Replaying the editions
@@ -38,6 +39,7 @@ alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel
 alea intro.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 69 s, in a loop (about 1.5 hours; needs voices/kokoro.py: pip install sherpa-onnx numpy)
 alea ring0.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea houle.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 30 s, in a loop (about 15 minutes)
+alea couches.alea --seed 0xa1ea01            # the cover, and the 1080×1920 Reel: 130 s, explained by a voice (needs voices/kokoro.py)
 alea vektor.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 45 minutes)
 alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
@@ -75,6 +77,7 @@ The posted editions:
 | RING 0 Reel | 0xa1ea01 |
 | alea speaks Reel | 0xa1ea01 |
 | Houle Reel | 0xa1ea01 |
+| Couches Reel | 0xa1ea01 |
 
 All images are 1080 × 1350 (4:5, Instagram's portrait format); the Reel is
 1080 × 1920 (9:16), 15 seconds, with sound.
@@ -937,6 +940,74 @@ en écume sur le sable. Sept œuvres en blanc et bleu, et une mer qui respire.
 Édition 0xa1ea01.
 
 **Hashtags**: `#generativeart #creativecoding #ocean #waves #ambient`
+
+## Fifteenth room: Couches
+
+| # | Post | Files |
+|---|---|---|
+| 24 | Couches, Reel (130 s, a loop), explained by a voice | `24-couches-reel.mp4` (cover: `24-couches-reel-cover.jpg`) |
+
+**How it is made.** Requête's sibling: how a network works, in nine steps
+and ten works in `couches/`, each a diagram narrated by the same voice
+(`say` through `voices/kokoro.py`, `af_heart`), its words typed under the
+step header as it speaks, a stack of the seven OSI layers at the top right
+lighting the one we are in. *Protocol* (two machines, a wire that carries
+only a signal, two messages crossing it, and a sheet of rules written line
+by line: who speaks first, what a message is made of), *Model* (the seven
+layers rising on two machines, physical to application, then a dashed line
+from each to its twin across the way: the same protocol at each end),
+*Wrap* (encapsulation: a block of data going down the five layers of the
+stack, a header sliding in front of it at each one, TCP, IP, the frame's
+addresses and a trailer, until at the bottom it is a row of bits; the same
+work with `up: 1` is the other end, where every header is peeled off
+again, bottom to top), *App* (HTTP's request and answer, DNS turning a name
+into an address, and the others with their jobs), *Transport* (a message cut
+into six numbered segments, each flying from sender to receiver and
+acknowledged with a dot back, one lost half way and sent again; under it
+UDP's stream that never waits), *Network* (a packet with its two IP
+addresses, carried router to router along a route across a scattered map,
+its TTL counting down), *Link* (one cable, four machines with their MAC
+addresses, ARP shouting along it, the right card answering, then the frame
+with its two MACs in front and a checksum behind), *Physical* (the same
+bits as a square wave on copper, pulses of light in a fibre, a radio wave
+whose amplitude follows them) and *End* (seven layers, one message). The
+stages take the time the voice needs, with a breath between sentences;
+each is painted in its own colour and keeps its own sound under the voice:
+tones for the hellos, keys for the rules, a note for each layer rising, a
+thud at every step down the stack and up again, keys and blips for the
+applications, blips for the segments and their acknowledgements, a low
+thud for the lost one, pulses at every hop, a burst for ARP's shout, the
+modem's song under the bits, a chord when the message arrives whole, and a
+clock ticking under everything. The addresses are the ones kept for
+documentation (192.0.2.44, 203.0.113.7, locally administered MACs):
+nobody's.
+
+### 24 · Couches (Reel)
+
+**EN**
+
+COUCHES — how a network works, in two minutes. Two machines and a wire
+that carries only signals, so they agree on rules: a protocol. The work
+split into seven layers, each talking to its twin on the other side. A
+message going down the stack, wrapped in a header at every layer, until it
+is bits; then each layer in turn: HTTP and DNS, TCP's numbered segments and
+UDP, IP and the routers, Ethernet and ARP, copper, light and radio. And at
+the other end, every envelope opened again, bottom to top. Edition
+0xa1ea01.
+
+**FR**
+
+COUCHES — comment marche un réseau, en deux minutes. Deux machines et un
+fil qui ne porte que des signaux : alors elles conviennent de règles, un
+protocole. Le travail découpé en sept couches, chacune parlant à sa
+jumelle de l'autre côté. Un message qui descend la pile, enveloppé d'un
+en-tête à chaque couche, jusqu'à n'être plus que des bits ; puis chaque
+couche à son tour : HTTP et DNS, les segments numérotés de TCP et UDP, IP
+et les routeurs, Ethernet et ARP, le cuivre, la lumière et la radio. Et à
+l'autre bout, chaque enveloppe ouverte à nouveau, de bas en haut. Édition
+0xa1ea01.
+
+**Hashtags**: `#generativeart #creativecoding #networking #osimodel #explained`
 
 ## Prologue: alea speaks
 
