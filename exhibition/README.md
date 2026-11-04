@@ -10,6 +10,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Isohypses** | `isohypses.alea` | Maps of places that don't exist: contour lines over an imaginary relief, layer tints, a hatched sea, towns, and the cartouche of a survey sheet. |
 | **Nocturne** | `nocturne.alea` | The moon over a sea at night, its path broken into glints by waves in perspective. Also a Reel: clouds drift and the water moves, in a seamless loop, with its own soundtrack. |
 | **Rosace** | `rosace.alea` | A rose window of stained glass: panes from a noise field, lead drawn as contour lines, tracery folded into the window's symmetry. |
+| *Avatar* | `avatar.alea` | The profile picture of the account (written.in.alea): a die, its face drawn by chance, on the card's night; made to read in a small circle. |
 | *Opening card* | `exhibition.alea` | A triptych of the three works, each called as a component. |
 | **Culture** | `culture.alea` | A petri dish: colonies seeded at random grow by reaction–diffusion, two kinds of life side by side. Also a Reel: 72 hours of incubation in 20 seconds. |
 | **Correspondances** | `correspondances.alea` (+ `correspondances/`) | The plan of a metro for a Paris that was never built: the real city's grammar, a new geometry every edition, and a Reel of one day of service. |
@@ -33,6 +34,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 alea isohypses.alea --seed 0xa1ea03          # writes the PNG of that edition
 alea nocturne.alea  --seed 0xa1ea06          # the image, and the 1080×1920 Reel (needs ffmpeg)
 alea exhibition.alea --seed 0xa1ea43         # the opening card
+alea avatar.alea --seed 0xa1ea02             # the profile picture (a five)
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
 alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)

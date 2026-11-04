@@ -1,0 +1,30 @@
+// Avatar — the profile picture of the exhibition's account, an edition like
+// everything else: a die (alea), its face drawn by chance, on the card's
+// night. Made for a small circle: one shape, one colour on one ground.
+work Avatar {
+  let night = [[0, "#0b0812"], [0.5, "#4a2366"], [1, "#f4f0f8"]]
+  let pips = choose([1, 2, 3, 4, 5, 6])
+  let tilt = ~between(-9, 9)
+
+  // the die: a square with its corners taken off by a circle
+  let face = overlap(square(0.5, 0.5, 0.58, angle: 0, softness: 0.004), circle(0.5, 0.5, 0.76, softness: 0.004))
+
+  // the seven places a pip can be, on or off by the count
+  let r = 0.085
+  let d = 0.165
+  let odd = step(0.5, pips % 2)
+  let two = step(1.5, pips)
+  let four = step(3.5, pips)
+  let six = step(5.5, pips)
+  let dots = merge(
+    circle(0.5, 0.5, r) * odd,
+    circle(0.5 - d, 0.5 - d, r) * two, circle(0.5 + d, 0.5 + d, r) * two,
+    circle(0.5 + d, 0.5 - d, r) * four, circle(0.5 - d, 0.5 + d, r) * four,
+    circle(0.5 - d, 0.5, r) * six, circle(0.5 + d, 0.5, r) * six)
+
+  let die = rotate(cut(face, dots), tilt)
+  let glow = blur(circle(0.5, 0.5, 0.9), radius: 0.12) * 0.5
+  let avatar = merge(glow, die)
+
+  render image(paint(avatar, night, range: [0, 1]), width: 1080, height: 1080)
+}
