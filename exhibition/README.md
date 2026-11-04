@@ -24,6 +24,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **RING 0** | `ring0.alea` (+ `ring0/`) | How the kernel of an operating system works, abstract and on the beat: the boot log, the shell, processes in their time slices, the rings of protection, system calls through the gate, interrupts climbing from the devices, the disk and the bus, pages and their frames, the run queue, the fork, and the three layers at once; then the halt, an old screen switched off. Fifty-five cuts in a minute, glitches drawn anew every edition, an IDM track of clicks, metal and wood in the Autechre way. |
 | **alea speaks** | `intro.alea` (+ `intro/`) | The introduction, and an invitation: what alea is and what it does, one feature to a cut on the beat: editions of a work, one per run; the same seed, the same picture; images, video, sound, a voice, inputs, MIDI and the DAW, 3D, the web; a voice says it, its words typed as it speaks; ink and one red on paper. |
 | **Kairo** (回路) | `kairo.alea` (+ `fonts/`) | After Kikai, a modular synthesizer that never existed: two rows of modules racked in another order each edition, patched with hanging cables. Also a Reel without drums: a slow piano waltz over a deep drone, the melody written on a staff as it plays. |
+| **Brut** | `brut.alea` (+ `brut/`) | A phone clip of the basement, torn to pieces: ten scenes cut on a 128 bpm grid, each a different way of breaking the picture (stills strobing, red green and blue pulled apart, a grid of sixteen frames, a kaleidoscope of the orange record, the clip seen through the label's globe, warped backwards in the break, edges and scanlines, the ghosts of two moments, eight stuttering strips, the stamp), the clip's own sound chopped through a modular patch, and a Detroit track underneath. |
 | **Couches** | `couches.alea` (+ `couches/`) | How a network works, explained by a voice in two minutes: what a protocol is, the seven layers of the OSI model, encapsulation (a message wrapped in a header at every layer on its way down, unwrapped on its way up), and each layer with its protocols: HTTP and DNS, TCP's numbered segments and UDP's stream, IP addresses and routers hop by hop, Ethernet frames and ARP on one cable, bits as voltage, light and radio. Ten works on a timeline, the words typed as they are said, a stack of seven layers lighting the one we are in. |
 | **Houle** | `houle.alea` (+ `houle/`) | The swell, in half a minute, white and blue: what a wave is and how the sea moves, abstract. The horizon; grains of water turning in circles as the wave passes through them; rows of water lifted by waves of three lengths; rings crossing and adding up; the open sea in 3D; the same rows curled over into a breaking crest; the foam on the sand. Seven works crossed slowly by morphs and fades; a pad, the waves and drops of glass, breathing with the sea. |
 
@@ -40,6 +41,7 @@ alea intro.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Ree
 alea ring0.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea houle.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 30 s, in a loop (about 15 minutes)
 alea couches.alea --seed 0xa1ea01            # the cover, and the 1080×1920 Reel: 130 s, explained by a voice (needs voices/kokoro.py)
+alea brut.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s (first python3 brut/make-inputs.py CLIP.mov; about 1.5 hours)
 alea vektor.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 45 minutes)
 alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
@@ -78,6 +80,7 @@ The posted editions:
 | alea speaks Reel | 0xa1ea01 |
 | Houle Reel | 0xa1ea01 |
 | Couches Reel | 0xa1ea01 |
+| Brut Reel | 0xa1ea01 |
 
 All images are 1080 × 1350 (4:5, Instagram's portrait format); the Reel is
 1080 × 1920 (9:16), 15 seconds, with sound.
@@ -1008,6 +1011,75 @@ l'autre bout, chaque enveloppe ouverte à nouveau, de bas en haut. Édition
 0xa1ea01.
 
 **Hashtags**: `#generativeart #creativecoding #networking #osimodel #explained`
+
+## Sixteenth room: Brut
+
+| # | Post | Files |
+|---|---|---|
+| 25 | Brut, Reel (60 s), from a phone clip | `25-brut-reel.mp4` (cover: `25-brut-reel-cover.jpg`) |
+
+**How it is made.** The first work with a video as input. An eight-second
+phone clip of a DJ in the basement (not in the repository) goes through
+`brut/make-inputs.py`: 126 of its frames are laid out on sheets
+(`brut/sheets/hi0–6.jpg`, eighteen 640 × 1138 frames each, and `lo.jpg`,
+all of them at 256 × 455), and its sound is chopped by `brut/chop.py` into
+`brut/chop.wav`. The sheets are the trick: a `sequence` of 126 pictures
+costs 126 lookups at every pixel, a frame picked out of a sheet with one
+`picture` (its `x`, `y` moved by the frame's index, a field) costs one, so a
+scene can show a different frame in every cell, strip or sixteenth.
+`brut/gen.py` writes `brut.alea`: ten scenes on a 128 bpm grid (12 or 16
+beats each, 32 bars, 60 s), every index of the picture driven by `hash` of
+the current sixteenth, eighth or beat, so nothing holds still. *Strobe* (a
+random still every sixteenth, posterised black and white, some inverted,
+some black, the globe flickering on the eighths), *Tear* (the clip at its
+own speed, red, green and blue pulled apart on every kick, slices torn
+sideways), *Grid* (sixteen cells, each on its own frame, one of them the
+globe, flickering on the eighths, a few in heat), *Kaleidoscope* (the
+orange record mirrored four, six and eight ways, posterised in the hot
+palette, pumping with the kick), *Globe* (the clip seen through a disc with
+the globe turning over it and the wordmark flickering under, then the disc
+cut out of the clip), *Melt* (the break: the clip running backwards through
+warped space, bloom and chromatic aberration), *Lines* (edges and
+scanlines, pixelated on some eighths, a flash of the colour frame on each
+kick), *Ghosts* (two moments of the clip, their difference, so only what
+moved shows, inverted on some beats, tiled on others), *Strips* (eight
+columns, each stuttering between its own two frames, some blacked out) and
+*Out* (the clip clean, alternating with the stamp, the globe and the
+wordmark on black, then black). The cuts are `glitch` transitions, one
+`pixels`, one `jump` into the break. The sound is the clip's own, reworked:
+`chop.py` cuts it into sixteenth-note slices (the loud ones more often) and a
+sequencer fires them on the grid, each through pitch (half speed, double,
+backwards), a gate envelope, 1/64 stutters, a lowpass with a slow LFO, a
+bitcrusher on some bars and a dotted-eighth delay, with a granular drone an
+octave down under the breaks; alea plays the result as a `sound:` layer.
+Under it a track in the Detroit way: 808 synths written as `synth` blocks
+(a kick with a pitch drop and a click, a three-burst clap, closed and open
+hats, a cowbell of two squares), a bass that never sits still (root, fifth
+and octave on a sixteenth pattern, through a resonant lowpass whose cutoff
+follows an envelope), stabs in three voices on a progression (i i VI VII in
+A minor, by `chords` and `harmony:`), an `arp` of plucks and a lead of
+chorused squares on the minor pentatonic, drawn from the edition's seed, on
+32 bars of `steps` patterns that build, break at bar 16 and come back.
+
+### 25 · Brut (Reel)
+
+**EN**
+
+BRUT — eight seconds of the basement, torn to pieces. One phone clip,
+126 of its frames, ten ways of breaking the picture on a 128 bpm grid:
+strobe, tear, grid, kaleidoscope, the globe, melt, lines, ghosts, strips,
+the stamp. The sound is the clip's own, chopped through a modular patch,
+over 808s and a bass that never sits still. Edition 0xa1ea01.
+
+**FR**
+
+BRUT — huit secondes du basement, mises en pièces. Un clip de téléphone,
+126 de ses images, dix façons de casser l'image sur une grille à 128 bpm :
+strobe, déchirure, grille, kaléidoscope, le globe, fonte, lignes, fantômes,
+bandes, le tampon. Le son est celui du clip, haché dans un patch modulaire,
+sur des 808 et une basse qui ne tient pas en place. Édition 0xa1ea01.
+
+**Hashtags**: `#generativeart #creativecoding #glitchart #detroittechno #momosbasement`
 
 ## Prologue: alea speaks
 
