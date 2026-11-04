@@ -1,0 +1,185 @@
+// Brut — a phone clip of the basement, torn to pieces: ten scenes cut on a
+// 128 bpm grid, the clip's own sound chopped through a modular patch, and
+// a Detroit track underneath. Inputs: brut/make-inputs.py CLIP.mov
+work Brut {
+  // ---- the clip, as sheets of frames (one picture lookup per frame) ----
+  let sheets = files("brut/sheets/hi*.jpg")
+  let fh = 1.778
+  let hx(k) = 0.5 - ((k % 18) % 6 + 0.5 - 3)
+  let hy(k) = 0.5 - (floor((k % 18) / 6) + 0.5 - 1.5) * fh
+  let hi(k, ch) = sequence([picture(f, hx(k), hy(k), 6, channel: ch) for f in sheets], fade: 0, time: (floor(k / 18) + 0.5) / 7)
+  let lo(k, ch) = picture("brut/sheets/lo.jpg", 0.5 - ((k % 16) + 0.5 - 8), 0.5 - (floor(k / 16) + 0.5 - 4) * fh, 16, channel: ch)
+  let red(f) = paint(f, [[0, "#000000"], [1, "#ff0000"]], range: [0, 1])
+  let green(f) = paint(f, [[0, "#000000"], [1, "#00ff00"]], range: [0, 1])
+  let blue(f) = paint(f, [[0, "#000000"], [1, "#0000ff"]], range: [0, 1])
+  let rgb(r, g, b) = overlay(red(r), green(g), blue(b), blend: "add")
+  let bw = [[0, "#000000"], [1, "#f2efe8"]]
+  let hot = [[0, "#000000"], [0.45, "#ff4d00"], [0.8, "#ffb000"], [1, "#fff6e0"]]
+  let hash(k) = fract(sin(k * 12.9898 + 78.233) * 43758.5453)
+  let beat = 0.46875
+  let globe(sz) = picture("brut/globe.png", 0.5, 0.5, sz, channel: "alpha")
+  let word = picture("brut/word.png", 0.5, 1.18, 0.7, channel: "alpha")
+  let white(f) = paint(f, bw, range: [0, 1], alpha: f)
+  let duo(f, m) = overlay(paint(f, bw, range: [0, 1]), paint(f, hot, range: [0, 1]), mask: m)
+
+  // ---- 1 · strobe: a random still every sixteenth, black and white ----
+  let a1 = (0 + t * 12)
+  let s1_16 = floor(a1 * 4)
+  let s1_k = floor(hash(s1_16) * 126)
+  let s1_on = step(0.18, hash(s1_16 * 3 + 7))
+  let s1_inv = step(0.78, hash(s1_16 * 5 + 2))
+  let s1_f = posterize(lo(s1_k, "luminance") * 1.3 - 0.1, levels: 3)
+  let s1_pic = film(mix(s1_f, 1 - s1_f, s1_inv) * s1_on, amount: 0.15)
+  let s1 = overlay(paint(s1_pic, bw, range: [0, 1]), white(globe(0.36) * step(0.5, hash(floor(a1 * 2) * 11))))
+
+  // ---- 2 · tear: the clip at speed, red green and blue pulled apart on every kick ----
+  let a2 = (12 + t * 12)
+  let s2_16 = floor(a2 * 4)
+  let s2_k = (a2 * beat * 15.18) % 126
+  let s2_kick = exp(-5 * fract(a2))
+  let s2_tear = 0.12 * (hash(floor(y * 24) + s2_16 * 7) - 0.5) * step(0.45, hash(s2_16 * 3 + 1))
+  let s2_jit = 0.03 * (hash(s2_16 * 13) - 0.5) * step(0.7, hash(s2_16 * 17))
+  let s2_r = move(hi(s2_k, "red"), 0.015 * s2_kick + s2_tear, s2_jit)
+  let s2_g = move(hi(s2_k, "green"), s2_tear, 0)
+  let s2_b = move(hi(s2_k, "blue"), -0.015 * s2_kick + s2_tear, -s2_jit)
+  let s2 = film(rgb(s2_r, s2_g, s2_b), amount: 0.1)
+
+  // ---- 3 · grid: sixteen cells, each on its own frame, flickering on eighths ----
+  let a3 = (24 + t * 12)
+  let s3_8 = floor(a3 * 2)
+  let s3_cell(c) = lo(floor(hash(s3_8 * 16 + c) * 126), "luminance") * step(0.12, hash(s3_8 * 7 + c * 3))
+  let s3_logo = white(globe(0.7) * step(0.5, hash(s3_8 * 19)))
+  let s3_cells = [duo(s3_cell(c) * (0.7 + 0.6 * hash(c + s3_8)), step(0.75, hash(c * 5 + s3_8 * 2))) for c in [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15]]
+  let s3 = film(mosaic(join(slice(s3_cells, 0, 9), s3_logo, slice(s3_cells, 9, 15)), columns: 4, gap: 0.004), amount: 0.08)
+
+  // ---- 4 · kaleidoscope: the orange record, mirrored four to eight ways, in heat ----
+  let a4 = (36 + t * 12)
+  let s4_b = floor(a4)
+  let s4_k = floor(hash(s4_b * 3) * 28) + (floor(a4 * 4) % 4)
+  let s4_kick = exp(-4 * fract(a4))
+  let s4_f = zoom(hi(s4_k, "luminance"), by: 1.5 + 0.3 * s4_kick, x: 0.35, y: 0.42)
+  let s4_sides = 4 + 2 * (s4_b % 3)
+  let s4_m = mix(kaleidoscope(s4_f, sides: 4, x: 0.5, y: 0.5), mix(kaleidoscope(s4_f, sides: 6, x: 0.5, y: 0.5), kaleidoscope(s4_f, sides: 8, x: 0.5, y: 0.5), step(7, s4_sides)), step(5, s4_sides))
+  let s4 = film(paint(posterize(s4_m, levels: 5), hot, range: [0, 1]), amount: 0.12)
+
+  // ---- 5 · the globe: the clip seen through the logo, then the logo cut out of the clip ----
+  let a5 = (48 + t * 16)
+  let s5_16 = floor(a5 * 4)
+  let s5_k = (a5 * beat * 15.18 * 0.5 + 40) % 126
+  let s5_tear = 0.1 * (hash(floor(y * 30) + s5_16 * 5) - 0.5) * step(0.6, hash(s5_16 * 3 + 4))
+  let s5_disc = circle(0.5, 0.5, 0.84 + 0.06 * exp(-5 * fract(a5)), softness: 0.004)
+  let s5_flip = step(8, a5 - 48)
+  let s5_alpha = mix(s5_disc, 1 - s5_disc, s5_flip)
+  let s5_r = move(hi(s5_k, "red"), 0.01 + s5_tear, 0)
+  let s5_g = move(hi(s5_k, "green"), s5_tear, 0)
+  let s5_b = move(hi(s5_k, "blue"), -0.01 + s5_tear, 0)
+  let s5_pic = overlay(red(s5_r * s5_alpha), green(s5_g * s5_alpha), blue(s5_b * s5_alpha), blend: "add")
+  let s5_lines = white(picture("brut/globe.png", 0.5, 0.5, 0.86 + 0.06 * exp(-5 * fract(a5)), 360 * fract(a5 / 32), channel: "alpha"))
+  let s5_word = white(word * step(0.3, hash(s5_16 * 23)))
+  let s5 = film(overlay(s5_pic, s5_lines, s5_word), amount: 0.08)
+
+  // ---- 6 · melt: the break; the clip runs backwards through warped space ----
+  let a6 = (64 + t * 12)
+  let s6_8 = floor(a6 * 2)
+  let s6_k = (300 - a6 * beat * 15.18 * 0.7) % 126
+  let s6_amt = 0.02 + 0.07 * hash(s6_8 * 3 + 9)
+  let s6_r = warp(hi(s6_k, "red"), amount: s6_amt, scale: 3)
+  let s6_g = warp(hi(s6_k, "green"), amount: s6_amt * 1.3, scale: 3)
+  let s6_b = warp(hi(s6_k, "blue"), amount: s6_amt * 0.7, scale: 3)
+  let s6 = chroma(bloom(film(rgb(s6_r, s6_g, s6_b), amount: 0.06), amount: 1.2), amount: 1.1)
+
+  // ---- 7 · lines: edges and scanlines, with a flash of colour on each kick ----
+  let a7 = (76 + t * 12)
+  let s7_8 = floor(a7 * 2)
+  let s7_k = (a7 * beat * 15.18 + 60) % 126
+  let s7_px = step(0.5, hash(s7_8 * 11))
+  let s7_l = mix(pixelate(hi(s7_k, "luminance"), size: 0.005), pixelate(hi(s7_k, "luminance"), size: 0.035), s7_px)
+  let s7_e = clamp(edges(s7_l, step: 0.003) * 12, 0, 1) * (0.6 + 0.4 * step(0.5, fract(y * 160)))
+  let s7_flash = step(0.88, 1 - fract(a7)) * step(0.4, hash(floor(a7) * 3))
+  let s7_col = rgb(hi(s7_k, "red") * s7_flash, hi(s7_k, "green") * s7_flash, hi(s7_k, "blue") * s7_flash)
+  let s7 = overlay(duo(s7_e, step(0.5, hash(s7_8 * 5 + 1))), s7_col, blend: "add")
+
+  // ---- 8 · ghosts: two moments of the clip, their difference; tiles on some beats ----
+  let a8 = (88 + t * 12)
+  let s8_8 = floor(a8 * 2)
+  let s8_k = (a8 * beat * 15.18 + 20) % 126
+  let s8_d = 2 + floor(hash(s8_8 * 3) * 24)
+  let s8_tiles = step(0.65, hash(s8_8 * 7 + 5))
+  let s8_pair(ch) = abs(hi(s8_k, ch) - hi((s8_k + s8_d) % 126, ch))
+  let s8_ch(ch) = mix(s8_pair(ch), tile(s8_pair(ch), 2), s8_tiles)
+  let s8_inv = step(0.5, fract(a8 / 2 + 0.25)) * step(0.5, hash(floor(a8) * 9))
+  let s8_g(ch) = clamp(s8_ch(ch) * 2.5, 0, 1)
+  let s8_bg = rgb(mix(s8_g("red"), 1 - s8_g("red"), s8_inv), mix(s8_g("green"), 1 - s8_g("green"), s8_inv), mix(s8_g("blue"), 1 - s8_g("blue"), s8_inv))
+  let s8 = film(s8_bg, amount: 0.1)
+
+  // ---- 9 · strips: eight columns, each stuttering on its own two frames ----
+  let a9 = (100 + t * 12)
+  let s9_16 = floor(a9 * 4)
+  let s9_col = floor(x * 8)
+  let s9_base = floor(hash(floor(a9 / 2) * 5 + s9_col) * 120)
+  let s9_k = (s9_base + (s9_16 % 2) * (1 + floor(hash(s9_col * 3) * 3)) + floor(hash(s9_16 * 7 + s9_col) * 4) * step(0.8, hash(s9_16 + s9_col * 11))) % 126
+  let s9_dark = step(0.2, hash(s9_col * 13 + floor(a9 * 2) * 3))
+  let s9_off = 0.006 * (hash(s9_col + s9_16) - 0.5)
+  let s9_r = move(hi(s9_k, "red"), s9_off, 0) * s9_dark
+  let s9_g = hi(s9_k, "green") * s9_dark
+  let s9_b = move(hi(s9_k, "blue"), -s9_off, 0) * s9_dark
+  let s9 = film(rgb(s9_r, s9_g, s9_b), amount: 0.12)
+
+  // ---- 10 · out: the clip clean, then the stamp, then black ----
+  let a10 = (112 + t * 16)
+  let b10 = a10 - 112
+  let s10_8 = floor(a10 * 2)
+  let s10_k = (a10 * beat * 15.18 + 90) % 126
+  let s10_stamp = step(8, b10) * step(0.5, fract(a10 / 2 + 0.5)) * step(0.5, 12.5 - b10) + step(12.5, b10)
+  let s10_logo = white((globe(0.5) + picture("brut/word.png", 0.5, 0.9, 0.62, channel: "alpha")) * step(0.5, 15.2 - b10))
+  let s10_pic = rgb(hi(s10_k, "red") * (1 - s10_stamp), hi(s10_k, "green") * (1 - s10_stamp), hi(s10_k, "blue") * (1 - s10_stamp))
+  let s10 = film(overlay(s10_pic, overlay(paint(0 * x, bw, range: [0, 1]), s10_logo), mask: s10_stamp), amount: 0.07)
+
+  let movie = timeline([
+    scene(s1, 5.625), glitch(0.3, amount: 0.9),
+    scene(s2, 5.625), glitch(0.25),
+    scene(s3, 5.625), pixels(0.4, size: 0.12),
+    scene(s4, 5.625), glitch(0.3),
+    scene(s5, 7.5), jump(),
+    scene(s6, 5.625), glitch(0.5, amount: 1),
+    scene(s7, 5.625), glitch(0.25),
+    scene(s8, 5.625), glitch(0.3, amount: 0.8),
+    scene(s9, 5.625), glitch(0.3),
+    scene(s10, 7.5)
+  ])
+
+  // ---- the track: 808 drums, a bass that never sits still, stabs, Model 500 style ----
+  let m = meter(tempo: 128, bars: 32)
+  let prog = chords("i i VI VII", key: "A2", scale: "minor", bars: m, repeat: 8)
+  let kickS = synth { drive(sine(48 * (1 + 9 * perc(attack: 0.0005, release: 0.03))) * perc(attack: 0.001, release: 0.42) * note.velocity + highpass(noise(), cutoff: 2500) * perc(release: 0.008) * 0.25, amount: 0.35) }
+  let clapS = synth { bandpass(noise(), cutoff: 1400, resonance: 0.25) * (perc(release: 0.015) + perc(attack: 0.011, release: 0.015) * 0.8 + perc(attack: 0.022, release: 0.18) * 0.9) * note.velocity }
+  let hatS  = synth { highpass(noise(), cutoff: 8500, resonance: 0.3) * perc(attack: 0.001, release: 0.04) * note.velocity }
+  let ohatS = synth { highpass(noise() * 0.7 + square(6100) * square(8700) * 0.4, cutoff: 7000, resonance: 0.3) * perc(attack: 0.001, release: 0.28) * note.velocity }
+  let cowS  = synth { bandpass(square(540) + square(800), cutoff: 680, resonance: 0.45) * perc(attack: 0.001, release: 0.14) * note.velocity }
+  let bassS = synth { lowpass(saw(note.freq) * 0.7 + square(note.freq * 0.5) * 0.5, cutoff: 180 + 1600 * adsr(attack: 0.004, decay: 0.13, sustain: 0.15, release: 0.08), resonance: 0.55) * adsr(attack: 0.003, decay: 0.16, sustain: 0.45, release: 0.06) }
+  let stabS = synth { lowpass(saw(note.freq) + saw(note.freq * ~around(1.004, 0.002)) + pulse(note.freq * 2, width: 0.3) * 0.4, cutoff: 500 + 3200 * adsr(attack: 0.004, decay: 0.18, sustain: 0.08, release: 0.1), resonance: 0.35) * adsr(attack: 0.003, decay: 0.22, sustain: 0.12, release: 0.12) }
+  let leadS = synth { lowpass(chorus(square(note.freq) * 0.5 + saw(note.freq * 0.5) * 0.35, depth: 0.4, rate: 0.6), cutoff: 900 + 2500 * adsr(attack: 0.02, decay: 0.2, sustain: 0.5, release: 0.2), resonance: 0.3) * adsr(attack: 0.01, decay: 0.12, sustain: 0.6, release: 0.25) }
+  let pluckS = synth { lowpass(saw(note.freq) * 0.6 + sine(note.freq * 2) * 0.3, cutoff: 600 + 4000 * perc(release: 0.12), resonance: 0.3) * perc(attack: 0.002, release: 0.22) * note.velocity }
+
+  pattern bassP = repeat 178 event(t: [16, 19, 22, 24, 27, 30, 32, 35, 38, 40, 43, 46, 48, 51, 54, 56, 59, 62, 64, 67, 70, 72, 75, 78, 80, 83, 86, 88, 91, 94, 96, 99, 102, 104, 107, 110, 112, 115, 118, 120, 123, 126, 128, 131, 134, 135, 136, 139, 142, 144, 147, 150, 151, 152, 155, 158, 160, 163, 166, 167, 168, 171, 174, 176, 179, 182, 183, 184, 187, 190, 192, 195, 198, 199, 200, 203, 206, 208, 211, 214, 215, 216, 219, 222, 224, 227, 230, 231, 232, 235, 238, 240, 243, 246, 247, 248, 251, 254, 320, 323, 326, 328, 331, 334, 336, 339, 342, 344, 347, 350, 352, 355, 358, 360, 363, 366, 368, 371, 374, 376, 379, 382, 384, 387, 390, 391, 392, 395, 398, 400, 403, 406, 407, 408, 411, 414, 416, 419, 422, 423, 424, 427, 430, 432, 435, 438, 439, 440, 443, 446, 448, 451, 454, 455, 456, 459, 462, 464, 467, 470, 471, 472, 475, 478, 480, 483, 486, 487, 488, 491, 494, 496, 499, 502, 503, 504, 507, 510][i] / 512, x: 0.5, y: [0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37, 0.04, 0.04, 0.37, 0.04, 0.04, 0.04, 0.37][i], size: 0.004, intensity: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.65, 1.0, 1.0, 1.0][i])
+  pattern stabP = repeat 204 event(t: [130, 130, 130, 136, 136, 136, 143, 143, 143, 146, 146, 146, 152, 152, 152, 159, 159, 159, 162, 162, 162, 168, 168, 168, 175, 175, 175, 178, 178, 178, 184, 184, 184, 191, 191, 191, 194, 194, 194, 200, 200, 200, 207, 207, 207, 210, 210, 210, 216, 216, 216, 223, 223, 223, 226, 226, 226, 232, 232, 232, 239, 239, 239, 242, 242, 242, 248, 248, 248, 255, 255, 255, 258, 258, 258, 274, 274, 274, 290, 290, 290, 306, 306, 306, 322, 322, 322, 328, 328, 328, 335, 335, 335, 338, 338, 338, 344, 344, 344, 351, 351, 351, 354, 354, 354, 360, 360, 360, 367, 367, 367, 370, 370, 370, 376, 376, 376, 383, 383, 383, 386, 386, 386, 389, 389, 389, 392, 392, 392, 399, 399, 399, 402, 402, 402, 405, 405, 405, 408, 408, 408, 415, 415, 415, 418, 418, 418, 421, 421, 421, 424, 424, 424, 431, 431, 431, 434, 434, 434, 437, 437, 437, 440, 440, 440, 447, 447, 447, 450, 450, 450, 456, 456, 456, 463, 463, 463, 466, 466, 466, 472, 472, 472, 479, 479, 479, 482, 482, 482, 488, 488, 488, 495, 495, 495, 498, 498, 498, 504, 504, 504, 511, 511, 511][i] / 512, x: [0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7, 0.3, 0.5, 0.7][i], y: [0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61, 0.39, 0.5, 0.61][i], size: 0.006, intensity: [0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9][i])
+  pattern leadP = repeat 128 event(t: [128, 130, 132, 134, 136, 138, 140, 142, 144, 146, 148, 150, 152, 154, 156, 158, 160, 162, 164, 166, 168, 170, 172, 174, 176, 178, 180, 182, 184, 186, 188, 190, 192, 194, 196, 198, 200, 202, 204, 206, 208, 210, 212, 214, 216, 218, 220, 222, 224, 226, 228, 230, 232, 234, 236, 238, 240, 242, 244, 246, 248, 250, 252, 254, 320, 322, 324, 326, 328, 330, 332, 334, 336, 338, 340, 342, 344, 346, 348, 350, 352, 354, 356, 358, 360, 362, 364, 366, 368, 370, 372, 374, 376, 378, 380, 382, 384, 386, 388, 390, 392, 394, 396, 398, 400, 402, 404, 406, 408, 410, 412, 414, 416, 418, 420, 422, 424, 426, 428, 430, 432, 434, 436, 438, 440, 442, 444, 446][i] / 512, x: 0.5, y: ~between(0.45, 0.9), size: 0.01, intensity: 0.9 * (~between(0, 1) < 0.35))
+
+  let drums = [
+    notes(steps("X...X...X...X...|X...X...X...X...|X...X...X...X...|X...X...X...X...|X...X...X...X...|X...X...X...X...|X...X...X...X...|X...X...X...X...|X...X...X..xX...|X...X...X..xX...|X...X...X..xX...|X...X...X..xX...|X...X...X..xX..x|X...X...X..xX..x|X...X...X..xX..x|X...X...X..xX..x|................|................|X...............|X...............|X...X...X..xX...|X...X...X..xX...|X...X...X..xX...|X...X...X..xX...|X...X...X..xX..x|X...X...X..xX..x|X...X...X..xX..x|X...X...X..xX..x|X...X...X..xX..x|X...X...X..xX..x|X...X...X..xX..x|X...X...X.......", m), instrument: kickS, scale: "chromatic", key: "A1", gain: 1.3),
+    notes(steps("................|................|....X.......X...|....X.......X...|....X.......X...|....X.......X...|....X.......X...|....X.......X...|....X.......X...|....X.......X...|....X.......X...|....X.......X...|....X.......X...|....X.......X...|....X.......X...|....X.......X...|................|................|................|................|....X.......X...|....X.......X...|....X.......X...|....X.......X...|....X.......X.x.|....X.......X.x.|....X.......X.x.|....X.......X.x.|....X.......X.x.|....X.......X.x.|....X.......X.x.|....X.......X...", m), instrument: clapS, scale: "chromatic", key: "A3", gain: 0.75),
+    notes(steps("..x...x...x...x.|..x...x...x...x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|..x...x...x...x.|..x...x...x...x.|..x...x...x...x.|..x...x...x...x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|xxx.xxx.xxx.xxx.|xxx.xxx.xxx.xxx.|xxx.xxx.xxx.xxx.|xxx.xxx.xxx.xxx.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.", m), instrument: hatS, scale: "chromatic", key: "A5", gain: 0.42),
+    notes(steps("................|................|................|................|......X.......X.|......X.......X.|......X.......X.|......X.......X.|..X...X...X...X.|..X...X...X...X.|..X...X...X...X.|..X...X...X...X.|..X...X...X...X.|..X...X...X...X.|..X...X...X...X.|..X...X...X...X.|................|................|................|................|......X.......X.|......X.......X.|......X.......X.|......X.......X.|..X...X...X...X.|..X...X...X...X.|..X...X...X...X.|..X...X...X...X.|..X...X...X...X.|..X...X...X...X.|..X...X...X...X.|..X...X...X...X.", m), instrument: ohatS, scale: "chromatic", key: "A5", gain: 0.38),
+    notes(steps("................|................|................|................|................|................|................|................|................|................|................|................|..x.......x..x..|..x.......x..x..|..x.......x..x..|..x.......x..x..|................|................|................|................|..x.......x..x..|..x.......x..x..|..x.......x..x..|..x.......x..x..|..x..x....x..x..|..x..x....x..x..|..x..x....x..x..|..x..x....x..x..|..x.......x..x..|..x.......x..x..|..x.......x..x..|..x.......x..x..", m), instrument: cowS, scale: "chromatic", key: "A4", gain: 0.3)
+  ]
+  let music = [
+    notes(bassP, instrument: bassS, harmony: prog, key: "A1", tempo: 128, gain: 1.0),
+    notes(stabP, instrument: stabS, harmony: prog, key: "A3", tempo: 128, gain: 0.55),
+    arp(prog, rhythm: steps("................|................|................|................|................|................|................|................|................|................|................|................|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|................|................|................|................|................|................|................|................|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.|x.x.x.x.x.x.x.x.", m), mode: "up", octaves: 2, instrument: pluckS, key: "A4", gain: 0.28),
+    notes(leadP, instrument: leadS, scale: "minor-pentatonic", key: "A3", tempo: 128, gain: 0.45)
+  ]
+  let chop = open("brut/chop.wav")
+
+  render video(movie, width: 1080, height: 1920, fps: 30, sound: join(drums, music, chop), room: 0.12, echo: 0.2)
+  render image(at(movie, 0.4), width: 1080, height: 1920)
+}
