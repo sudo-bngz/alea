@@ -1,0 +1,44 @@
+// Http — layer 7, the application: first the web itself, pages at their own
+// addresses, linked to one another; then the one conversation that matters
+// here, in plain text: the browser asks (GET /), the server answers with a
+// status code (200 OK), its headers, and the page, written in HTML.
+// What it returns: 0 dark, up to 1 light.
+
+work Http(web = 0.05, links = 0.15, ask = 0.4, code = 0.6, body = 0.8) {
+  let seed = ~between(0, 100)
+  let hash(a) = fract(sin(a * 12.9898 + seed) * 43758.5453)
+  // ── the web: pages scattered, each with its address, threads between them ──
+  let px(k) = 0.12 + 0.76 * hash(k * 3 + 1)
+  let py(k) = 0.12 + 1.0 * (k + 0.2 + 0.6 * hash(k * 3 + 2)) / 12
+  let shown(k) = smoothstep(web + k * 0.008, web + 0.02 + k * 0.008, t)
+  let card(k) = cut(rect(px(k), py(k), 0.1, 0.07, 0, 0.002), rect(px(k), py(k), 0.092, 0.062, 0, 0.002))
+              + rect(px(k) - 0.012, py(k) - 0.015, 0.05, 0.008, 0, 0.001) * 0.9
+              + rect(px(k), py(k) + 0.006, 0.07, 0.005, 0, 0.001) * 0.4 + rect(px(k) - 0.008, py(k) + 0.019, 0.055, 0.005, 0, 0.001) * 0.4
+  let cards = merge([card(k) * shown(k) for k in range(12)])
+  let link(k, j) = line(px(k), py(k), px(k) + (px(j) - px(k)) * clamp((t - links - 0.006 * k) / 0.03, 0, 1),
+                        py(k) + (py(j) - py(k)) * clamp((t - links - 0.006 * k) / 0.03, 0, 1), 0.0025, 0.002) * (t > links + 0.006 * k)
+  let threads = merge(merge([link(k, (k + 1 + floor(hash(k * 7) * 4)) % 12) for k in range(12)]), merge([link(2 * k, (2 * k + 5) % 12) * 0.6 for k in range(6)])) * 0.7
+  let names = merge(text("alea.bngz.io", px(0), py(0) + 0.055, 0.02, 0, "mono"), text("/docs", px(5), py(5) + 0.055, 0.02, 0, "mono"),
+                    text("/editions", px(9), py(9) + 0.055, 0.02, 0, "mono")) * smoothstep(links, links + 0.04, t) * 0.7
+  let net = merge(cards, threads, names) * (1 - 0.9 * smoothstep(ask - 0.04, ask, t))
+  // ── the conversation: the browser at the top, the server at the bottom ──
+  let talk = smoothstep(ask - 0.04, ask, t)
+  let who(label, y0) = merge(cut(rect(0.5, y0, 0.56, 0.065, 0, 0.002), rect(0.5, y0, 0.552, 0.057, 0, 0.002)), text(label, 0.5, y0, 0.026, 0, "mono"))
+  let ends = merge(who("your browser", 0.1), who("server  ·  alea.bngz.io", 1.15)) * talk
+  let rail = line(0.9, 0.15, 0.9, 1.1, 0.003, 0.002) * talk * 0.35
+  let dot(start, y0, y1) = glow(x: 0.9, y: y0 + (y1 - y0) * clamp((t - start) / 0.05, 0, 1), size: 0.06) * (t > start) * (t < start + 0.06)
+  let tip(start, y1, dir) = text(dir, 0.88, y1, 0.022, 0, "mono", "right") * smoothstep(start + 0.04, start + 0.06, t) * 0.8
+  // what is said, typed in as it travels
+  let adv = 0.5172
+  let typed(s, y0, size, start, k) = text(s, 0.1, y0, size, 0, "mono", "left") * (x < 0.1 + clamp((t - start - k * 0.012) * 700, 0, 40) * adv * size)
+  let request = merge(typed("GET / HTTP/1.1", 0.24, 0.036, ask, 0), typed("Host: alea.bngz.io", 0.3, 0.026, ask, 1) * 0.7,
+                      typed("Accept: text/html", 0.34, 0.026, ask, 2) * 0.7)
+  let status = typed("HTTP/1.1 200 OK", 0.47, 0.036, code, 0)
+  let stamp = cut(rect(0.323, 0.47, 0.14, 0.055, 0, 0.002), rect(0.323, 0.47, 0.132, 0.047, 0, 0.002)) * smoothstep(code + 0.03, code + 0.05, t)
+  let headers = merge(typed("Content-Type: text/html", 0.53, 0.026, code, 1), typed("Content-Length: 2048", 0.57, 0.026, code, 2)) * 0.7
+  let html = merge(typed("<!doctype html>", 0.66, 0.028, body, 0), typed("<html>", 0.7, 0.028, body, 1),
+                   typed("  <h1>alea</h1>", 0.74, 0.028, body, 2), typed("  <p>a language...</p>", 0.78, 0.028, body, 3),
+                   typed("  <img src=edition.png>", 0.82, 0.028, body, 4), typed("</html>", 0.86, 0.028, body, 5)) * 0.85
+  let travel = merge(dot(ask, 0.15, 1.1), tip(ask, 1.04, "request"), dot(code, 1.1, 0.15), tip(code, 0.21, "response"))
+  output merge(net, ends, rail, travel, request, status, stamp, headers, html)
+}
