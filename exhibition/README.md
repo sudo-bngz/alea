@@ -22,7 +22,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Babel** | `babel.alea` (+ `babel/`) | The library that holds every book: pages of a script of twenty-five symbols rewritten on every tick, a book in three dimensions turning in the dark, the shelves, a hexagonal gallery from above, the hallways, the shaft and its stair, the mirror, and one long rise out of a gallery until the floor of galleries runs to the horizon. Forty-one cuts in a minute, a dark choir and a broken beat. |
 | **VEKTOR** | `vektor.alea` (+ `vektor/`) | A minute of a wireframe 3D shoot 'em up off a worn VHS tape, blue lines on black: the title screen, the jump, an asteroid field and squadrons of darts, a mothership broken apart, the dive onto a planet and low over its grid, the hatch of the enemy base, its ducts, the kernel shot until it comes apart, the escape, mission complete. A chiptune that goes wild at the end. |
 | **RING 0** | `ring0.alea` (+ `ring0/`) | How the kernel of an operating system works, abstract and on the beat: the boot log, the shell, processes in their time slices, the rings of protection, system calls through the gate, interrupts climbing from the devices, the disk and the bus, pages and their frames, the run queue, the fork, and the three layers at once; then the halt, an old screen switched off. Fifty-five cuts in a minute, glitches drawn anew every edition, an IDM track of clicks, metal and wood in the Autechre way. |
-| **alea speaks** | `intro.alea` (+ `intro/`) | The introduction, and an invitation: what alea is and what it does, one feature to a cut on the beat: editions of a work, one per run; the same seed, the same picture; images, video, sound, a voice, inputs, MIDI and the DAW, 3D, the web; a voice says it, its words typed as it speaks; ink and one red on paper. |
+| **alea speaks** | `intro.alea` (+ `intro/`) | The introduction, and an invitation: what alea is and what it does, one feature to a cut on the beat: editions of a work, one per run; the same seed, the same picture; images, video, sound, a voice, inputs, MIDI and the DAW, 3D, the web; a voice says it, its words typed as it speaks; in the theme of alea.bngz.io, black, grey, white and the red of chance, the site's wave opening it. |
 | **Kairo** (回路) | `kairo.alea` (+ `fonts/`) | After Kikai, a modular synthesizer that never existed: two rows of modules racked in another order each edition, patched with hanging cables. Also a Reel without drums: a slow piano waltz over a deep drone, the melody written on a staff as it plays. |
 | **Couches** | `couches.alea` (+ `couches/`) | How a network works, explained by a voice in two minutes: what a protocol is, the seven layers of the OSI model, encapsulation (a message wrapped in a header at every layer on its way down, unwrapped on its way up), and each layer with its protocols: HTTP and DNS, TCP's numbered segments and UDP's stream, IP addresses and routers hop by hop, Ethernet frames and ARP on one cable, bits as voltage, light and radio. Ten works on a timeline, the words typed as they are said, a stack of seven layers lighting the one we are in. |
 | **Houle** | `houle.alea` (+ `houle/`) | The swell, in half a minute, white and blue: what a wave is and how the sea moves, abstract. The horizon; grains of water turning in circles as the wave passes through them; rows of water lifted by waves of three lengths; rings crossing and adding up; the open sea in 3D; the same rows curled over into a breaking crest; the foam on the sand. Seven works crossed slowly by morphs and fades; a pad, the waves and drops of glass, breathing with the sea. |
@@ -36,7 +36,7 @@ alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
 alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
-alea intro.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 69 s, in a loop (about 1.5 hours; needs voices/kokoro.py: pip install sherpa-onnx numpy)
+alea intro.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 84 s, in a loop (about 2 hours; needs voices/kokoro.py: pip install sherpa-onnx numpy)
 alea ring0.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea houle.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 30 s, in a loop (about 15 minutes)
 alea couches.alea --seed 0xa1ea01            # the cover, and the 1080×1920 Reel: 130 s, explained by a voice (needs voices/kokoro.py)
@@ -1013,24 +1013,27 @@ l'autre bout, chaque enveloppe ouverte à nouveau, de bas en haut. Édition
 
 | # | Post | Files |
 |---|---|---|
-| 22 | alea speaks, Reel (69 s, a loop): the introduction, post it first and pin it | `22-alea-speaks-reel.mp4` (cover: `22-alea-speaks-reel-cover.jpg`) |
+| 22 | alea speaks, Reel (84 s, a loop): the introduction, post it first and pin it | `22-alea-speaks-reel.mp4` (cover: `22-alea-speaks-reel-cover.jpg`) |
 
-**How it is made.** An invitation, in a minute of cuts on a 120 BPM grid:
-what alea is, then what it does, one feature to a cut. Each cut lets its
-picture breathe a moment before the voice speaks, with room after the line,
+**How it is made.** An invitation, in a minute and a quarter of cuts on a
+120 BPM grid, in the theme of alea.bngz.io: black, grey, white, and the red
+of chance. It opens on the site's mark, the wave, drawn in over a second,
+then the account's handle and a cursor, nothing said yet; then what alea
+is, and what it does, one feature to a cut. Each cut lets its picture
+breathe a second or so before the voice speaks, with room after the line,
 and a longer stop before the features begin. A low voice says it
 (`say` through a neural engine, `voices/kokoro.py`, `af_kore`), its words
-typed letter by letter as it speaks; ink and one red on paper. Every picture
+typed letter by letter as it speaks. Every picture
 is new, made for this Reel by five small works in `intro/works/` (Trame,
 Orbites, Points, Blocs, Prisme; their editions kept in `intro/stills/`), but
-for the map of Isohypses. A montage of them first, one per beat; the code of
+for the map of Isohypses, each in a thin frame on the black. A montage of them first, one every two beats; the code of
 Trame, a line on each eighth note, its chances (`choose`, `~`) in red; six
-of its editions, one per beat, each with its seed; the same seed twice and
+of its editions, two beats each, with their seeds; the same seed twice and
 the same picture; then image (Isohypses), video (a flower turning, redrawn
 on every beat), sound (a step sequencer drawing the very patterns you hear),
 voice, input (a photo printed in three inks), MIDI and the DAW (a piano
 roll), 3D (a relief, line by line), the web (a page drawing a new flower at
-each visit); the editions again, one per beat; the name and where to try it.
+each visit); the editions again; the name, a cursor after it, and where to try it.
 The whole page is one drawing over the minute; the timeline cuts it into a
 scene per section and crosses them with `glitch`, `pixels`, `slide` and
 jumps. The track is broken on purpose: a pad on a worn tape (Dm9, Bbmaj7,
@@ -1042,7 +1045,7 @@ only the pad and the bells.
 
 **EN**
 
-This whole minute, picture and sound, voice included, is a program of a
+Everything here, picture and sound, voice included, is a program of a
 couple of hundred lines. Run it again and you get another one. alea is a
 language where every run draws a new artwork: write a few lines, and it
 draws, sings and speaks, a little differently each time. Open source, link
@@ -1050,7 +1053,7 @@ in bio. Edition 0xa1ea01.
 
 **FR**
 
-Toute cette minute, image et son, voix comprise, est un programme de
+Tout ceci, image et son, voix comprise, est un programme de
 quelques centaines de lignes. Relancez-le et vous en obtenez une autre. alea
 est un langage où chaque exécution tire une œuvre nouvelle : quelques lignes,
 et il dessine, chante et parle, un peu autrement à chaque fois. Open source,
