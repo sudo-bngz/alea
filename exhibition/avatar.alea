@@ -1,30 +1,25 @@
-// Avatar — the profile picture of the exhibition's account, an edition like
-// everything else: a die (alea), its face drawn by chance, on the card's
-// night. Made for a small circle: one shape, one colour on one ground.
+// Avatar — the profile picture of the exhibition's account (written.in.alea),
+// in the theme of alea.bngz.io: black, and the mark of the site, a stroked
+// wave, the ~ of chance, white (and once in the red of chance). An edition
+// like everything else: the wave's height is drawn. Made for a small circle.
 work Avatar {
-  let night = [[0, "#0b0812"], [0.5, "#4a2366"], [1, "#f4f0f8"]]
-  let pips = choose([1, 2, 3, 4, 5, 6])
-  let tilt = ~between(-9, 9)
+  let black = [[0, "#000000"], [1, "#ffffff"]]
+  let chance = [[0, "#000000"], [1, "#ff4b2b"]]
+  let height = ~between(0.095, 0.125)
 
-  // the die: a square with its corners taken off by a circle
-  let face = overlap(square(0.5, 0.5, 0.58, angle: 0, softness: 0.004), circle(0.5, 0.5, 0.76, softness: 0.004))
+  // the wave: one period of a sine across the middle, stroked with round ends
+  let x0 = 0.19
+  let x1 = 0.81
+  let w = 0.05
+  let u = (x - 0.5) / (x1 - x0) * tau
+  let curve = 0.5 + height * sin(u)
+  let slope = height * cos(u) * tau / (x1 - x0)
+  let dist = abs(y - curve) / sqrt(1 + slope * slope)
+  let foot = x + (y - curve) * slope / (1 + slope * slope)
+  let band = smoothstep(w + 0.003, w - 0.003, dist) * step(x0, foot) * step(foot, x1)
+  let caps = merge(circle(x0, 0.5, 2 * w, softness: 0.003), circle(x1, 0.5, 2 * w, softness: 0.003))
+  let wave = merge(band, caps)
 
-  // the seven places a pip can be, on or off by the count
-  let r = 0.085
-  let d = 0.165
-  let odd = step(0.5, pips % 2)
-  let two = step(1.5, pips)
-  let four = step(3.5, pips)
-  let six = step(5.5, pips)
-  let dots = merge(
-    circle(0.5, 0.5, r) * odd,
-    circle(0.5 - d, 0.5 - d, r) * two, circle(0.5 + d, 0.5 + d, r) * two,
-    circle(0.5 + d, 0.5 - d, r) * four, circle(0.5 - d, 0.5 + d, r) * four,
-    circle(0.5 - d, 0.5, r) * six, circle(0.5 + d, 0.5, r) * six)
-
-  let die = rotate(cut(face, dots), tilt)
-  let glow = blur(circle(0.5, 0.5, 0.9), radius: 0.12) * 0.5
-  let avatar = merge(glow, die)
-
-  render image(paint(avatar, night, range: [0, 1]), width: 1080, height: 1080)
+  render image(paint(wave, black, range: [0, 1]), width: 1080, height: 1080)
+  render image(paint(wave, chance, range: [0, 1]), width: 1080, height: 1080)
 }
