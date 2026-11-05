@@ -21,6 +21,7 @@ own voice only; in the browser, so is everything.
 
 | Engine | Needs | Voices |
 |---|---|---|
+| `kokoro-misaki.py` | `pip install kokoro-onnx misaki num2words phonemizer`, `python3 -m spacy download en_core_web_sm`, `espeak-ng` for French and unknown words; the model (330 MB) is fetched once from GitHub | the same Kokoro voices, read through misaki, Kokoro's own G2P: stress, phrasing and context, a line in one breath — the more natural of the two; `kokoro-words.txt` applies |
 | `kokoro.py` | `pip install sherpa-onnx numpy`; the model (350 MB) is fetched once from GitHub; `espeak-ng` for names it doesn't know | `af_heart`, `af_bella`, `af_sky`, `am_adam`, `am_michael`, `bf_emma`, `bm_george`, `ff_siwis` (French)… 54 in all, English, French, Chinese, Japanese, Italian, Spanish, Portuguese, Hindi |
 | `piper.sh` | `pip install piper-tts`, `ffmpeg` | a piper voice name (`en_US-lessac-medium`, `fr_FR-siwis-medium`…), fetched on first use |
 | `openai.sh` | `OPENAI_API_KEY`, `curl`, `ffmpeg` | `nova`, `alloy`, `onyx`, `fable`…; `OPENAI_TTS_INSTRUCTIONS` says how to read |
