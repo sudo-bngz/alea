@@ -2,7 +2,7 @@
 // does, in a minute and a quarter of cuts on the beat, in the theme of
 // alea.bngz.io: black, grey, white, and the red of chance. The site's mark,
 // the wave, opens it; a low voice (`say` through a neural engine,
-// voices/kokoro.py) says the rest, its words typed letter by letter as it
+// voices/kokoro-misaki.py) says the rest, its words typed letter by letter as it
 // speaks, with a breath after every line. A montage of new works, one per
 // beat; the code of one of them, Trame (intro/works/trame.alea), typed a
 // line to an eighth note; six of its editions, each a run; the same seed
@@ -21,27 +21,27 @@ work Intro {
   let seed = ~between(0, 1000)
   let total = 84.0
   let T = t * total
-  let ENGINE = "../voices/kokoro.py"
+  let ENGINE = "../voices/kokoro-misaki.py"
   let VOICE = "af_kore"
   let win(a, b) = (T >= a) * (T < b)
   let beat = floor(T * 2)                         // 120 BPM: a cut can fall on any beat
 
   // ── the voice ──
-  let l1 = say("Everything you are about to see was written in code.", at: 5.70, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l2 = say("This is alea. A language for generative art.", at: 10.50, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l3 = say("You write a work once.", at: 15.70, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l4 = say("And every run draws a new edition.", at: 19.50, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l5 = say("Same seed, same artwork. Byte for byte.", at: 24.00, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l6 = say("Images, at any size.", at: 30.00, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l7 = say("Videos that loop, with cuts and glitches.", at: 34.50, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l8 = say("Music. Synths, rhythms, chords, all in code.", at: 39.50, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l9 = say("It even speaks.", at: 45.50, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l10 = say("It reads your photos, your sounds, your MIDI.", at: 49.50, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l11 = say("It plays live, in your DAW and on your synths.", at: 55.00, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l12 = say("Sculptures, for your 3D printer.", at: 60.50, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l13 = say("Web pages that draw a new one at every visit.", at: 65.00, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l14 = say("Every picture you saw: a few lines of code.", at: 71.00, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
-  let l15 = say("Your turn. Try it in your browser.", at: 76.70, engine: ENGINE, voice: VOICE, speed: 1.05, gain: 2.5)
+  let l1 = say("Everything you are about to see was written in code.", at: 5.70, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
+  let l2 = say("This is alea. A language for generative art.", at: 10.50, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
+  let l3 = say("You write a work once.", at: 15.70, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
+  let l4 = say("And every run draws a new edition.", at: 19.50, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
+  let l5 = say("Same seed, same artwork. Byte for byte.", at: 24.00, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
+  let l6 = say("Images, at any size.", at: 30.00, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
+  let l7 = say("Videos that loop, with cuts and glitches.", at: 34.50, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
+  let l8 = say("Music. Synths, rhythms, chords, all in code.", at: 39.50, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
+  let l9 = say("It even speaks.", at: 45.50, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
+  let l10 = say("It reads your photos, your sounds, your MIDI.", at: 49.50, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
+  let l11 = say("It plays live, in your DAW and on your synths.", at: 55.00, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
+  let l12 = say("Sculptures, for your 3D printer.", at: 60.50, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
+  let l13 = say("Web pages that draw a new one at every visit.", at: 65.00, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
+  let l14 = say("Every picture you saw: a few lines of code.", at: 71.00, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
+  let l15 = say("Your turn. Try it in your browser.", at: 76.70, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)
 
   // ── the page, as alea.bngz.io: 0 black, 0.333 grey, 0.667 ink, 1 the red of chance; RULE a thin dark line ──
   let RULE = 0.14
@@ -373,5 +373,5 @@ work Intro {
   ]
 
   render image(reel, width: 1080, height: 1920, at: 0.3155)
-  render video(reel, fps: 30, width: 1080, height: 1920, duration: total, sound: music, room: 0.3, echo: 0.15)
+  render video(reel, fps: 30, width: 1080, height: 1920, duration: total, sound: music, room: 0.2, echo: 0.15)
 }

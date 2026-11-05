@@ -36,7 +36,7 @@ alea exhibition.alea --seed 0xa1ea43         # the opening card
 alea correspondances.alea --seed 0xa1ea00    # the plan, and the 1080×1920 Reel of its day
 alea culture.alea --seed 0xc06               # the plate, and the Reel of its growth (2 to 3 minutes of growing first)
 alea kairo.alea --seed 0xa1ea01              # the rack, and the 1080×1920 Reel of its waltz (about 30 minutes)
-alea intro.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 84 s, in a loop (about 2 hours; needs voices/kokoro.py: pip install sherpa-onnx numpy)
+alea intro.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 84 s, in a loop (about 2 hours; needs voices/kokoro-misaki.py: pip install kokoro-onnx misaki num2words phonemizer, python3 -m spacy download en_core_web_sm)
 alea ring0.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea houle.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 30 s, in a loop (about 15 minutes)
 alea couches.alea --seed 0xa1ea01            # the cover, and the 1080×1920 Reel: 130 s, explained by a voice (needs voices/kokoro.py)
