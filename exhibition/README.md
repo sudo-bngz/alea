@@ -1081,6 +1081,7 @@ through `voices/kokoro-misaki.py`) and the score. See `series/README.md`.
 | 05 | Time | `series/05-time.alea` (from `series/05-time.json`) | `s05-time-reel.mp4` (cover: `s05-time-reel-cover.jpg`), 57 s |
 | 06 | Filters | `series/06-filters.alea` (from `series/06-filters.json`) | `s06-filters-reel.mp4` (cover: `s06-filters-reel-cover.jpg`), 62 s |
 | 07 | Your pictures | `series/07-pictures.alea` (from `series/07-pictures.json`; needs `series/photo.jpg`, yours) | `s07-pictures-reel.mp4` (cover: `s07-pictures-reel-cover.jpg`), 60 s |
+| 08 | Patterns | `series/08-patterns.alea` (from `series/08-patterns.json`) | `s08-patterns-reel.mp4` (cover: `s08-patterns-reel-cover.jpg`), 63 s |
 
 ```sh
 cd series && alea 01-tilde.alea --seed 0xa1ea01   # the cover, and the 1080×1920 Reel (about 10 minutes)
@@ -1090,6 +1091,7 @@ cd series && alea 04-transforms.alea --seed 0xa1ea01
 cd series && alea 05-time.alea --seed 0xa1ea01
 cd series && alea 06-filters.alea --seed 0xa1ea01
 cd series && alea 07-pictures.alea --seed 0xa1ea01   # with a photo of yours at series/photo.jpg (portrait)
+cd series && alea 08-patterns.alea --seed 0xa1ea01
 ```
 
 **01 · The tilde.** One character, and every run is a different picture. A
@@ -1295,6 +1297,36 @@ Vos photos aussi sont des champs.
 Tout ce que vous voyez est ce seul programme, 6 lignes, et une photo ; la voix et le son en font partie.
 
 **Hashtags**: `#alea #generativeart #creativecoding #codeart #proceduralart #artgeneratif #programming #opensource #learntocode #computerart #algorithmicart #newmediaart #photography #kaleidoscope`
+
+**08 · Patterns.** Ten thousand dots, each one drawn by chance.
+`pattern dots = repeat 100 event(size: 0.01)`, no position given, each one
+drawn; `repeat 10000`; `x: ~normal(0.5, 0.1), y: ~beta(2, 5)`, chance with
+a shape; `x: i / n, y: 0.5 + sin(i / 8) / 3`, no chance at all, a sine of
+dots; and `render video(output, dots)`: in a sound, each event is a note,
+the forty bells you hear being the forty dots under a red playhead
+(`notes` on the same pattern). The dots are the program's own draws. 63 s
+in A minor; the end card names 09.
+
+### s08 · Patterns (Reel)
+
+**EN**
+
+alea, one feature at a time · 08 — Patterns
+
+Ten thousand dots, each one drawn by chance.
+Everything you see and hear is this one program, 6 lines; the voice and the sound are in it too.
+
+The whole series, and the language: alea.bngz.io
+The code: github.com/sudo-bngz/alea → exhibition/series
+
+**FR**
+
+alea, une fonctionnalité à la fois · 08 — Les motifs
+
+Dix mille points, chacun tiré au hasard.
+Tout ce que vous voyez et entendez est ce seul programme, 6 lignes ; la voix et le son en font partie.
+
+**Hashtags**: `#alea #generativeart #creativecoding #codeart #proceduralart #artgeneratif #programming #opensource #learntocode #computerart #algorithmicart #newmediaart #stippling #probability`
 
 ### Hashtags
 
