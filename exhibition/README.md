@@ -1082,6 +1082,7 @@ through `voices/kokoro-misaki.py`) and the score. See `series/README.md`.
 | 06 | Filters | `series/06-filters.alea` (from `series/06-filters.json`) | `s06-filters-reel.mp4` (cover: `s06-filters-reel-cover.jpg`), 62 s |
 | 07 | Your pictures | `series/07-pictures.alea` (from `series/07-pictures.json`; needs `series/photo.jpg`, yours) | `s07-pictures-reel.mp4` (cover: `s07-pictures-reel-cover.jpg`), 60 s |
 | 08 | Patterns | `series/08-patterns.alea` (from `series/08-patterns.json`) | `s08-patterns-reel.mp4` (cover: `s08-patterns-reel-cover.jpg`), 63 s |
+| 09 | Growing | `series/09-growing.alea` (from `series/09-growing.json`) | `s09-growing-reel.mp4` (cover: `s09-growing-reel-cover.jpg`), 65 s |
 
 ```sh
 cd series && alea 01-tilde.alea --seed 0xa1ea01   # the cover, and the 1080×1920 Reel (about 10 minutes)
@@ -1092,6 +1093,7 @@ cd series && alea 05-time.alea --seed 0xa1ea01
 cd series && alea 06-filters.alea --seed 0xa1ea01
 cd series && alea 07-pictures.alea --seed 0xa1ea01   # with a photo of yours at series/photo.jpg (portrait)
 cd series && alea 08-patterns.alea --seed 0xa1ea01
+cd series && alea 09-growing.alea --seed 0xa1ea01
 ```
 
 **01 · The tilde.** One character, and every run is a different picture. A
@@ -1327,6 +1329,36 @@ Dix mille points, chacun tiré au hasard.
 Tout ce que vous voyez et entendez est ce seul programme, 6 lignes ; la voix et le son en font partie.
 
 **Hashtags**: `#alea #generativeart #creativecoding #codeart #proceduralart #artgeneratif #programming #opensource #learntocode #computerart #algorithmicart #newmediaart #stippling #probability`
+
+**09 · Growing.** Cells that live, die, and leave a trace. `grow over 64
+for 100`: a grid seeded by chance (`~~uniform(0, 1) < 0.3`, a draw per
+cell); Conway's rule (`neighbours(cells) == 3 or (cells and
+neighbours(cells) == 2)`); a second field, `trace`, that keeps where life
+has been (`max(trace * 0.95, cells)`); then 256 cells a side over 300
+generations. Each grid is grown by this very program and played back eight
+seconds a beat with `at`, a generation at a time. 65 s in C minor; the end
+card names 10.
+
+### s09 · Growing (Reel)
+
+**EN**
+
+alea, one feature at a time · 09 — Growing
+
+Cells that live, die, and leave a trace.
+Everything you see is this one program, 10 lines; the voice and the sound are in it too.
+
+The whole series, and the language: alea.bngz.io
+The code: github.com/sudo-bngz/alea → exhibition/series
+
+**FR**
+
+alea, une fonctionnalité à la fois · 09 — La croissance
+
+Des cellules qui vivent, meurent, et laissent une trace.
+Tout ce que vous voyez est ce seul programme, 10 lignes ; la voix et le son en font partie.
+
+**Hashtags**: `#alea #generativeart #creativecoding #codeart #proceduralart #artgeneratif #programming #opensource #learntocode #computerart #algorithmicart #newmediaart #gameoflife #cellularautomata`
 
 ### Hashtags
 

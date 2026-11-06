@@ -37,3 +37,4 @@ For a preview, lower the render in a copy (`width: 270, height: 480`,
 | 06 | Filters | `blur`, `pixelate`, `edges`, `film`; `vignette` and `chroma` on the painting | 62 s |
 | 07 | Your pictures | `open`, `.painting`, `.luma`, `colours`, filters and transforms on a photo (`photo.jpg`, yours, not in the repo) | 60 s |
 | 08 | Patterns | `pattern … = repeat n event(…)`: positions drawn, distributions, `i` and `n`, a pattern as a sound | 63 s |
+| 09 | Growing | `grow over N for S { … then … }`, `~~`, `neighbours`, a trace field, played back with `at` | 65 s |
