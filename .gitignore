@@ -41,3 +41,4 @@ Thumbs.db
 !examples/tour/files/**
 fm1/test/vm_main
 exhibition/series/photo.jpg
+exhibition/sound/*.wav
