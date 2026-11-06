@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """alea, one feature at a time — the template of the series.
 
-    python3 gen.py 01-tilde.json > 01-tilde.alea
+    python3 gen.py 01-tilde.json > 01-tilde.alea          # add `site` after the JSON for the one-colour scheme
 
 An episode is a JSON file: its number and title, the sections (start time,
 label top left, the spoken line, the lines of code that type, the stage —
@@ -21,7 +21,21 @@ VOICE = "af_kore"
 WRAP = 31          # characters per caption line
 ADV = 0.022757     # advance of one mono character at size 0.044
 CODE_STEP = 0.25   # a code line on each eighth note
-PAL = '["#000000", "#8f8f8f", "#d6d6d6", "#ff4b2b"]'
+# the palette, in the order a soft edge may cross it: black, the code panel, the frame
+# grey, the muted grey, the greys of functions and strings, the ink, white, and the red
+# of chance last. A level is k / 9.
+SCHEMES = {
+    # the site's own: red the only colour
+    "site": ["#000000", "#0b0b0b", "#3a3a3a", "#8f8f8f", "#a9a9a9", "#b8b8b8", "#d6d6d6", "#ffffff", "#ffffff", "#ff4b2b"],
+    # the same, with functions in blue, strings in olive, numbers in amber
+    "colour": ["#000000", "#0b0b0b", "#3a3a3a", "#8f8f8f", "#7fb3d5", "#b5bd68", "#d6d6d6", "#f0c674", "#ffffff", "#ff4b2b"],
+}
+PALETTE = SCHEMES[sys.argv[2] if len(sys.argv) > 2 else "colour"]   # `python3 gen.py 01-tilde.json site` for the one-colour scheme
+PAL = "[" + ", ".join(f'"{c}"' for c in PALETTE) + "]"
+LEVELS = {"PANEL": 1, "RULE": 2, "GREY": 3, "FN": 4, "STR": 5, "INK": 6, "NUM": 7, "KEY": 8, "RED": 9}
+CODE_SIZE = 0.042   # big enough for a phone
+CODE_DY = 0.075
+KEYWORDS = {"work", "let", "field", "output", "render", "use", "choose", "synth", "for", "in", "if", "else", "constraint", "true", "false", "pattern", "grow", "repeat", "event", "then", "over"}
 
 
 def caption(name, say, text, start, end):
@@ -51,23 +65,65 @@ def caption(name, say, text, start, end):
     return out
 
 
-def code_block(name, lines, at, y0=0.14, step=CODE_STEP, size=0.027, dy=0.052, x0=0.06):
-    """Lines of code typed one per eighth note; `~` spans in red. Returns (let lines, ink name, red name)."""
-    out, inks, reds = [], [], []
+import re
+
+TOKEN = re.compile(r'(//[^\n]*)|("(?:[^"\\]|\\.)*")|(~~?)|(\b\d+(?:\.\d+)?\b|\b0x[0-9a-f]+\b)|([A-Za-z_][A-Za-z0-9_]*)(\s*\()?|([\s\S])', re.I)
+
+
+def mx(items):
+    """max of many fields, nested two by two."""
+    items = list(items)
+    return items[0] if len(items) == 1 else f"max({items[0]}, {mx(items[1:])})"
+
+
+def classes(text, shell=False):
+    """The site's highlighter (site/site.js): each character's class."""
+    out = []
+    if shell:
+        for ch in text:
+            out.append("GREY" if ch == "$" else "INK")
+        return out
+    for m in TOKEN.finditer(text):
+        if m.group(1):
+            out += ["GREY"] * len(m.group(1))
+        elif m.group(2):
+            out += ["STR"] * len(m.group(2))
+        elif m.group(3):
+            out += ["RED"] * len(m.group(3))
+        elif m.group(4):
+            out += ["NUM"] * len(m.group(4))
+        elif m.group(5):
+            word = m.group(5)
+            cls = "KEY" if word in KEYWORDS else ("FN" if m.group(6) else "INK")
+            out += [cls] * len(word)
+            if m.group(6):
+                out += ["INK"] * len(m.group(6))
+        else:
+            out += ["INK"] * len(m.group(7))
+    return out
+
+
+def code_block(name, lines, at, y0=0.14, step=CODE_STEP, size=CODE_SIZE, dy=CODE_DY, x0=0.07):
+    """Lines of code on the site's panel, typed one per eighth note, highlighted as on
+    alea.bngz.io: keywords and numbers white, functions and strings grey, `~` red.
+    Defines {name}_code, a field in palette levels."""
+    out, fields = [], []
     for k, line in enumerate(lines):
         t0 = at + k * step
         txt = line["text"] if isinstance(line, dict) else line
-        esc = txt.replace("{", "{{")   # only the opening brace is doubled in an alea string
+        cls = classes(txt, shell=isinstance(line, dict) and line.get("shell", False))
         y = y0 + k * dy
-        out.append(f'  let {name}_k{k} = text("{esc}", x: {x0}, y: {y:.3f}, size: {size}, font: "mono", align: "left") * (T >= {t0:.2f})')
-        inks.append(f"{name}_k{k}")
-        if isinstance(line, dict):
-            for col, word in line.get("red", []):
-                pad = " " * col + word
-                out.append(f'  let {name}_r{k}_{col} = text("{pad}", x: {x0}, y: {y:.3f}, size: {size}, font: "mono", align: "left") * (T >= {t0:.2f})')
-                reds.append(f"{name}_r{k}_{col}")
-    out.append(f"  let {name}_ink = " + (f"merge({', '.join(inks)})" if len(inks) > 1 else inks[0]))
-    out.append(f"  let {name}_red = " + (f"merge({', '.join(reds)})" if len(reds) > 1 else (reds[0] if reds else "0")))
+        for c in sorted(set(cls)):
+            masked = "".join(ch if cc == c else " " for ch, cc in zip(txt, cls)).rstrip()
+            esc = masked.replace("{", "{{")   # only the opening brace is doubled in an alea string
+            out.append(f'  let {name}_k{k}_{c} = text("{esc}", x: {x0}, y: {y:.3f}, size: {size}, font: "mono", align: "left") * {c} * (T >= {t0:.2f})')
+            fields.append(f"{name}_k{k}_{c}")
+    top = y0 - 0.055
+    bottom = y0 + (len(lines) - 1) * dy + 0.055
+    cy = (top + bottom) / 2
+    h = bottom - top
+    out.append(f"  let {name}_panel = max(rect(0.5, {cy:.3f}, 0.92, {h:.3f}, 0, 0.001) * PANEL, rect(0.042, {cy:.3f}, 0.004, {h:.3f}, 0, 0.001) * RULE) * (T >= {at:.2f})")
+    out.append(f"  let {name}_code = {mx([f'{name}_panel'] + fields)}")
     return out
 
 
@@ -90,10 +146,8 @@ def main():
     L.append(f'  let VOICE = "{VOICE}"')
     L.append("  let win(a, b) = (T >= a) * (T < b)")
     L.append("  let beat = floor(T * 2)")
-    L.append("  let RULE = 0.14")
-    L.append("  let GREY = 0.333")
-    L.append("  let INK = 0.667")
-    L.append("  let RED = 1")
+    for k, v in LEVELS.items():
+        L.append(f"  let {k} = {v} / 9")
     L.append("  let px = 1 / 1080")
     L.append("  let blink = fract(T * 2) < 0.5")
     L.append(f"  let adv = {ADV}")

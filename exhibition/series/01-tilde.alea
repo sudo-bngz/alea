@@ -14,10 +14,15 @@ work Episode01 {
   let VOICE = "af_kore"
   let win(a, b) = (T >= a) * (T < b)
   let beat = floor(T * 2)
-  let RULE = 0.14
-  let GREY = 0.333
-  let INK = 0.667
-  let RED = 1
+  let PANEL = 1 / 9
+  let RULE = 2 / 9
+  let GREY = 3 / 9
+  let FN = 4 / 9
+  let STR = 5 / 9
+  let INK = 6 / 9
+  let NUM = 7 / 9
+  let KEY = 8 / 9
+  let RED = 9 / 9
   let px = 1 / 1080
   let blink = fract(T * 2) < 0.5
   let adv = 0.022757
@@ -90,76 +95,98 @@ work Episode01 {
   let hookf = max(wave * RED, max(hk1 * INK, hk2 * GREY))
 
   // ── one number: a circle, its size 0.3 ──
-  let k2_k0 = text("work Circle {{", x: 0.06, y: 0.140, size: 0.027, font: "mono", align: "left") * (T >= 9.30)
-  let k2_k1 = text("  let r = 0.3", x: 0.06, y: 0.192, size: 0.027, font: "mono", align: "left") * (T >= 9.55)
-  let k2_k2 = text("  output circle(0.5, 0.5, r)", x: 0.06, y: 0.244, size: 0.027, font: "mono", align: "left") * (T >= 9.80)
-  let k2_k3 = text("}", x: 0.06, y: 0.296, size: 0.027, font: "mono", align: "left") * (T >= 10.05)
-  let k2_ink = merge(k2_k0, k2_k1, k2_k2, k2_k3)
-  let k2_red = 0
+  let k2_k0_INK = text("     Circle {{", x: 0.07, y: 0.140, size: 0.042, font: "mono", align: "left") * INK * (T >= 9.30)
+  let k2_k0_KEY = text("work", x: 0.07, y: 0.140, size: 0.042, font: "mono", align: "left") * KEY * (T >= 9.30)
+  let k2_k1_INK = text("      r =", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * INK * (T >= 9.55)
+  let k2_k1_KEY = text("  let", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * KEY * (T >= 9.55)
+  let k2_k1_NUM = text("          0.3", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * NUM * (T >= 9.55)
+  let k2_k2_FN = text("         circle", x: 0.07, y: 0.290, size: 0.042, font: "mono", align: "left") * FN * (T >= 9.80)
+  let k2_k2_INK = text("               (   ,    , r)", x: 0.07, y: 0.290, size: 0.042, font: "mono", align: "left") * INK * (T >= 9.80)
+  let k2_k2_KEY = text("  output", x: 0.07, y: 0.290, size: 0.042, font: "mono", align: "left") * KEY * (T >= 9.80)
+  let k2_k2_NUM = text("                0.5  0.5", x: 0.07, y: 0.290, size: 0.042, font: "mono", align: "left") * NUM * (T >= 9.80)
+  let k2_k3_INK = text("}", x: 0.07, y: 0.365, size: 0.042, font: "mono", align: "left") * INK * (T >= 10.05)
+  let k2_panel = max(rect(0.5, 0.253, 0.92, 0.335, 0, 0.001) * PANEL, rect(0.042, 0.253, 0.004, 0.335, 0, 0.001) * RULE) * (T >= 9.30)
+  let k2_code = max(k2_panel, max(k2_k0_INK, max(k2_k0_KEY, max(k2_k1_INK, max(k2_k1_KEY, max(k2_k1_NUM, max(k2_k2_FN, max(k2_k2_INK, max(k2_k2_KEY, max(k2_k2_NUM, k2_k3_INK))))))))))
   let f2 = frame(0.5, 0.78, 0.5, 0.5) * (T >= 10.3)
   let d2 = circle(0.5, 0.78, 0.3 * 0.5, softness: 0.002) * (T >= 10.3)
-  let onef = max(k2_ink * INK, max(f2 * RULE, d2 * INK))
+  let onef = max(k2_code, max(f2 * RULE, d2 * INK))
 
   // ── three runs: the same circle, three times ──
   let f3 = merge(frame(0.2, 0.78, 0.27, 0.27) * (T >= 15.3), frame(0.5, 0.78, 0.27, 0.27) * (T >= 15.8), frame(0.8, 0.78, 0.27, 0.27) * (T >= 16.3))
   let d3 = merge(circle(0.2, 0.78, 0.3 * 0.27, softness: 0.002) * (T >= 15.3), circle(0.5, 0.78, 0.3 * 0.27, softness: 0.002) * (T >= 15.8), circle(0.8, 0.78, 0.3 * 0.27, softness: 0.002) * (T >= 16.3))
   let g3 = merge(text("run 1", x: 0.2, y: 0.97, size: 0.024, font: "mono") * (T >= 15.3), text("run 2", x: 0.5, y: 0.97, size: 0.024, font: "mono") * (T >= 15.8), text("run 3", x: 0.8, y: 0.97, size: 0.024, font: "mono") * (T >= 16.3))
-  let threef = max(k2_ink * INK, max(f3 * RULE, max(d3 * INK, g3 * GREY)))
+  let threef = max(k2_code, max(f3 * RULE, max(d3 * INK, g3 * GREY)))
 
   // ── the tilde: the size drawn between 0.1 and 0.5 ──
-  let k4_k0 = text("work Circle {{", x: 0.06, y: 0.140, size: 0.027, font: "mono", align: "left") * (T >= 21.80)
-  let k4_k1 = text("  let r = ~between(0.1, 0.5)", x: 0.06, y: 0.192, size: 0.027, font: "mono", align: "left") * (T >= 22.05)
-  let k4_r1_10 = text("          ~between", x: 0.06, y: 0.192, size: 0.027, font: "mono", align: "left") * (T >= 22.05)
-  let k4_k2 = text("  output circle(0.5, 0.5, r)", x: 0.06, y: 0.244, size: 0.027, font: "mono", align: "left") * (T >= 22.30)
-  let k4_k3 = text("}", x: 0.06, y: 0.296, size: 0.027, font: "mono", align: "left") * (T >= 22.55)
-  let k4_ink = merge(k4_k0, k4_k1, k4_k2, k4_k3)
-  let k4_red = k4_r1_10
+  let k4_k0_INK = text("     Circle {{", x: 0.07, y: 0.140, size: 0.042, font: "mono", align: "left") * INK * (T >= 21.80)
+  let k4_k0_KEY = text("work", x: 0.07, y: 0.140, size: 0.042, font: "mono", align: "left") * KEY * (T >= 21.80)
+  let k4_k1_FN = text("           between", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * FN * (T >= 22.05)
+  let k4_k1_INK = text("      r =         (   ,    )", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * INK * (T >= 22.05)
+  let k4_k1_KEY = text("  let", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * KEY * (T >= 22.05)
+  let k4_k1_NUM = text("                   0.1  0.5", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * NUM * (T >= 22.05)
+  let k4_k1_RED = text("          ~", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * RED * (T >= 22.05)
+  let k4_k2_FN = text("         circle", x: 0.07, y: 0.290, size: 0.042, font: "mono", align: "left") * FN * (T >= 22.30)
+  let k4_k2_INK = text("               (   ,    , r)", x: 0.07, y: 0.290, size: 0.042, font: "mono", align: "left") * INK * (T >= 22.30)
+  let k4_k2_KEY = text("  output", x: 0.07, y: 0.290, size: 0.042, font: "mono", align: "left") * KEY * (T >= 22.30)
+  let k4_k2_NUM = text("                0.5  0.5", x: 0.07, y: 0.290, size: 0.042, font: "mono", align: "left") * NUM * (T >= 22.30)
+  let k4_k3_INK = text("}", x: 0.07, y: 0.365, size: 0.042, font: "mono", align: "left") * INK * (T >= 22.55)
+  let k4_panel = max(rect(0.5, 0.253, 0.92, 0.335, 0, 0.001) * PANEL, rect(0.042, 0.253, 0.004, 0.335, 0, 0.001) * RULE) * (T >= 21.80)
+  let k4_code = max(k4_panel, max(k4_k0_INK, max(k4_k0_KEY, max(k4_k1_FN, max(k4_k1_INK, max(k4_k1_KEY, max(k4_k1_NUM, max(k4_k1_RED, max(k4_k2_FN, max(k4_k2_INK, max(k4_k2_KEY, max(k4_k2_NUM, k4_k3_INK))))))))))))
   let f4 = merge(frame(0.2, 0.78, 0.27, 0.27) * (T >= 25.8), frame(0.5, 0.78, 0.27, 0.27) * (T >= 26.3), frame(0.8, 0.78, 0.27, 0.27) * (T >= 26.8))
   let d4 = merge(circle(0.2, 0.78, r1 * 0.27, softness: 0.002) * (T >= 25.8), circle(0.5, 0.78, r2 * 0.27, softness: 0.002) * (T >= 26.3), circle(0.8, 0.78, r3 * 0.27, softness: 0.002) * (T >= 26.8))
   let g4 = merge(text("run 1", x: 0.2, y: 0.97, size: 0.024, font: "mono") * (T >= 25.8), text("run 2", x: 0.5, y: 0.97, size: 0.024, font: "mono") * (T >= 26.3), text("run 3", x: 0.8, y: 0.97, size: 0.024, font: "mono") * (T >= 26.8))
-  let tildef = max(k4_ink * INK, max(k4_red * RED, max(f4 * RULE, max(d4 * INK, g4 * GREY))))
+  let tildef = max(k4_code, max(f4 * RULE, max(d4 * INK, g4 * GREY)))
 
   // ── three more runs: three pictures, one program ──
   let f5 = merge(frame(0.2, 0.78, 0.27, 0.27) * (T >= 30.3), frame(0.5, 0.78, 0.27, 0.27) * (T >= 30.8), frame(0.8, 0.78, 0.27, 0.27) * (T >= 31.3))
   let d5 = merge(circle(0.2, 0.78, r4 * 0.27, softness: 0.002) * (T >= 30.3), circle(0.5, 0.78, r5 * 0.27, softness: 0.002) * (T >= 30.8), circle(0.8, 0.78, r6 * 0.27, softness: 0.002) * (T >= 31.3))
   let g5 = merge(text("run 4", x: 0.2, y: 0.97, size: 0.024, font: "mono") * (T >= 30.3), text("run 5", x: 0.5, y: 0.97, size: 0.024, font: "mono") * (T >= 30.8), text("run 6", x: 0.8, y: 0.97, size: 0.024, font: "mono") * (T >= 31.3))
-  let runsf = max(k4_ink * INK, max(k4_red * RED, max(f5 * RULE, max(d5 * INK, g5 * GREY))))
+  let runsf = max(k4_code, max(f5 * RULE, max(d5 * INK, g5 * GREY)))
 
   // ── the seed: the same seed, the same picture ──
-  let k6_k0 = text("$ alea circle.alea --seed 7", x: 0.06, y: 0.140, size: 0.027, font: "mono", align: "left") * (T >= 35.80)
-  let k6_k1 = text("$ alea circle.alea --seed 7", x: 0.06, y: 0.192, size: 0.027, font: "mono", align: "left") * (T >= 37.60)
-  let k6_ink = merge(k6_k0, k6_k1)
-  let k6_red = 0
+  let k6_k0_GREY = text("$", x: 0.07, y: 0.140, size: 0.042, font: "mono", align: "left") * GREY * (T >= 35.80)
+  let k6_k0_INK = text("  alea circle.alea --seed 7", x: 0.07, y: 0.140, size: 0.042, font: "mono", align: "left") * INK * (T >= 35.80)
+  let k6_k1_GREY = text("$", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * GREY * (T >= 37.60)
+  let k6_k1_INK = text("  alea circle.alea --seed 7", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * INK * (T >= 37.60)
+  let k6_panel = max(rect(0.5, 0.178, 0.92, 0.185, 0, 0.001) * PANEL, rect(0.042, 0.178, 0.004, 0.185, 0, 0.001) * RULE) * (T >= 35.80)
+  let k6_code = max(k6_panel, max(k6_k0_GREY, max(k6_k0_INK, max(k6_k1_GREY, k6_k1_INK))))
   let f6 = merge(frame(0.3, 0.72, 0.34, 0.34) * (T >= 36.6), frame(0.7, 0.72, 0.34, 0.34) * (T >= 38.4))
   let d6 = merge(circle(0.3, 0.72, r7 * 0.34, softness: 0.002) * (T >= 36.6), circle(0.7, 0.72, r7 * 0.34, softness: 0.002) * (T >= 38.4))
   let g6 = merge(text("seed 7", x: 0.3, y: 0.95, size: 0.024, font: "mono") * (T >= 36.6), text("seed 7", x: 0.7, y: 0.95, size: 0.024, font: "mono") * (T >= 38.4))
   let eq6 = text("=", x: 0.5, y: 0.72, size: 0.08, font: "mono") * (T >= 38.6)
   let bb6 = text("byte for byte", x: 0.5, y: 1.1, size: 0.05, font: "mono") * (T >= l6.words[8])
-  let seedf = max(k6_ink * INK, max(f6 * RULE, max(d6 * INK, max(g6 * GREY, max(eq6 * INK, bb6 * RED)))))
+  let seedf = max(k6_code, max(f6 * RULE, max(d6 * INK, max(g6 * GREY, max(eq6 * INK, bb6 * RED)))))
 
   // ── the end: the whole program, the name, where to try it, what comes next ──
-  let k7_k0 = text("work Circle {{", x: 0.06, y: 0.140, size: 0.027, font: "mono", align: "left") * (T >= 43.80)
-  let k7_k1 = text("  let r = ~between(0.1, 0.5)", x: 0.06, y: 0.192, size: 0.027, font: "mono", align: "left") * (T >= 44.05)
-  let k7_r1_10 = text("          ~between", x: 0.06, y: 0.192, size: 0.027, font: "mono", align: "left") * (T >= 44.05)
-  let k7_k2 = text("  output circle(0.5, 0.5, r)", x: 0.06, y: 0.244, size: 0.027, font: "mono", align: "left") * (T >= 44.30)
-  let k7_k3 = text("}", x: 0.06, y: 0.296, size: 0.027, font: "mono", align: "left") * (T >= 44.55)
-  let k7_ink = merge(k7_k0, k7_k1, k7_k2, k7_k3)
-  let k7_red = k7_r1_10
+  let k7_k0_INK = text("     Circle {{", x: 0.07, y: 0.140, size: 0.042, font: "mono", align: "left") * INK * (T >= 43.80)
+  let k7_k0_KEY = text("work", x: 0.07, y: 0.140, size: 0.042, font: "mono", align: "left") * KEY * (T >= 43.80)
+  let k7_k1_FN = text("           between", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * FN * (T >= 44.05)
+  let k7_k1_INK = text("      r =         (   ,    )", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * INK * (T >= 44.05)
+  let k7_k1_KEY = text("  let", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * KEY * (T >= 44.05)
+  let k7_k1_NUM = text("                   0.1  0.5", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * NUM * (T >= 44.05)
+  let k7_k1_RED = text("          ~", x: 0.07, y: 0.215, size: 0.042, font: "mono", align: "left") * RED * (T >= 44.05)
+  let k7_k2_FN = text("         circle", x: 0.07, y: 0.290, size: 0.042, font: "mono", align: "left") * FN * (T >= 44.30)
+  let k7_k2_INK = text("               (   ,    , r)", x: 0.07, y: 0.290, size: 0.042, font: "mono", align: "left") * INK * (T >= 44.30)
+  let k7_k2_KEY = text("  output", x: 0.07, y: 0.290, size: 0.042, font: "mono", align: "left") * KEY * (T >= 44.30)
+  let k7_k2_NUM = text("                0.5  0.5", x: 0.07, y: 0.290, size: 0.042, font: "mono", align: "left") * NUM * (T >= 44.30)
+  let k7_k3_INK = text("}", x: 0.07, y: 0.365, size: 0.042, font: "mono", align: "left") * INK * (T >= 44.55)
+  let k7_panel = max(rect(0.5, 0.253, 0.92, 0.335, 0, 0.001) * PANEL, rect(0.042, 0.253, 0.004, 0.335, 0, 0.001) * RULE) * (T >= 43.80)
+  let k7_code = max(k7_panel, max(k7_k0_INK, max(k7_k0_KEY, max(k7_k1_FN, max(k7_k1_INK, max(k7_k1_KEY, max(k7_k1_NUM, max(k7_k1_RED, max(k7_k2_FN, max(k7_k2_INK, max(k7_k2_KEY, max(k7_k2_NUM, k7_k3_INK))))))))))))
   let nsize = 0.2
   let nadv = 0.5172 * nsize
   let nx0e = 0.5 - 2.5 * nadv
-  let name2 = text("alea", x: nx0e, y: 0.5, size: nsize, font: "mono", align: "left") * (T >= 44.8)
-  let ecur = (abs(x - (nx0e + 4.5 * nadv)) < nadv * 0.42) * (abs(y - 0.5) < nsize * 0.4) * blink * (T >= 44.8)
-  let e1 = text("one feature at a time  ·  01  ·  the tilde", x: 0.5, y: 0.66, size: 0.03, font: "mono") * (T >= 45.3)
-  let e2 = text("alea.bngz.io", x: 0.5, y: 0.78, size: 0.06, font: "mono") * (T >= 45.8)
-  let e3 = text("next  ·  02  ·  fields", x: 0.5, y: 0.92, size: 0.03, font: "mono") * (T >= l7.words[2])
-  let e4 = text("open source  ·  github.com/sudo-bngz/alea", x: 0.5, y: 1.0, size: 0.026, font: "mono") * (T >= 47.0)
-  let endf = max(k7_ink * INK, max(k7_red * RED, max(name2 * INK, max(ecur * RED, max(e1 * INK, max(e2 * RED, max(e3 * GREY, e4 * INK)))))))
+  let name2 = text("alea", x: nx0e, y: 0.56, size: nsize, font: "mono", align: "left") * (T >= 44.8)
+  let ecur = (abs(x - (nx0e + 4.5 * nadv)) < nadv * 0.42) * (abs(y - 0.56) < nsize * 0.4) * blink * (T >= 44.8)
+  let e1 = text("one feature at a time  ·  01  ·  the tilde", x: 0.5, y: 0.70, size: 0.03, font: "mono") * (T >= 45.3)
+  let e2 = text("alea.bngz.io", x: 0.5, y: 0.81, size: 0.06, font: "mono") * (T >= 45.8)
+  let e3 = text("next  ·  02  ·  fields", x: 0.5, y: 0.94, size: 0.03, font: "mono") * (T >= l7.words[2])
+  let e4 = text("open source  ·  github.com/sudo-bngz/alea", x: 0.5, y: 1.02, size: 0.026, font: "mono") * (T >= 47.0)
+  let endf = max(k7_code, max(name2 * INK, max(ecur * RED, max(e1 * INK, max(e2 * RED, max(e3 * GREY, e4 * INK))))))
 
   // ── the page ──
   let drawn = merge(openf * win(0.0, 3.0), hookf * win(3.0, 9.0), onef * win(9.0, 15.0), threef * win(15.0, 21.5), tildef * win(21.5, 30.0), runsf * win(30.0, 35.5), seedf * win(35.5, 43.5), endf * win(43.5, 55.0))
   let over = merge(header * RED, captions * INK)
-  let base = paint(max(drawn, over), palette: ["#000000", "#8f8f8f", "#d6d6d6", "#ff4b2b"], range: [0, 1])
+  let base = paint(max(drawn, over), palette: ["#000000", "#0b0b0b", "#3a3a3a", "#8f8f8f", "#7fb3d5", "#b5bd68", "#d6d6d6", "#f0c674", "#ffffff", "#ff4b2b"], range: [0, 1])
   let look = film(base, amount: 0.03)
 
   // ── the cuts ──

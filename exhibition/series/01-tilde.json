@@ -1,105 +1,263 @@
 {
-  "number": "01",
-  "title": "The tilde",
-  "file": "01-tilde.json",
-  "comment": [
-    "One character, and every run is a different picture. A circle whose size is a",
-    "number, run three times: the same circle. The size drawn with `~between`: three",
-    "runs, three circles, one program — and three more. The same seed twice: the",
-    "same picture, byte for byte. The sizes you see are this very program's own",
-    "draws (r1 to r7 below), so the pictures are honest."
-  ],
-  "total": 55.0,
-  "cover": 0.5,
-  "draws": [
-    "let r1 = ~between(0.1, 0.5)",
-    "let r2 = ~between(0.1, 0.5)",
-    "let r3 = ~between(0.1, 0.5)",
-    "let r4 = ~between(0.1, 0.5)",
-    "let r5 = ~between(0.1, 0.5)",
-    "let r6 = ~between(0.1, 0.5)",
-    "let r7 = ~between(0.1, 0.5)"
-  ],
-  "sections": [
-    {"name": "the opening", "start": 0.0, "field": "openf"},
-    {"name": "the hook: the mark in red, the episode", "start": 3.0, "label": "chance",
-     "say": "One character. Every run, a different picture.", "at": 3.9,
-     "stage": [
-       "let hk1 = text(\"01  ·  the tilde\", x: 0.5, y: 0.74, size: 0.036, font: \"mono\") * (T >= 3.3)",
-       "let hk2 = text(\"alea, one feature at a time\", x: 0.5, y: 0.81, size: 0.03, font: \"mono\") * (T >= 3.3)",
-       "let hookf = max(wave * RED, max(hk1 * INK, hk2 * GREY))"
-     ], "field": "hookf"},
-    {"name": "one number: a circle, its size 0.3", "start": 9.0, "label": "one number",
-     "say": "A circle. Its size is a number.", "at": 10.6,
-     "code": {"at": 9.3, "lines": ["work Circle {", "  let r = 0.3", "  output circle(0.5, 0.5, r)", "}"]},
-     "stage": [
-       "let f2 = frame(0.5, 0.78, 0.5, 0.5) * (T >= 10.3)",
-       "let d2 = circle(0.5, 0.78, 0.3 * 0.5, softness: 0.002) * (T >= 10.3)",
-       "let onef = max(k2_ink * INK, max(f2 * RULE, d2 * INK))"
-     ], "field": "onef"},
-    {"name": "three runs: the same circle, three times", "start": 15.0, "label": "three runs",
-     "say": "Run it three times. The same circle, three times.", "at": 16.0,
-     "stage": [
-       "let f3 = merge(frame(0.2, 0.78, 0.27, 0.27) * (T >= 15.3), frame(0.5, 0.78, 0.27, 0.27) * (T >= 15.8), frame(0.8, 0.78, 0.27, 0.27) * (T >= 16.3))",
-       "let d3 = merge(circle(0.2, 0.78, 0.3 * 0.27, softness: 0.002) * (T >= 15.3), circle(0.5, 0.78, 0.3 * 0.27, softness: 0.002) * (T >= 15.8), circle(0.8, 0.78, 0.3 * 0.27, softness: 0.002) * (T >= 16.3))",
-       "let g3 = merge(text(\"run 1\", x: 0.2, y: 0.97, size: 0.024, font: \"mono\") * (T >= 15.3), text(\"run 2\", x: 0.5, y: 0.97, size: 0.024, font: \"mono\") * (T >= 15.8), text(\"run 3\", x: 0.8, y: 0.97, size: 0.024, font: \"mono\") * (T >= 16.3))",
-       "let threef = max(k2_ink * INK, max(f3 * RULE, max(d3 * INK, g3 * GREY)))"
-     ], "field": "threef"},
-    {"name": "the tilde: the size drawn between 0.1 and 0.5", "start": 21.5, "label": "the tilde",
-     "say": "Now the tilde: draw the size, between point one and five.", "at": 22.3,
-     "code": {"at": 21.8, "lines": ["work Circle {", {"text": "  let r = ~between(0.1, 0.5)", "red": [[10, "~between"]]}, "  output circle(0.5, 0.5, r)", "}"]},
-     "stage": [
-       "let f4 = merge(frame(0.2, 0.78, 0.27, 0.27) * (T >= 25.8), frame(0.5, 0.78, 0.27, 0.27) * (T >= 26.3), frame(0.8, 0.78, 0.27, 0.27) * (T >= 26.8))",
-       "let d4 = merge(circle(0.2, 0.78, r1 * 0.27, softness: 0.002) * (T >= 25.8), circle(0.5, 0.78, r2 * 0.27, softness: 0.002) * (T >= 26.3), circle(0.8, 0.78, r3 * 0.27, softness: 0.002) * (T >= 26.8))",
-       "let g4 = merge(text(\"run 1\", x: 0.2, y: 0.97, size: 0.024, font: \"mono\") * (T >= 25.8), text(\"run 2\", x: 0.5, y: 0.97, size: 0.024, font: \"mono\") * (T >= 26.3), text(\"run 3\", x: 0.8, y: 0.97, size: 0.024, font: \"mono\") * (T >= 26.8))",
-       "let tildef = max(k4_ink * INK, max(k4_red * RED, max(f4 * RULE, max(d4 * INK, g4 * GREY))))"
-     ], "field": "tildef"},
-    {"name": "three more runs: three pictures, one program", "start": 30.0, "label": "three runs",
-     "say": "Three runs. Three pictures. One program.", "at": 30.6,
-     "stage": [
-       "let f5 = merge(frame(0.2, 0.78, 0.27, 0.27) * (T >= 30.3), frame(0.5, 0.78, 0.27, 0.27) * (T >= 30.8), frame(0.8, 0.78, 0.27, 0.27) * (T >= 31.3))",
-       "let d5 = merge(circle(0.2, 0.78, r4 * 0.27, softness: 0.002) * (T >= 30.3), circle(0.5, 0.78, r5 * 0.27, softness: 0.002) * (T >= 30.8), circle(0.8, 0.78, r6 * 0.27, softness: 0.002) * (T >= 31.3))",
-       "let g5 = merge(text(\"run 4\", x: 0.2, y: 0.97, size: 0.024, font: \"mono\") * (T >= 30.3), text(\"run 5\", x: 0.5, y: 0.97, size: 0.024, font: \"mono\") * (T >= 30.8), text(\"run 6\", x: 0.8, y: 0.97, size: 0.024, font: \"mono\") * (T >= 31.3))",
-       "let runsf = max(k4_ink * INK, max(k4_red * RED, max(f5 * RULE, max(d5 * INK, g5 * GREY))))"
-     ], "field": "runsf"},
-    {"name": "the seed: the same seed, the same picture", "start": 35.5, "label": "the seed",
-     "say": "Keep the seed, and you keep the picture. Byte for byte.", "at": 38.8,
-     "code": {"at": 35.8, "lines": ["$ alea circle.alea --seed 7", "$ alea circle.alea --seed 7"], "layout": {"step": 1.8}},
-     "stage": [
-       "let f6 = merge(frame(0.3, 0.72, 0.34, 0.34) * (T >= 36.6), frame(0.7, 0.72, 0.34, 0.34) * (T >= 38.4))",
-       "let d6 = merge(circle(0.3, 0.72, r7 * 0.34, softness: 0.002) * (T >= 36.6), circle(0.7, 0.72, r7 * 0.34, softness: 0.002) * (T >= 38.4))",
-       "let g6 = merge(text(\"seed 7\", x: 0.3, y: 0.95, size: 0.024, font: \"mono\") * (T >= 36.6), text(\"seed 7\", x: 0.7, y: 0.95, size: 0.024, font: \"mono\") * (T >= 38.4))",
-       "let eq6 = text(\"=\", x: 0.5, y: 0.72, size: 0.08, font: \"mono\") * (T >= 38.6)",
-       "let bb6 = text(\"byte for byte\", x: 0.5, y: 1.1, size: 0.05, font: \"mono\") * (T >= l6.words[8])",
-       "let seedf = max(k6_ink * INK, max(f6 * RULE, max(d6 * INK, max(g6 * GREY, max(eq6 * INK, bb6 * RED)))))"
-     ], "field": "seedf"},
-    {"name": "the end: the whole program, the name, where to try it, what comes next", "start": 43.5,
-     "say": "Next week: fields. A picture is a function of x and y.", "at": 46.8,
-     "code": {"at": 43.8, "lines": ["work Circle {", {"text": "  let r = ~between(0.1, 0.5)", "red": [[10, "~between"]]}, "  output circle(0.5, 0.5, r)", "}"]},
-     "stage": [
-       "let nsize = 0.2",
-       "let nadv = 0.5172 * nsize",
-       "let nx0e = 0.5 - 2.5 * nadv",
-       "let name2 = text(\"alea\", x: nx0e, y: 0.5, size: nsize, font: \"mono\", align: \"left\") * (T >= 44.8)",
-       "let ecur = (abs(x - (nx0e + 4.5 * nadv)) < nadv * 0.42) * (abs(y - 0.5) < nsize * 0.4) * blink * (T >= 44.8)",
-       "let e1 = text(\"one feature at a time  ·  01  ·  the tilde\", x: 0.5, y: 0.66, size: 0.03, font: \"mono\") * (T >= 45.3)",
-       "let e2 = text(\"alea.bngz.io\", x: 0.5, y: 0.78, size: 0.06, font: \"mono\") * (T >= 45.8)",
-       "let e3 = text(\"next  ·  02  ·  fields\", x: 0.5, y: 0.92, size: 0.03, font: \"mono\") * (T >= l7.words[2])",
-       "let e4 = text(\"open source  ·  github.com/sudo-bngz/alea\", x: 0.5, y: 1.0, size: 0.026, font: \"mono\") * (T >= 47.0)",
-       "let endf = max(k7_ink * INK, max(k7_red * RED, max(name2 * INK, max(ecur * RED, max(e1 * INK, max(e2 * RED, max(e3 * GREY, e4 * INK)))))))"
-     ], "field": "endf"}
-  ],
-  "transitions": {"0": "jump()", "1": "jump()", "2": "pixels(0.3, size: 0.04)", "3": "jump()", "4": "glitch(0.4, amount: 0.7)", "5": "jump()", "6": "pixels(0.3, size: 0.05)"},
-  "fadeout": 0.8,
-  "score": {
-    "key": 55,
-    "chords": [[12, 15, 19, 26], [8, 12, 15, 19], [15, 19, 22, 26], [10, 14, 17, 20]],
-    "roots": [12, 8, 15, 10],
-    "cuts": [3.0, 9.0, 15.0, 21.5, 30.0, 35.5, 43.5],
-    "booms": [3.0, 9.0, 21.5, 35.5, 43.5],
-    "hits": [10.3, 15.3, 15.8, 16.3, 25.8, 26.3, 26.8, 30.3, 30.8, 31.3, 36.6, 38.4],
-    "beat": [21.5, 43.5],
-    "half": [9.0, 21.5],
-    "bells": [35.5, 43.5]
+ "number": "01",
+ "title": "The tilde",
+ "file": "01-tilde.json",
+ "comment": [
+  "One character, and every run is a different picture. A circle whose size is a",
+  "number, run three times: the same circle. The size drawn with `~between`: three",
+  "runs, three circles, one program — and three more. The same seed twice: the",
+  "same picture, byte for byte. The sizes you see are this very program's own",
+  "draws (r1 to r7 below), so the pictures are honest."
+ ],
+ "total": 55.0,
+ "cover": 0.5,
+ "draws": [
+  "let r1 = ~between(0.1, 0.5)",
+  "let r2 = ~between(0.1, 0.5)",
+  "let r3 = ~between(0.1, 0.5)",
+  "let r4 = ~between(0.1, 0.5)",
+  "let r5 = ~between(0.1, 0.5)",
+  "let r6 = ~between(0.1, 0.5)",
+  "let r7 = ~between(0.1, 0.5)"
+ ],
+ "sections": [
+  {
+   "name": "the opening",
+   "start": 0.0,
+   "field": "openf"
+  },
+  {
+   "name": "the hook: the mark in red, the episode",
+   "start": 3.0,
+   "label": "chance",
+   "say": "One character. Every run, a different picture.",
+   "at": 3.9,
+   "stage": [
+    "let hk1 = text(\"01  ·  the tilde\", x: 0.5, y: 0.74, size: 0.036, font: \"mono\") * (T >= 3.3)",
+    "let hk2 = text(\"alea, one feature at a time\", x: 0.5, y: 0.81, size: 0.03, font: \"mono\") * (T >= 3.3)",
+    "let hookf = max(wave * RED, max(hk1 * INK, hk2 * GREY))"
+   ],
+   "field": "hookf"
+  },
+  {
+   "name": "one number: a circle, its size 0.3",
+   "start": 9.0,
+   "label": "one number",
+   "say": "A circle. Its size is a number.",
+   "at": 10.6,
+   "code": {
+    "at": 9.3,
+    "lines": [
+     "work Circle {",
+     "  let r = 0.3",
+     "  output circle(0.5, 0.5, r)",
+     "}"
+    ]
+   },
+   "stage": [
+    "let f2 = frame(0.5, 0.78, 0.5, 0.5) * (T >= 10.3)",
+    "let d2 = circle(0.5, 0.78, 0.3 * 0.5, softness: 0.002) * (T >= 10.3)",
+    "let onef = max(k2_code, max(f2 * RULE, d2 * INK))"
+   ],
+   "field": "onef"
+  },
+  {
+   "name": "three runs: the same circle, three times",
+   "start": 15.0,
+   "label": "three runs",
+   "say": "Run it three times. The same circle, three times.",
+   "at": 16.0,
+   "stage": [
+    "let f3 = merge(frame(0.2, 0.78, 0.27, 0.27) * (T >= 15.3), frame(0.5, 0.78, 0.27, 0.27) * (T >= 15.8), frame(0.8, 0.78, 0.27, 0.27) * (T >= 16.3))",
+    "let d3 = merge(circle(0.2, 0.78, 0.3 * 0.27, softness: 0.002) * (T >= 15.3), circle(0.5, 0.78, 0.3 * 0.27, softness: 0.002) * (T >= 15.8), circle(0.8, 0.78, 0.3 * 0.27, softness: 0.002) * (T >= 16.3))",
+    "let g3 = merge(text(\"run 1\", x: 0.2, y: 0.97, size: 0.024, font: \"mono\") * (T >= 15.3), text(\"run 2\", x: 0.5, y: 0.97, size: 0.024, font: \"mono\") * (T >= 15.8), text(\"run 3\", x: 0.8, y: 0.97, size: 0.024, font: \"mono\") * (T >= 16.3))",
+    "let threef = max(k2_code, max(f3 * RULE, max(d3 * INK, g3 * GREY)))"
+   ],
+   "field": "threef"
+  },
+  {
+   "name": "the tilde: the size drawn between 0.1 and 0.5",
+   "start": 21.5,
+   "label": "the tilde",
+   "say": "Now the tilde: draw the size, between point one and five.",
+   "at": 22.3,
+   "code": {
+    "at": 21.8,
+    "lines": [
+     "work Circle {",
+     "  let r = ~between(0.1, 0.5)",
+     "  output circle(0.5, 0.5, r)",
+     "}"
+    ]
+   },
+   "stage": [
+    "let f4 = merge(frame(0.2, 0.78, 0.27, 0.27) * (T >= 25.8), frame(0.5, 0.78, 0.27, 0.27) * (T >= 26.3), frame(0.8, 0.78, 0.27, 0.27) * (T >= 26.8))",
+    "let d4 = merge(circle(0.2, 0.78, r1 * 0.27, softness: 0.002) * (T >= 25.8), circle(0.5, 0.78, r2 * 0.27, softness: 0.002) * (T >= 26.3), circle(0.8, 0.78, r3 * 0.27, softness: 0.002) * (T >= 26.8))",
+    "let g4 = merge(text(\"run 1\", x: 0.2, y: 0.97, size: 0.024, font: \"mono\") * (T >= 25.8), text(\"run 2\", x: 0.5, y: 0.97, size: 0.024, font: \"mono\") * (T >= 26.3), text(\"run 3\", x: 0.8, y: 0.97, size: 0.024, font: \"mono\") * (T >= 26.8))",
+    "let tildef = max(k4_code, max(f4 * RULE, max(d4 * INK, g4 * GREY)))"
+   ],
+   "field": "tildef"
+  },
+  {
+   "name": "three more runs: three pictures, one program",
+   "start": 30.0,
+   "label": "three runs",
+   "say": "Three runs. Three pictures. One program.",
+   "at": 30.6,
+   "stage": [
+    "let f5 = merge(frame(0.2, 0.78, 0.27, 0.27) * (T >= 30.3), frame(0.5, 0.78, 0.27, 0.27) * (T >= 30.8), frame(0.8, 0.78, 0.27, 0.27) * (T >= 31.3))",
+    "let d5 = merge(circle(0.2, 0.78, r4 * 0.27, softness: 0.002) * (T >= 30.3), circle(0.5, 0.78, r5 * 0.27, softness: 0.002) * (T >= 30.8), circle(0.8, 0.78, r6 * 0.27, softness: 0.002) * (T >= 31.3))",
+    "let g5 = merge(text(\"run 4\", x: 0.2, y: 0.97, size: 0.024, font: \"mono\") * (T >= 30.3), text(\"run 5\", x: 0.5, y: 0.97, size: 0.024, font: \"mono\") * (T >= 30.8), text(\"run 6\", x: 0.8, y: 0.97, size: 0.024, font: \"mono\") * (T >= 31.3))",
+    "let runsf = max(k4_code, max(f5 * RULE, max(d5 * INK, g5 * GREY)))"
+   ],
+   "field": "runsf"
+  },
+  {
+   "name": "the seed: the same seed, the same picture",
+   "start": 35.5,
+   "label": "the seed",
+   "say": "Keep the seed, and you keep the picture. Byte for byte.",
+   "at": 38.8,
+   "code": {
+    "at": 35.8,
+    "lines": [
+     {
+      "text": "$ alea circle.alea --seed 7",
+      "shell": true
+     },
+     {
+      "text": "$ alea circle.alea --seed 7",
+      "shell": true
+     }
+    ],
+    "layout": {
+     "step": 1.8
+    }
+   },
+   "stage": [
+    "let f6 = merge(frame(0.3, 0.72, 0.34, 0.34) * (T >= 36.6), frame(0.7, 0.72, 0.34, 0.34) * (T >= 38.4))",
+    "let d6 = merge(circle(0.3, 0.72, r7 * 0.34, softness: 0.002) * (T >= 36.6), circle(0.7, 0.72, r7 * 0.34, softness: 0.002) * (T >= 38.4))",
+    "let g6 = merge(text(\"seed 7\", x: 0.3, y: 0.95, size: 0.024, font: \"mono\") * (T >= 36.6), text(\"seed 7\", x: 0.7, y: 0.95, size: 0.024, font: \"mono\") * (T >= 38.4))",
+    "let eq6 = text(\"=\", x: 0.5, y: 0.72, size: 0.08, font: \"mono\") * (T >= 38.6)",
+    "let bb6 = text(\"byte for byte\", x: 0.5, y: 1.1, size: 0.05, font: \"mono\") * (T >= l6.words[8])",
+    "let seedf = max(k6_code, max(f6 * RULE, max(d6 * INK, max(g6 * GREY, max(eq6 * INK, bb6 * RED)))))"
+   ],
+   "field": "seedf"
+  },
+  {
+   "name": "the end: the whole program, the name, where to try it, what comes next",
+   "start": 43.5,
+   "say": "Next week: fields. A picture is a function of x and y.",
+   "at": 46.8,
+   "code": {
+    "at": 43.8,
+    "lines": [
+     "work Circle {",
+     "  let r = ~between(0.1, 0.5)",
+     "  output circle(0.5, 0.5, r)",
+     "}"
+    ]
+   },
+   "stage": [
+    "let nsize = 0.2",
+    "let nadv = 0.5172 * nsize",
+    "let nx0e = 0.5 - 2.5 * nadv",
+    "let name2 = text(\"alea\", x: nx0e, y: 0.56, size: nsize, font: \"mono\", align: \"left\") * (T >= 44.8)",
+    "let ecur = (abs(x - (nx0e + 4.5 * nadv)) < nadv * 0.42) * (abs(y - 0.56) < nsize * 0.4) * blink * (T >= 44.8)",
+    "let e1 = text(\"one feature at a time  ·  01  ·  the tilde\", x: 0.5, y: 0.70, size: 0.03, font: \"mono\") * (T >= 45.3)",
+    "let e2 = text(\"alea.bngz.io\", x: 0.5, y: 0.81, size: 0.06, font: \"mono\") * (T >= 45.8)",
+    "let e3 = text(\"next  ·  02  ·  fields\", x: 0.5, y: 0.94, size: 0.03, font: \"mono\") * (T >= l7.words[2])",
+    "let e4 = text(\"open source  ·  github.com/sudo-bngz/alea\", x: 0.5, y: 1.02, size: 0.026, font: \"mono\") * (T >= 47.0)",
+    "let endf = max(k7_code, max(name2 * INK, max(ecur * RED, max(e1 * INK, max(e2 * RED, max(e3 * GREY, e4 * INK))))))"
+   ],
+   "field": "endf"
   }
+ ],
+ "transitions": {
+  "0": "jump()",
+  "1": "jump()",
+  "2": "pixels(0.3, size: 0.04)",
+  "3": "jump()",
+  "4": "glitch(0.4, amount: 0.7)",
+  "5": "jump()",
+  "6": "pixels(0.3, size: 0.05)"
+ },
+ "fadeout": 0.8,
+ "score": {
+  "key": 55,
+  "chords": [
+   [
+    12,
+    15,
+    19,
+    26
+   ],
+   [
+    8,
+    12,
+    15,
+    19
+   ],
+   [
+    15,
+    19,
+    22,
+    26
+   ],
+   [
+    10,
+    14,
+    17,
+    20
+   ]
+  ],
+  "roots": [
+   12,
+   8,
+   15,
+   10
+  ],
+  "cuts": [
+   3.0,
+   9.0,
+   15.0,
+   21.5,
+   30.0,
+   35.5,
+   43.5
+  ],
+  "booms": [
+   3.0,
+   9.0,
+   21.5,
+   35.5,
+   43.5
+  ],
+  "hits": [
+   10.3,
+   15.3,
+   15.8,
+   16.3,
+   25.8,
+   26.3,
+   26.8,
+   30.3,
+   30.8,
+   31.3,
+   36.6,
+   38.4
+  ],
+  "beat": [
+   21.5,
+   43.5
+  ],
+  "half": [
+   9.0,
+   21.5
+  ],
+  "bells": [
+   35.5,
+   43.5
+  ]
+ }
 }
