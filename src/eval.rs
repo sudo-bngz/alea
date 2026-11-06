@@ -268,6 +268,23 @@ pub struct GrowData {
 }
 
 impl GrowData {
+    /// The `k`-th field at one moment, as a grid: the two kept generations
+    /// around `t`, blended, like `sample` in time.
+    fn moment(&self, k: usize, t: f64) -> Vec<f64> {
+        let s = t.clamp(0.0, 1.0) * (self.snaps - 1) as f64;
+        let j0 = (s.floor() as usize).min(self.snaps - 1);
+        let j1 = (j0 + 1).min(self.snaps - 1);
+        let ft = s - j0 as f64;
+        let cells = self.res * self.res;
+        let g = &self.fields[k];
+        (0..cells)
+            .map(|c| {
+                let a = g[j0 * cells + c] as f64;
+                if ft == 0.0 { a } else { a + (g[j1 * cells + c] as f64 - a) * ft }
+            })
+            .collect()
+    }
+
     /// Bilinear in space (the grid wraps around, like a torus), linear in time.
     fn sample(&self, k: usize, p: [f64; 3]) -> f64 {
         let n = self.res;
@@ -518,6 +535,9 @@ impl Field {
                     b: Arc::new(tl.scenes[b].source.fold_t(tb, seed, reads, done)),
                 },
             },
+            // A grown field held at one moment: that generation, as a grid.
+            // Left as it is, it would go on reading the frame's own time.
+            Field::Grow { data, k } => Field::Grid { data: Arc::new(data.moment(*k, t)), res: data.res, di: 0, dj: 0 },
             other => other.clone(),
         }
     }
@@ -4120,6 +4140,24 @@ mod files_tests {
             seen.insert(k as i64);
         }
         assert_eq!(seen.len(), 3, "every file gets chosen: {seen:?}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_grown_field_held_at_a_moment_gives_that_generation() {
+        let dir = folder("grow-at", &[("keep", b"")]);
+        // a counter grown over ten generations, read at a fixed moment: the
+        // generation there, not the frame's own
+        let body = "  grow over 4 for 10 {\n    c = 0\n      then c + 1 + x * 0\n  }";
+        let ed = run(&dir, &format!("{body}\n  render image(at(c, time: 0.5), width: 16)"), 1).unwrap();
+        let f = ed.renders[0].required_field(0, "f").unwrap();
+        for frame_t in [0.0, 0.3, 1.0] {
+            assert_eq!(f.at_time(frame_t, 1).eval([0.5, 0.5, frame_t], 1), 5.0, "at frame {frame_t}");
+        }
+        // and through a move, as the works read a cell of a register
+        let ed = run(&dir, &format!("{body}\n  render image(at(move(c, x: x - 0.3, y: y - 0.3), time: 1), width: 16)"), 1).unwrap();
+        let f = ed.renders[0].required_field(0, "f").unwrap();
+        assert_eq!(f.at_time(0.0, 1).eval([0.5, 0.5, 0.0], 1), 10.0);
         let _ = std::fs::remove_dir_all(&dir);
     }
 
