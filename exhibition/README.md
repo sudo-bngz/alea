@@ -1078,12 +1078,14 @@ through `voices/kokoro-misaki.py`) and the score. See `series/README.md`.
 | 02 | Fields | `series/02-fields.alea` (from `series/02-fields.json`) | `s02-fields-reel.mp4` (cover: `s02-fields-reel-cover.jpg`), 58 s |
 | 03 | Shapes | `series/03-shapes.alea` (from `series/03-shapes.json`) | `s03-shapes-reel.mp4` (cover: `s03-shapes-reel-cover.jpg`), 58.5 s |
 | 04 | Transforms | `series/04-transforms.alea` (from `series/04-transforms.json`) | `s04-transforms-reel.mp4` (cover: `s04-transforms-reel-cover.jpg`), 65 s |
+| 05 | Time | `series/05-time.alea` (from `series/05-time.json`) | `s05-time-reel.mp4` (cover: `s05-time-reel-cover.jpg`), 57 s |
 
 ```sh
 cd series && alea 01-tilde.alea --seed 0xa1ea01   # the cover, and the 1080×1920 Reel (about 10 minutes)
 cd series && alea 02-fields.alea --seed 0xa1ea01
 cd series && alea 03-shapes.alea --seed 0xa1ea01
 cd series && alea 04-transforms.alea --seed 0xa1ea01
+cd series && alea 05-time.alea --seed 0xa1ea01
 ```
 
 **01 · The tilde.** One character, and every run is a different picture. A
@@ -1202,6 +1204,35 @@ Déplacez-la, tournez-la, répétez-la, reflétez-la.
 Tout ce que vous voyez est ce seul programme, 7 lignes ; la voix et le son en font partie.
 
 **Hashtags**: `#alea #generativeart #creativecoding #codeart #proceduralart #artgeneratif #programming #opensource #learntocode #computerart #algorithmicart #newmediaart #kaleidoscope #symmetry`
+
+**05 · Time.** Add t, and the picture starts to move. Last week's shape
+turned by t (`rotate(s, t * 360)`, `render video(output, duration: 4)`);
+a sine of t that breathes and loops without a seam
+(`zoom(s, 1 + sin(t * tau) / 2)`); a `timeline` of the two with a `glitch`
+and a `fade` between them, `loop: 1`. The demonstration's cuts are real
+cuts of this Reel (sub-cuts of its own timeline), so the glitch tears the
+whole page as it would the video. 57 s in A minor; the end card names 06.
+
+### s05 · Time (Reel)
+
+**EN**
+
+alea, one feature at a time · 05 — Time
+
+Add t, and the picture starts to move.
+Everything you see is this one program, 12 lines; the voice and the sound are in it too.
+
+The whole series, and the language: alea.bngz.io
+The code: github.com/sudo-bngz/alea → exhibition/series
+
+**FR**
+
+alea, une fonctionnalité à la fois · 05 — Le temps
+
+Ajoutez t, et l'image se met à bouger.
+Tout ce que vous voyez est ce seul programme, 12 lignes ; la voix et le son en font partie.
+
+**Hashtags**: `#alea #generativeart #creativecoding #codeart #proceduralart #artgeneratif #programming #opensource #learntocode #computerart #algorithmicart #newmediaart #motiongraphics #glitch`
 
 ### Hashtags
 

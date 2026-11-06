@@ -14,7 +14,8 @@ page at a time, in the theme of alea.bngz.io.
 - `NN-name.json` is an episode: its sections (start, label, spoken line and
   when, the code that types, the stage: alea `let` lines ending in the field
   drawn in that window), `overlays` (paintings composed over the page through
-  a mask, for results in their own colours), the transitions, and the score's
+  a mask, for results in their own colours), `subcuts` (cuts inside a section, with their transitions: a demonstration's
+  own cuts become real cuts of the Reel), the transitions, and the score's
   moments (`lets` and `layers` add an episode's own instruments).
 - `NN-name.alea` is generated: `python3 gen.py 01-tilde.json > 01-tilde.alea`.
 
@@ -32,3 +33,4 @@ For a preview, lower the render in a copy (`width: 270, height: 480`,
 | 02 | Fields | a picture is a function of x and y: `paint(x)`, `paint(y)`, a sine, x and y mixed, a palette | 58 s |
 | 03 | Shapes | `circle`, `ring`, `square`; `merge`, `overlap`, `cut`; the numbers left out, drawn every run | 58.5 s |
 | 04 | Transforms | `move`, `rotate`, `tile`, `mirror`, `kaleidoscope`, `warp`, on one shape | 65 s |
+| 05 | Time | `t`, `render video`, a loop on `sin(t * tau)`, a `timeline` with `glitch` and `fade` | 57 s |

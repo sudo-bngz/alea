@@ -1,0 +1,296 @@
+{
+ "number": "05",
+ "title": "Time",
+ "file": "05-time.json",
+ "comment": [
+  "Add t, and the picture starts to move: the shape of last week turned by t over",
+  "a four-second video; a sine of t that breathes and loops without a seam; a",
+  "timeline of the two with a glitch and a fade between them, looped. The",
+  "demonstration's cuts are real cuts of this Reel (sub-cuts of its timeline), so",
+  "the glitch tears the whole page as it would the video."
+ ],
+ "total": 57.0,
+ "cover": 0.62,
+ "draws": [
+  "let a = square(0.5, 0.5, 0.4, 0, softness: 0.002)",
+  "let b = circle(0.7, 0.3, 0.3, softness: 0.002)",
+  "let s = merge(a, b)",
+  "let insideP = (abs(x - 0.5) < 0.15) * (abs(y - 1.1) < 0.2667)",
+  "let ink = [\"#000\", \"#d6d6d6\"]",
+  "let r_turn = rotate(s, fract((T - 10.8) / 4) * 360)",
+  "let r_breath = zoom(s, 1 + sin(fract((T - 20.8) / 4) * tau) / 2)",
+  "let tl = (T - 33.0) % 4",
+  "let r_film = (tl < 2) * rotate(s, tl / 2 * 360) + (tl >= 2) * zoom(s, 1 + sin((tl - 2) / 2 * tau) / 2)"
+ ],
+ "sections": [
+  {
+   "name": "the opening",
+   "start": 0.0,
+   "field": "openf"
+  },
+  {
+   "name": "the hook",
+   "start": 3.0,
+   "label": "time",
+   "say": "Add t, and the picture starts to move.",
+   "at": 3.9,
+   "stage": [
+    "let hk1 = text(\"05  ·  time\", x: 0.5, y: 0.74, size: 0.036, font: \"mono\") * (T >= 3.3)",
+    "let hk2 = text(\"alea, one feature at a time\", x: 0.5, y: 0.81, size: 0.03, font: \"mono\") * (T >= 3.3)",
+    "let hookf = max(wave * RED, max(hk1 * INK, hk2 * GREY))"
+   ],
+   "field": "hookf"
+  },
+  {
+   "name": "t: the shape turned by t, a 4-second video",
+   "start": 9.0,
+   "label": "t",
+   "say": "t runs from zero to one. Turn the shape by t.",
+   "at": 11.1,
+   "code": {
+    "at": 9.3,
+    "lines": [
+     "work Time {",
+     "  let a = square(0.5, 0.5, 0.4)",
+     "  let b = circle(0.7, 0.3, 0.3)",
+     "  output rotate(merge(a, b), t * 360)",
+     "  render video(output, duration: 4)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr2 = frame(0.5, 1.1, 0.3, 0.533) * (T >= 10.8)",
+    "let turnf = max(k2_code, fr2 * RULE)"
+   ],
+   "field": "turnf"
+  },
+  {
+   "name": "a loop: a sine of t breathes, no seam",
+   "start": 19.0,
+   "label": "a loop",
+   "say": "A sine of t breathes, and the loop has no seam.",
+   "at": 21.1,
+   "code": {
+    "at": 19.3,
+    "lines": [
+     "work Time {",
+     "  let a = square(0.5, 0.5, 0.4)",
+     "  let b = circle(0.7, 0.3, 0.3)",
+     "  let s = merge(a, b)",
+     "  output zoom(s, 1 + sin(t * tau) / 2)",
+     "  render video(output, duration: 4)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr3 = frame(0.5, 1.1, 0.3, 0.533) * (T >= 20.8)",
+    "let breathf = max(k3_code, fr3 * RULE)"
+   ],
+   "field": "breathf"
+  },
+  {
+   "name": "a timeline: scenes, a glitch between them, a loop",
+   "start": 29.0,
+   "label": "a timeline",
+   "say": "A timeline: scenes, and a glitch between them. Loop it.",
+   "at": 33.3,
+   "code": {
+    "at": 29.3,
+    "lines": [
+     "work Time {",
+     "  let a = square(0.5, 0.5, 0.4)",
+     "  let b = circle(0.7, 0.3, 0.3)",
+     "  let s = merge(a, b)",
+     "  let turn = rotate(s, t * 360)",
+     "  let breath = zoom(s, 1 + sin(t * tau) / 2)",
+     "  output timeline([",
+     "    scene(turn, 2), glitch(0.3),",
+     "    scene(breath, 2), fade(0.5)",
+     "  ], loop: 1)",
+     "  render video(output)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.034,
+     "dy": 0.058
+    }
+   },
+   "subcuts": [
+    [
+     33.0,
+     "jump()"
+    ],
+    [
+     35.0,
+     "glitch(0.3)"
+    ],
+    [
+     37.0,
+     "fade(0.5)"
+    ],
+    [
+     39.0,
+     "glitch(0.3)"
+    ],
+    [
+     41.0,
+     "fade(0.5)"
+    ],
+    [
+     43.0,
+     "glitch(0.3)"
+    ],
+    [
+     45.0,
+     "fade(0.5)"
+    ]
+   ],
+   "stage": [
+    "let fr4 = frame(0.5, 1.1, 0.3, 0.533) * (T >= 33.0)",
+    "let filmf = max(k4_code, fr4 * RULE)"
+   ],
+   "field": "filmf"
+  },
+  {
+   "name": "the end",
+   "start": 47.0,
+   "say": "Next week: filters. Blur, pixels, edges, film grain. One word each.",
+   "at": 50.6,
+   "code": {
+    "at": 47.3,
+    "lines": [
+     "work Time {",
+     "  let a = square(0.5, 0.5, 0.4)",
+     "  let b = circle(0.7, 0.3, 0.3)",
+     "  let s = merge(a, b)",
+     "  let turn = rotate(s, t * 360)",
+     "  let breath = zoom(s, 1 + sin(t * tau) / 2)",
+     "  output timeline([",
+     "    scene(turn, 2), glitch(0.3),",
+     "    scene(breath, 2), fade(0.5)",
+     "  ], loop: 1)",
+     "  render video(output)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.034,
+     "dy": 0.058
+    }
+   },
+   "stage": [
+    "let nsize = 0.2",
+    "let nadv = 0.5172 * nsize",
+    "let nx0e = 0.5 - 2.5 * nadv",
+    "let name2 = text(\"alea\", x: nx0e, y: 0.92, size: nsize, font: \"mono\", align: \"left\") * (T >= 48.8)",
+    "let ecur = (abs(x - (nx0e + 4.5 * nadv)) < nadv * 0.42) * (abs(y - 0.92) < nsize * 0.4) * blink * (T >= 48.8)",
+    "let e1 = text(\"one feature at a time  ·  05  ·  time\", x: 0.5, y: 1.05, size: 0.03, font: \"mono\") * (T >= 49.3)",
+    "let e2 = text(\"alea.bngz.io\", x: 0.5, y: 1.15, size: 0.06, font: \"mono\") * (T >= 49.8)",
+    "let e3 = text(\"next  ·  06  ·  filters\", x: 0.5, y: 1.26, size: 0.03, font: \"mono\") * (T >= l5.words[2])",
+    "let e4 = text(\"open source  ·  github.com/sudo-bngz/alea\", x: 0.5, y: 1.33, size: 0.026, font: \"mono\") * (T >= 50.8)",
+    "let endf = max(k5_code, max(name2 * INK, max(ecur * RED, max(e1 * INK, max(e2 * RED, max(e3 * GREY, e4 * INK))))))"
+   ],
+   "field": "endf"
+  }
+ ],
+ "overlays": [
+  {
+   "paint": "place(paint(r_turn, palette: ink, range: [0, 1]), x: 0.5, y: 1.1, width: 0.3, height: 0.533)",
+   "mask": "insideP * win(10.8, 19.0)"
+  },
+  {
+   "paint": "place(paint(r_breath, palette: ink, range: [0, 1]), x: 0.5, y: 1.1, width: 0.3, height: 0.533)",
+   "mask": "insideP * win(20.8, 29.0)"
+  },
+  {
+   "paint": "place(paint(r_film, palette: ink, range: [0, 1]), x: 0.5, y: 1.1, width: 0.3, height: 0.533)",
+   "mask": "insideP * win(33.0, 47.0)"
+  }
+ ],
+ "transitions": {
+  "0": "jump()",
+  "1": "jump()",
+  "2": "pixels(0.3, size: 0.04)",
+  "3": "jump()",
+  "4": "pixels(0.3, size: 0.05)"
+ },
+ "fadeout": 0.8,
+ "score": {
+  "key": 110.0,
+  "chords": [
+   [
+    12,
+    15,
+    19,
+    26
+   ],
+   [
+    8,
+    12,
+    15,
+    19
+   ],
+   [
+    15,
+    19,
+    22,
+    26
+   ],
+   [
+    10,
+    14,
+    17,
+    20
+   ]
+  ],
+  "roots": [
+   12,
+   8,
+   15,
+   10
+  ],
+  "cuts": [
+   3.0,
+   9.0,
+   19.0,
+   29.0,
+   35.0,
+   37.0,
+   39.0,
+   41.0,
+   43.0,
+   45.0,
+   47.0
+  ],
+  "booms": [
+   3.0,
+   9.0,
+   29.0,
+   47.0
+  ],
+  "hits": [
+   10.8,
+   20.8,
+   33.0
+  ],
+  "beat": [
+   29.0,
+   47.0
+  ],
+  "half": [
+   9.0,
+   29.0
+  ],
+  "bells": [
+   45.0,
+   47.0
+  ]
+ }
+}

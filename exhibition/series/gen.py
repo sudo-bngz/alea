@@ -223,7 +223,15 @@ def main():
     for i, s in enumerate(secs):
         a, b = s["start"], starts[i + 1]
         tr = trans.get(str(i), "jump()") if i < len(secs) - 1 else f"fade({ep.get('fadeout', 0.8)}, through: 0)"
-        L.append(f"      scene(look, {b - a:.2f}, from: {a} / total, to: {b} / total), {tr},")
+        # a section may be cut inside: "subcuts": [[time, transition], …], the demonstration's own cuts
+        pieces = []
+        p = a
+        for (c, ctr) in s.get("subcuts", []):
+            pieces.append((p, c, ctr))
+            p = c
+        pieces.append((p, b, tr))
+        for (p0, p1, ptr) in pieces:
+            L.append(f"      scene(look, {p1 - p0:.2f}, from: {p0} / total, to: {p1} / total), {ptr},")
     L.append("  ], loop: 1)")
     L.append("")
     score(L, ep, starts)
