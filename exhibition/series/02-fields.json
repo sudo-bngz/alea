@@ -1,0 +1,110 @@
+{
+ "number": "02",
+ "title": "Fields",
+ "file": "02-fields.json",
+ "comment": [
+  "A picture is a function of x and y. `paint(x)` is a gradient, left to right;",
+  "`paint(y)`, top to bottom; x through a sine is stripes; mix in y and they",
+  "bend; change the palette and the same function comes out in colour. Each",
+  "result is painted by the very expression on screen, inside its frame."
+ ],
+ "total": 58.0,
+ "cover": 0.76,
+ "draws": [
+  "let u = (x - 0.25) / 0.5",
+  "let v = (y - 0.55) / 0.5",
+  "let inside = (abs(x - 0.5) < 0.25) * (abs(y - 0.8) < 0.25)",
+  "let grey = [\"#000\", \"#fff\"]",
+  "let bent = sin(u * 30 + sin(v * 9) * 2)"
+ ],
+ "sections": [
+  {"name": "the opening", "start": 0.0, "field": "openf"},
+  {"name": "the hook: the mark in red, the episode", "start": 3.0, "label": "fields",
+   "say": "A picture is a function of x and y.", "at": 3.9,
+   "stage": [
+    "let hk1 = text(\"02  ·  fields\", x: 0.5, y: 0.74, size: 0.036, font: \"mono\") * (T >= 3.3)",
+    "let hk2 = text(\"alea, one feature at a time\", x: 0.5, y: 0.81, size: 0.03, font: \"mono\") * (T >= 3.3)",
+    "let hookf = max(wave * RED, max(hk1 * INK, hk2 * GREY))"
+   ], "field": "hookf"},
+  {"name": "x: a gradient from left to right", "start": 9.0, "label": "x",
+   "say": "x goes from zero on the left to one on the right.", "at": 10.8,
+   "code": {"at": 9.3, "lines": ["work Fields {", "  let grey = [\"#000\", \"#fff\"]", "  output paint(x, palette: grey)", "}"]},
+   "stage": [
+    "let f2 = frame(0.5, 0.8, 0.5, 0.5) * (T >= 10.5)",
+    "let g2 = merge(text(\"0\", x: 0.25, y: 1.12, size: 0.028, font: \"mono\") * (T >= 10.5), text(\"x\", x: 0.5, y: 1.12, size: 0.028, font: \"mono\") * (T >= 10.5), text(\"1\", x: 0.75, y: 1.12, size: 0.028, font: \"mono\") * (T >= 10.5))",
+    "let xf = max(k2_code, max(f2 * RULE, g2 * GREY))"
+   ], "field": "xf"},
+  {"name": "y: a gradient from top to bottom", "start": 16.5, "label": "y",
+   "say": "y goes from the top to the bottom.", "at": 18.3,
+   "code": {"at": 16.8, "lines": ["work Fields {", "  let grey = [\"#000\", \"#fff\"]", "  output paint(y, palette: grey)", "}"]},
+   "stage": [
+    "let f3 = frame(0.5, 0.8, 0.5, 0.5) * (T >= 18.0)",
+    "let g3 = merge(text(\"0\", x: 0.18, y: 0.56, size: 0.028, font: \"mono\") * (T >= 18.0), text(\"y\", x: 0.18, y: 0.81, size: 0.028, font: \"mono\") * (T >= 18.0), text(\"1\", x: 0.18, y: 1.06, size: 0.028, font: \"mono\") * (T >= 18.0))",
+    "let yf = max(k3_code, max(f3 * RULE, g3 * GREY))"
+   ], "field": "yf"},
+  {"name": "a function: x through a sine, stripes", "start": 23.0, "label": "a function",
+   "say": "Put x through a sine, and you get stripes.", "at": 25.1,
+   "code": {"at": 23.3, "lines": ["work Fields {", "  let grey = [\"#000\", \"#fff\"]", "  let f = sin(x * 30)", "  output paint(f, palette: grey)", "}"]},
+   "stage": [
+    "let f4 = frame(0.5, 0.8, 0.5, 0.5) * (T >= 24.8)",
+    "let sinf = max(k4_code, f4 * RULE)"
+   ], "field": "sinf"},
+  {"name": "x and y: the stripes bend", "start": 31.0, "label": "x and y",
+   "say": "Mix in y, and the stripes bend. Any function is a picture.", "at": 33.1,
+   "code": {"at": 31.3, "lines": ["work Fields {", "  let grey = [\"#000\", \"#fff\"]", "  let f = sin(x * 30 + sin(y * 9) * 2)", "  output paint(f, palette: grey)", "}"]},
+   "stage": [
+    "let f5 = frame(0.5, 0.8, 0.5, 0.5) * (T >= 32.8)",
+    "let bendf = max(k5_code, f5 * RULE)"
+   ], "field": "bendf"},
+  {"name": "the palette: the same function, in colour", "start": 39.5, "label": "the palette",
+   "say": "Change the palette: the same function, in colour.", "at": 41.6,
+   "code": {"at": 39.8, "lines": ["work Fields {", "  let f = sin(x * 30 + sin(y * 9) * 2)", "  output paint(f, palette: \"ember\")", "}"]},
+   "stage": [
+    "let f6 = frame(0.5, 0.8, 0.5, 0.5) * (T >= 41.3)",
+    "let g6 = text(\"ember\", x: 0.5, y: 1.12, size: 0.028, font: \"mono\") * (T >= 41.3)",
+    "let palf = max(k6_code, max(f6 * RULE, g6 * GREY))"
+   ], "field": "palf"},
+  {"name": "the end: the whole program, the name, where to try it, what comes next", "start": 47.5,
+   "say": "Next week: shapes. Circles, rings, squares. Merge them, mask them.", "at": 50.8,
+   "code": {"at": 47.8, "lines": ["work Fields {", "  let f = sin(x * 30 + sin(y * 9) * 2)", "  output paint(f, palette: \"ember\")", "}"]},
+   "stage": [
+    "let nsize = 0.2",
+    "let nadv = 0.5172 * nsize",
+    "let nx0e = 0.5 - 2.5 * nadv",
+    "let name2 = text(\"alea\", x: nx0e, y: 0.56, size: nsize, font: \"mono\", align: \"left\") * (T >= 48.8)",
+    "let ecur = (abs(x - (nx0e + 4.5 * nadv)) < nadv * 0.42) * (abs(y - 0.56) < nsize * 0.4) * blink * (T >= 48.8)",
+    "let e1 = text(\"one feature at a time  ·  02  ·  fields\", x: 0.5, y: 0.70, size: 0.03, font: \"mono\") * (T >= 49.3)",
+    "let e2 = text(\"alea.bngz.io\", x: 0.5, y: 0.81, size: 0.06, font: \"mono\") * (T >= 49.8)",
+    "let e3 = text(\"next  ·  03  ·  shapes\", x: 0.5, y: 0.94, size: 0.03, font: \"mono\") * (T >= l7.words[2])",
+    "let e4 = text(\"open source  ·  github.com/sudo-bngz/alea\", x: 0.5, y: 1.02, size: 0.026, font: \"mono\") * (T >= 51.0)",
+    "let endf = max(k7_code, max(name2 * INK, max(ecur * RED, max(e1 * INK, max(e2 * RED, max(e3 * GREY, e4 * INK))))))"
+   ], "field": "endf"}
+ ],
+ "overlays": [
+  {"paint": "paint(clamp(u, 0, 1), palette: grey, range: [0, 1])", "mask": "inside * win(10.5, 16.5)"},
+  {"paint": "paint(clamp(v, 0, 1), palette: grey, range: [0, 1])", "mask": "inside * win(18.0, 23.0)"},
+  {"paint": "paint(sin(u * 30), palette: grey, range: [-1, 1])", "mask": "inside * win(24.8, 31.0)"},
+  {"paint": "paint(bent, palette: grey, range: [-1, 1])", "mask": "inside * win(32.8, 39.5)"},
+  {"paint": "paint(bent, palette: \"ember\", range: [-1, 1])", "mask": "inside * win(41.3, 47.5)"}
+ ],
+ "transitions": {"0": "jump()", "1": "jump()", "2": "pixels(0.3, size: 0.04)", "3": "jump()", "4": "glitch(0.4, amount: 0.7)", "5": "jump()", "6": "pixels(0.3, size: 0.05)"},
+ "fadeout": 0.8,
+ "score": {
+  "key": 65.41,
+  "chords": [[12, 15, 19, 26], [8, 12, 15, 19], [15, 19, 22, 26], [10, 14, 17, 20]],
+  "roots": [12, 8, 15, 10],
+  "cuts": [3.0, 9.0, 16.5, 23.0, 31.0, 39.5, 47.5],
+  "booms": [3.0, 9.0, 23.0, 39.5, 47.5],
+  "hits": [10.5, 18.0, 24.8, 32.8, 41.3],
+  "beat": [23.0, 47.5],
+  "half": [9.0, 23.0],
+  "bells": [39.5, 47.5],
+  "lets": [
+   "let tone = synth { (sine(note.freq) + sine(note.freq * 2.002) * 0.3) * adsr(attack: 0.4, decay: 0.3, sustain: 0.6, release: 1.2) * 0.3 }",
+   "pattern tones = repeat 5 event(t: [10.5, 18.0, 24.8, 32.8, 41.3][i] / total, x: 0.5, y: semi([12, 15, 19, 22, 24][i]), size: 0.3, intensity: 0.5)"
+  ],
+  "layers": [
+   "notes(tones, instrument: tone, scale: \"chromatic\", key: 130.81, gain: 0.45)"
+  ]
+ }
+}

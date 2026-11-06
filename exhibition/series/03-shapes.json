@@ -1,0 +1,295 @@
+{
+ "number": "03",
+ "title": "Shapes",
+ "file": "03-shapes.json",
+ "comment": [
+  "Circles, rings, squares: where they are and how big; merge (all of them),",
+  "overlap (only where they all are), cut (one with another taken out); and",
+  "leave the numbers out, alea draws them, another composition every run. The",
+  "three runs at the end are this program's own draws."
+ ],
+ "total": 58.5,
+ "cover": 0.72,
+ "draws": [
+  "let a = circle(0.5, 0.85, 0.25, softness: 0.002)",
+  "let b = ring(0.4, 0.75, 0.25, 0.02, softness: 0.002)",
+  "let c = square(0.6, 0.95, 0.2, 20, softness: 0.002)",
+  "let inside = (abs(x - 0.5) < 0.25) * (abs(y - 0.85) < 0.25)",
+  "let cx1 = ~between(0.25, 0.75)",
+  "let cy1 = ~between(0.25, 0.75)",
+  "let cs1 = ~between(0.15, 0.45)",
+  "let rx1 = ~between(0.25, 0.75)",
+  "let ry1 = ~between(0.25, 0.75)",
+  "let rs1 = ~between(0.2, 0.6)",
+  "let qx1 = ~between(0.25, 0.75)",
+  "let qy1 = ~between(0.25, 0.75)",
+  "let qs1 = ~between(0.15, 0.4)",
+  "let qa1 = ~between(0, 90)",
+  "let cx2 = ~between(0.25, 0.75)",
+  "let cy2 = ~between(0.25, 0.75)",
+  "let cs2 = ~between(0.15, 0.45)",
+  "let rx2 = ~between(0.25, 0.75)",
+  "let ry2 = ~between(0.25, 0.75)",
+  "let rs2 = ~between(0.2, 0.6)",
+  "let qx2 = ~between(0.25, 0.75)",
+  "let qy2 = ~between(0.25, 0.75)",
+  "let qs2 = ~between(0.15, 0.4)",
+  "let qa2 = ~between(0, 90)",
+  "let cx3 = ~between(0.25, 0.75)",
+  "let cy3 = ~between(0.25, 0.75)",
+  "let cs3 = ~between(0.15, 0.45)",
+  "let rx3 = ~between(0.25, 0.75)",
+  "let ry3 = ~between(0.25, 0.75)",
+  "let rs3 = ~between(0.2, 0.6)",
+  "let qx3 = ~between(0.25, 0.75)",
+  "let qy3 = ~between(0.25, 0.75)",
+  "let qs3 = ~between(0.15, 0.4)",
+  "let qa3 = ~between(0, 90)"
+ ],
+ "sections": [
+  {
+   "name": "the opening",
+   "start": 0.0,
+   "field": "openf"
+  },
+  {
+   "name": "the hook",
+   "start": 3.0,
+   "label": "shapes",
+   "say": "Circles, rings, squares. Merge them, cut them.",
+   "at": 3.9,
+   "stage": [
+    "let hk1 = text(\"03  ·  shapes\", x: 0.5, y: 0.74, size: 0.036, font: \"mono\") * (T >= 3.3)",
+    "let hk2 = text(\"alea, one feature at a time\", x: 0.5, y: 0.81, size: 0.03, font: \"mono\") * (T >= 3.3)",
+    "let hookf = max(wave * RED, max(hk1 * INK, hk2 * GREY))"
+   ],
+   "field": "hookf"
+  },
+  {
+   "name": "a circle: where, and how big",
+   "start": 9.0,
+   "label": "a circle",
+   "say": "A circle: where it is, and how big.",
+   "at": 10.6,
+   "code": {
+    "at": 9.3,
+    "lines": [
+     "work Shapes {",
+     "  let a = circle(0.5, 0.5, 0.5)",
+     "  output a",
+     "}"
+    ]
+   },
+   "stage": [
+    "let f2 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 10.3)",
+    "let d2 = a * inside * (T >= 10.3)",
+    "let circf = max(k2_code, max(f2 * RULE, d2 * INK))"
+   ],
+   "field": "circf"
+  },
+  {
+   "name": "a ring, a square; merge",
+   "start": 16.0,
+   "label": "merge",
+   "say": "A ring, a square turned twenty degrees. Merge: all of them.",
+   "at": 18.4,
+   "code": {
+    "at": 16.3,
+    "lines": [
+     "work Shapes {",
+     "  let a = circle(0.5, 0.5, 0.5)",
+     "  let b = ring(0.3, 0.3, 0.5, 0.04)",
+     "  let c = square(0.7, 0.7, 0.4, 20)",
+     "  output merge(a, b, c)",
+     "}"
+    ]
+   },
+   "stage": [
+    "let f3 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 17.6)",
+    "let d3 = merge(a, b * (T >= 17.6), c * (T >= 18.1)) * inside * (T >= 17.6)",
+    "let mergf = max(k3_code, max(f3 * RULE, d3 * INK))"
+   ],
+   "field": "mergf"
+  },
+  {
+   "name": "overlap: only where they all are",
+   "start": 24.5,
+   "label": "overlap",
+   "say": "Overlap: only where they all are.",
+   "at": 26.6,
+   "code": {
+    "at": 24.8,
+    "lines": [
+     "work Shapes {",
+     "  let a = circle(0.5, 0.5, 0.5)",
+     "  let b = ring(0.3, 0.3, 0.5, 0.04)",
+     "  let c = square(0.7, 0.7, 0.4, 20)",
+     "  output overlap(a, c)",
+     "}"
+    ]
+   },
+   "stage": [
+    "let f4 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 26.3)",
+    "let d4 = max(overlap(a, c) * INK, merge(a, c) * RULE) * inside * (T >= 26.3)",
+    "let overf = max(k4_code, max(f4 * RULE, d4))"
+   ],
+   "field": "overf"
+  },
+  {
+   "name": "cut: the circle, the ring taken out",
+   "start": 31.0,
+   "label": "cut",
+   "say": "Cut: the circle, with the ring taken out.",
+   "at": 33.1,
+   "code": {
+    "at": 31.3,
+    "lines": [
+     "work Shapes {",
+     "  let a = circle(0.5, 0.5, 0.5)",
+     "  let b = ring(0.3, 0.3, 0.5, 0.04)",
+     "  let c = square(0.7, 0.7, 0.4, 20)",
+     "  output cut(a, b)",
+     "}"
+    ]
+   },
+   "stage": [
+    "let f5 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 32.8)",
+    "let d5 = cut(a, b) * inside * (T >= 32.8)",
+    "let cutf = max(k5_code, max(f5 * RULE, d5 * INK))"
+   ],
+   "field": "cutf"
+  },
+  {
+   "name": "chance: the numbers left out, drawn every run",
+   "start": 38.0,
+   "label": "chance",
+   "say": "Leave the numbers out: alea draws them. Every run, another one.",
+   "at": 40.6,
+   "code": {
+    "at": 38.3,
+    "lines": [
+     "work Shapes {",
+     "  output merge(circle(), ring(), square())",
+     "}"
+    ]
+   },
+   "stage": [
+    "let f6 = merge(frame(0.2, 0.85, 0.27, 0.27) * (T >= 39.3), frame(0.5, 0.85, 0.27, 0.27) * (T >= 39.8), frame(0.8, 0.85, 0.27, 0.27) * (T >= 40.3))",
+    "let d6 = merge(merge(circle(0.2 - 0.135 + 0.27 * cx1, 0.715 + 0.27 * cy1, 0.27 * cs1, softness: 0.002), ring(0.2 - 0.135 + 0.27 * rx1, 0.715 + 0.27 * ry1, 0.27 * rs1, 0.0054, softness: 0.002), square(0.2 - 0.135 + 0.27 * qx1, 0.715 + 0.27 * qy1, 0.27 * qs1, qa1, softness: 0.002)) * (abs(x - 0.2) < 0.135) * (abs(y - 0.85) < 0.135) * (T >= 39.3), merge(circle(0.5 - 0.135 + 0.27 * cx2, 0.715 + 0.27 * cy2, 0.27 * cs2, softness: 0.002), ring(0.5 - 0.135 + 0.27 * rx2, 0.715 + 0.27 * ry2, 0.27 * rs2, 0.0054, softness: 0.002), square(0.5 - 0.135 + 0.27 * qx2, 0.715 + 0.27 * qy2, 0.27 * qs2, qa2, softness: 0.002)) * (abs(x - 0.5) < 0.135) * (abs(y - 0.85) < 0.135) * (T >= 39.8), merge(circle(0.8 - 0.135 + 0.27 * cx3, 0.715 + 0.27 * cy3, 0.27 * cs3, softness: 0.002), ring(0.8 - 0.135 + 0.27 * rx3, 0.715 + 0.27 * ry3, 0.27 * rs3, 0.0054, softness: 0.002), square(0.8 - 0.135 + 0.27 * qx3, 0.715 + 0.27 * qy3, 0.27 * qs3, qa3, softness: 0.002)) * (abs(x - 0.8) < 0.135) * (abs(y - 0.85) < 0.135) * (T >= 40.3))",
+    "let g6 = merge(text(\"run 1\", x: 0.2, y: 1.04, size: 0.024, font: \"mono\") * (T >= 39.3), text(\"run 2\", x: 0.5, y: 1.04, size: 0.024, font: \"mono\") * (T >= 39.8), text(\"run 3\", x: 0.8, y: 1.04, size: 0.024, font: \"mono\") * (T >= 40.3))",
+    "let chancef = max(k6_code, max(f6 * RULE, max(d6 * INK, g6 * GREY)))"
+   ],
+   "field": "chancef"
+  },
+  {
+   "name": "the end",
+   "start": 48.0,
+   "say": "Next week: transforms. Move it, turn it, tile it, mirror it.",
+   "at": 51.3,
+   "code": {
+    "at": 48.3,
+    "lines": [
+     "work Shapes {",
+     "  output merge(circle(), ring(), square())",
+     "}"
+    ]
+   },
+   "stage": [
+    "let nsize = 0.2",
+    "let nadv = 0.5172 * nsize",
+    "let nx0e = 0.5 - 2.5 * nadv",
+    "let name2 = text(\"alea\", x: nx0e, y: 0.56, size: nsize, font: \"mono\", align: \"left\") * (T >= 49.3)",
+    "let ecur = (abs(x - (nx0e + 4.5 * nadv)) < nadv * 0.42) * (abs(y - 0.56) < nsize * 0.4) * blink * (T >= 49.3)",
+    "let e1 = text(\"one feature at a time  ·  03  ·  shapes\", x: 0.5, y: 0.70, size: 0.03, font: \"mono\") * (T >= 49.8)",
+    "let e2 = text(\"alea.bngz.io\", x: 0.5, y: 0.81, size: 0.06, font: \"mono\") * (T >= 50.3)",
+    "let e3 = text(\"next  ·  04  ·  transforms\", x: 0.5, y: 0.94, size: 0.03, font: \"mono\") * (T >= l7.words[2])",
+    "let e4 = text(\"open source  ·  github.com/sudo-bngz/alea\", x: 0.5, y: 1.02, size: 0.026, font: \"mono\") * (T >= 51.5)",
+    "let endf = max(k7_code, max(name2 * INK, max(ecur * RED, max(e1 * INK, max(e2 * RED, max(e3 * GREY, e4 * INK))))))"
+   ],
+   "field": "endf"
+  }
+ ],
+ "transitions": {
+  "0": "jump()",
+  "1": "jump()",
+  "2": "pixels(0.3, size: 0.04)",
+  "3": "jump()",
+  "4": "glitch(0.4, amount: 0.7)",
+  "5": "jump()",
+  "6": "pixels(0.3, size: 0.05)"
+ },
+ "fadeout": 0.8,
+ "score": {
+  "key": 82.41,
+  "chords": [
+   [
+    12,
+    15,
+    19,
+    26
+   ],
+   [
+    8,
+    12,
+    15,
+    19
+   ],
+   [
+    15,
+    19,
+    22,
+    26
+   ],
+   [
+    10,
+    14,
+    17,
+    20
+   ]
+  ],
+  "roots": [
+   12,
+   8,
+   15,
+   10
+  ],
+  "cuts": [
+   3.0,
+   9.0,
+   16.0,
+   24.5,
+   31.0,
+   38.0,
+   48.0
+  ],
+  "booms": [
+   3.0,
+   9.0,
+   24.5,
+   38.0,
+   48.0
+  ],
+  "hits": [
+   10.3,
+   17.6,
+   18.1,
+   26.3,
+   32.8,
+   39.3,
+   39.8,
+   40.3
+  ],
+  "beat": [
+   24.5,
+   48.0
+  ],
+  "half": [
+   9.0,
+   24.5
+  ],
+  "bells": [
+   38.0,
+   48.0
+  ]
+ }
+}
