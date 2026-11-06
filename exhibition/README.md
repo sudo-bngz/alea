@@ -1075,9 +1075,11 @@ through `voices/kokoro-misaki.py`) and the score. See `series/README.md`.
 | # | Episode | Files | Reel |
 |---|---|---|---|
 | 01 | The tilde | `series/01-tilde.alea` (from `series/01-tilde.json`) | `s01-tilde-reel.mp4` (cover: `s01-tilde-reel-cover.jpg`), 55 s |
+| 02 | Fields | `series/02-fields.alea` (from `series/02-fields.json`) | `s02-fields-reel.mp4` (cover: `s02-fields-reel-cover.jpg`), 58 s |
 
 ```sh
-cd series && alea 01-tilde.alea --seed 0xa1ea01   # the cover, and the 1080×1920 Reel (about 1 h 20)
+cd series && alea 01-tilde.alea --seed 0xa1ea01   # the cover, and the 1080×1920 Reel (about 10 minutes)
+cd series && alea 02-fields.alea --seed 0xa1ea01
 ```
 
 **01 · The tilde.** One character, and every run is a different picture. A
@@ -1110,6 +1112,34 @@ Un caractère. À chaque exécution, une autre image.
 Tout ce que vous voyez est ce seul programme, 4 lignes ; la voix et le son en font partie.
 
 **Hashtags**: `#alea #generativeart #creativecoding #codeart #proceduralart #artgeneratif #programming #opensource #learntocode #computerart #algorithmicart #newmediaart`
+
+**02 · Fields.** A picture is a function of x and y. `paint(x)` is a
+gradient from left to right, `paint(y)` from top to bottom; x through a sine
+is stripes; mix in y and the stripes bend; change the palette (`"ember"`) and
+the same function comes out in colour. Each result is painted by the very
+expression on screen, inside its frame (`overlay` with a mask), and a sine
+tone climbs a note at each one. 58 s in C minor; the end card names 03.
+
+### s02 · Fields (Reel)
+
+**EN**
+
+alea, one feature at a time · 02 — Fields
+
+A picture is a function of x and y.
+Everything you see is this one program, 4 lines; the voice and the sound are in it too.
+
+The whole series, and the language: alea.bngz.io
+The code: github.com/sudo-bngz/alea → exhibition/series
+
+**FR**
+
+alea, une fonctionnalité à la fois · 02 — Les champs
+
+Une image est une fonction de x et de y.
+Tout ce que vous voyez est ce seul programme, 4 lignes ; la voix et le son en font partie.
+
+**Hashtags**: `#alea #generativeart #creativecoding #codeart #proceduralart #artgeneratif #programming #opensource #learntocode #computerart #algorithmicart #newmediaart #shader #mathart`
 
 ### Hashtags
 

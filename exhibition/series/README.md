@@ -13,7 +13,9 @@ page at a time, in the theme of alea.bngz.io.
   glass hit on every `hit`).
 - `NN-name.json` is an episode: its sections (start, label, spoken line and
   when, the code that types, the stage: alea `let` lines ending in the field
-  drawn in that window), the transitions, and the score's moments.
+  drawn in that window), `overlays` (paintings composed over the page through
+  a mask, for results in their own colours), the transitions, and the score's
+  moments (`lets` and `layers` add an episode's own instruments).
 - `NN-name.alea` is generated: `python3 gen.py 01-tilde.json > 01-tilde.alea`.
 
 ```sh
@@ -27,3 +29,4 @@ For a preview, lower the render in a copy (`width: 270, height: 480`,
 | # | Episode | Feature | Length |
 |---|---|---|---|
 | 01 | The tilde | `~`: the same program, a different picture every run; the seed | 55 s |
+| 02 | Fields | a picture is a function of x and y: `paint(x)`, `paint(y)`, a sine, x and y mixed, a palette | 58 s |

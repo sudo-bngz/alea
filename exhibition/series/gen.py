@@ -115,7 +115,7 @@ def code_block(name, lines, at, y0=0.14, step=CODE_STEP, size=CODE_SIZE, dy=CODE
         y = y0 + k * dy
         for c in sorted(set(cls)):
             masked = "".join(ch if cc == c else " " for ch, cc in zip(txt, cls)).rstrip()
-            esc = masked.replace("{", "{{")   # only the opening brace is doubled in an alea string
+            esc = masked.replace("{", "{{").replace('"', "\u201d")   # `{` doubled, quotes curly: both live inside an alea string
             out.append(f'  let {name}_k{k}_{c} = text("{esc}", x: {x0}, y: {y:.3f}, size: {size}, font: "mono", align: "left") * {c} * (T >= {t0:.2f})')
             fields.append(f"{name}_k{k}_{c}")
     top = y0 - 0.055
@@ -212,7 +212,10 @@ def main():
     L.append(f"  let drawn = merge({', '.join(stages)})")
     L.append("  let over = merge(header * RED, captions * INK)")
     L.append(f"  let base = paint(max(drawn, over), palette: {PAL}, range: [0, 1])")
-    L.append("  let look = film(base, amount: 0.03)")
+    look = "base"
+    for o in ep.get("overlays", []):
+        look = f"overlay({look}, {o['paint']}, mask: {o['mask']})"
+    L.append(f"  let look = film({look}, amount: 0.03)")
     L.append("")
     L.append("  // ── the cuts ──")
     L.append("  let reel = timeline([")
@@ -311,8 +314,11 @@ def score(L, ep, starts):
         f"  let hittimes = {hits}",
         f"  pattern flips = repeat {len(hits)} event(t: hittimes[i] / total, x: 0.2 + 0.6 * h(i, 61), y: semi([24, 27, 29, 31, 34][floor(h(i, 62) * 5)]), size: 0.005, intensity: 0.5)",
         "",
+        *[f"  {line}" for line in sc.get("lets", [])],
+        "",
         "  let music = [",
         "    " + ", ".join(f"l{i}" for i, s in enumerate(ep["sections"]) if "say" in s) + ",",
+        *[f"    {line}," for line in sc.get("layers", [])],
         f"    notes(pads, instrument: pad, scale: \"chromatic\", key: {sc['key']}, gain: 0.4),",
         "    notes(dust, instrument: tick, scale: \"chromatic\", key: 1200, gain: 0.35),",
         "    notes(kicks, instrument: kick, scale: \"chromatic\", key: 48, gain: 1.3),",
