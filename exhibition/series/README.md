@@ -35,3 +35,4 @@ For a preview, lower the render in a copy (`width: 270, height: 480`,
 | 04 | Transforms | `move`, `rotate`, `tile`, `mirror`, `kaleidoscope`, `warp`, on one shape | 65 s |
 | 05 | Time | `t`, `render video`, a loop on `sin(t * tau)`, a `timeline` with `glitch` and `fade` | 57 s |
 | 06 | Filters | `blur`, `pixelate`, `edges`, `film`; `vignette` and `chroma` on the painting | 62 s |
+| 07 | Your pictures | `open`, `.painting`, `.luma`, `colours`, filters and transforms on a photo (`photo.jpg`, yours, not in the repo) | 60 s |

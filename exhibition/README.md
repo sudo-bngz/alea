@@ -1080,6 +1080,7 @@ through `voices/kokoro-misaki.py`) and the score. See `series/README.md`.
 | 04 | Transforms | `series/04-transforms.alea` (from `series/04-transforms.json`) | `s04-transforms-reel.mp4` (cover: `s04-transforms-reel-cover.jpg`), 65 s |
 | 05 | Time | `series/05-time.alea` (from `series/05-time.json`) | `s05-time-reel.mp4` (cover: `s05-time-reel-cover.jpg`), 57 s |
 | 06 | Filters | `series/06-filters.alea` (from `series/06-filters.json`) | `s06-filters-reel.mp4` (cover: `s06-filters-reel-cover.jpg`), 62 s |
+| 07 | Your pictures | `series/07-pictures.alea` (from `series/07-pictures.json`; needs `series/photo.jpg`, yours) | `s07-pictures-reel.mp4` (cover: `s07-pictures-reel-cover.jpg`), 60 s |
 
 ```sh
 cd series && alea 01-tilde.alea --seed 0xa1ea01   # the cover, and the 1080×1920 Reel (about 10 minutes)
@@ -1088,6 +1089,7 @@ cd series && alea 03-shapes.alea --seed 0xa1ea01
 cd series && alea 04-transforms.alea --seed 0xa1ea01
 cd series && alea 05-time.alea --seed 0xa1ea01
 cd series && alea 06-filters.alea --seed 0xa1ea01
+cd series && alea 07-pictures.alea --seed 0xa1ea01   # with a photo of yours at series/photo.jpg (portrait)
 ```
 
 **01 · The tilde.** One character, and every run is a different picture. A
@@ -1264,6 +1266,35 @@ Flou, pixels, contours, grain de film. Un mot chacun.
 Tout ce que vous voyez est ce seul programme, 5 lignes ; la voix et le son en font partie.
 
 **Hashtags**: `#alea #generativeart #creativecoding #codeart #proceduralart #artgeneratif #programming #opensource #learntocode #computerart #algorithmicart #newmediaart #glitchart #filmgrain`
+
+**07 · Your pictures.** Your photos are fields too. `open("photo.jpg")`,
+its `.painting` as it is; its `.luma`, a field from 0 to 1, painted in
+ember; `colours(photo, 5)`, its own five colours as a palette; the painting
+itself through `pixelate`; a `kaleidoscope` of the field in its own
+colours. The photo is yours and stays out of the repository (here, a frame
+of the phone clip of Brut, a turntable under two hands); put any portrait
+photo at `series/photo.jpg`. 60 s in F minor; the end card names 08.
+
+### s07 · Your pictures (Reel)
+
+**EN**
+
+alea, one feature at a time · 07 — Your pictures
+
+Your photos are fields too.
+Everything you see is this one program, 6 lines, and one photo; the voice and the sound are in it too.
+
+The whole series, and the language: alea.bngz.io
+The code: github.com/sudo-bngz/alea → exhibition/series
+
+**FR**
+
+alea, une fonctionnalité à la fois · 07 — Vos images
+
+Vos photos aussi sont des champs.
+Tout ce que vous voyez est ce seul programme, 6 lignes, et une photo ; la voix et le son en font partie.
+
+**Hashtags**: `#alea #generativeart #creativecoding #codeart #proceduralart #artgeneratif #programming #opensource #learntocode #computerart #algorithmicart #newmediaart #photography #kaleidoscope`
 
 ### Hashtags
 
