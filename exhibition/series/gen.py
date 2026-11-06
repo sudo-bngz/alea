@@ -108,9 +108,12 @@ def code_block(name, lines, at, y0=0.14, step=CODE_STEP, size=CODE_SIZE, dy=CODE
     alea.bngz.io: keywords and numbers white, functions and strings grey, `~` red.
     Defines {name}_code, a field in palette levels."""
     out, fields = [], []
+    fit = int((0.96 - x0) / (0.5172 * size)) + 2   # the glyphs are a little narrower than the advance
     for k, line in enumerate(lines):
         t0 = at + k * step
         txt = line["text"] if isinstance(line, dict) else line
+        if len(txt) > fit:
+            print(f"gen.py: line {k} of {name} is {len(txt)} characters, the panel fits {fit} at size {size}: {txt}", file=sys.stderr)
         cls = classes(txt, shell=isinstance(line, dict) and line.get("shell", False))
         y = y0 + k * dy
         for c in sorted(set(cls)):

@@ -1,0 +1,272 @@
+{
+ "number": "10",
+ "title": "Text",
+ "file": "10-text.json",
+ "comment": [
+  "Words are pictures too: a word is a shape, a field like a circle; warp it;",
+  "multiply it by a field (the waves of episode two, inside the letters);",
+  "choose the word by chance, three runs, three words (this program's own",
+  "draws)."
+ ],
+ "total": 53.0,
+ "cover": 0.547,
+ "draws": [
+  "let inside = (abs(x - 0.5) < 0.25) * (abs(y - 0.85) < 0.25)",
+  "let u = (x - 0.25) / 0.5",
+  "let v = (y - 0.6) / 0.5",
+  "let fu = sin(u * 30 + sin(v * 9) * 2)",
+  "let wf = text(\"alea\", 0.5, 0.85, 0.25)",
+  "let w5a = choose { \"alea\" | \"luck\" | \"dice\" }",
+  "let w5b = choose { \"alea\" | \"luck\" | \"dice\" }",
+  "let w5c = choose { \"alea\" | \"luck\" | \"dice\" }"
+ ],
+ "sections": [
+  {
+   "name": "the opening",
+   "start": 0.0,
+   "field": "openf"
+  },
+  {
+   "name": "the hook",
+   "start": 3.0,
+   "label": "text",
+   "say": "Words are pictures too.",
+   "at": 3.9,
+   "stage": [
+    "let hk1 = text(\"10  ·  text\", x: 0.5, y: 0.74, size: 0.036, font: \"mono\") * (T >= 3.3)",
+    "let hk2 = text(\"alea, one feature at a time\", x: 0.5, y: 0.81, size: 0.03, font: \"mono\") * (T >= 3.3)",
+    "let hookf = max(wave * RED, max(hk1 * INK, hk2 * GREY))"
+   ],
+   "field": "hookf"
+  },
+  {
+   "name": "a word is a shape",
+   "start": 9.0,
+   "label": "a word",
+   "say": "A word is a shape: a field, like a circle.",
+   "at": 10.75,
+   "code": {
+    "at": 9.3,
+    "lines": [
+     "work Text {",
+     "  let w = text(\"alea\", 0.5, 0.5, 0.5)",
+     "  output w",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let fr2 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 10.45)",
+    "let r2 = wf * inside * (T >= 10.45)",
+    "let s2f = max(k2_code, max(fr2 * RULE, r2 * INK))"
+   ],
+   "field": "s2f"
+  },
+  {
+   "name": "warp: the letters bend",
+   "start": 16.5,
+   "label": "warp",
+   "say": "Warp it: the letters bend with the space.",
+   "at": 18.25,
+   "code": {
+    "at": 16.8,
+    "lines": [
+     "work Text {",
+     "  let w = text(\"alea\", 0.5, 0.5, 0.5)",
+     "  output warp(w, 0.12, 3)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let fr3 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 17.95)",
+    "let r3 = warp(wf, 0.06, 3) * inside * (T >= 17.95)",
+    "let s3f = max(k3_code, max(fr3 * RULE, r3 * INK))"
+   ],
+   "field": "s3f"
+  },
+  {
+   "name": "the waves inside the letters",
+   "start": 24.0,
+   "label": "a mask",
+   "say": "Multiply by a field: the waves of episode two, inside the letters.",
+   "at": 26.0,
+   "code": {
+    "at": 24.3,
+    "lines": [
+     "work Text {",
+     "  let w = text(\"alea\", 0.5, 0.5, 0.5)",
+     "  let f = sin(x * 30 + sin(y * 9) * 2)",
+     "  output paint((f + 1) * w, palette: \"ember\")",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let fr4 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 25.7)",
+    "let s4f = max(k4_code, fr4 * RULE)"
+   ],
+   "field": "s4f"
+  },
+  {
+   "name": "choose the word by chance",
+   "start": 33.0,
+   "label": "chance",
+   "say": "Choose the word by chance. Three runs, three words.",
+   "at": 35.0,
+   "code": {
+    "at": 33.3,
+    "lines": [
+     "work Text {",
+     "  let words = choose { \"alea\" | \"luck\" | \"dice\" }",
+     "  let w = text(words, 0.5, 0.5, 0.3)",
+     "  output w",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let fr5 = merge(frame(0.2, 0.85, 0.27, 0.27) * (T >= 34.7), frame(0.5, 0.85, 0.27, 0.27) * (T >= 34.7 + 0.5), frame(0.8, 0.85, 0.27, 0.27) * (T >= 34.7 + 1.0))",
+    "let r5 = merge(text(w5a, 0.2, 0.85, 0.081) * (T >= 34.7), text(w5b, 0.5, 0.85, 0.081) * (T >= 34.7 + 0.5), text(w5c, 0.8, 0.85, 0.081) * (T >= 34.7 + 1.0))",
+    "let g5 = merge(text(\"run 1\", x: 0.2, y: 1.04, size: 0.024, font: \"mono\") * (T >= 34.7), text(\"run 2\", x: 0.5, y: 1.04, size: 0.024, font: \"mono\") * (T >= 34.7 + 0.5), text(\"run 3\", x: 0.8, y: 1.04, size: 0.024, font: \"mono\") * (T >= 34.7 + 1.0))",
+    "let s5f = max(k5_code, max(fr5 * RULE, max(r5 * INK, g5 * GREY)))"
+   ],
+   "field": "s5f"
+  },
+  {
+   "name": "the end",
+   "start": 42.0,
+   "say": "Next week: rhythm. Drums, written as a string.",
+   "at": 45.6,
+   "code": {
+    "at": 42.3,
+    "lines": [
+     "work Text {",
+     "  let words = choose { \"alea\" | \"luck\" | \"dice\" }",
+     "  let w = text(words, 0.5, 0.5, 0.3)",
+     "  output w",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let nsize = 0.2",
+    "let nadv = 0.5172 * nsize",
+    "let nx0e = 0.5 - 2.5 * nadv",
+    "let name2 = text(\"alea\", x: nx0e, y: 0.64, size: nsize, font: \"mono\", align: \"left\") * (T >= 43.8)",
+    "let ecur = (abs(x - (nx0e + 4.5 * nadv)) < nadv * 0.42) * (abs(y - 0.64) < nsize * 0.4) * blink * (T >= 43.8)",
+    "let e1 = text(\"one feature at a time  ·  10  ·  text\", x: 0.5, y: 0.78, size: 0.03, font: \"mono\") * (T >= 44.3)",
+    "let e2 = text(\"alea.bngz.io\", x: 0.5, y: 0.89, size: 0.06, font: \"mono\") * (T >= 44.8)",
+    "let e3 = text(\"next  ·  11  ·  rhythm\", x: 0.5, y: 1.02, size: 0.03, font: \"mono\") * (T >= l6.words[2])",
+    "let e4 = text(\"open source  ·  github.com/sudo-bngz/alea\", x: 0.5, y: 1.1, size: 0.026, font: \"mono\") * (T >= 45.8)",
+    "let endf = max(k6_code, max(name2 * INK, max(ecur * RED, max(e1 * INK, max(e2 * RED, max(e3 * GREY, e4 * INK))))))"
+   ],
+   "field": "endf"
+  }
+ ],
+ "overlays": [
+  {
+   "paint": "paint((fu + 1) * wf, palette: \"ember\", range: [0, 2])",
+   "mask": "inside * win(25.7, 33.0)"
+  }
+ ],
+ "transitions": {
+  "0": "jump()",
+  "1": "jump()",
+  "2": "pixels(0.3, size: 0.04)",
+  "3": "jump()",
+  "4": "glitch(0.4, amount: 0.7)",
+  "5": "pixels(0.3, size: 0.05)"
+ },
+ "fadeout": 0.8,
+ "score": {
+  "key": 110.0,
+  "chords": [
+   [
+    12,
+    15,
+    19,
+    26
+   ],
+   [
+    8,
+    12,
+    15,
+    19
+   ],
+   [
+    15,
+    19,
+    22,
+    26
+   ],
+   [
+    10,
+    14,
+    17,
+    20
+   ]
+  ],
+  "roots": [
+   12,
+   8,
+   15,
+   10
+  ],
+  "cuts": [
+   3.0,
+   9.0,
+   16.5,
+   24.0,
+   33.0,
+   42.0
+  ],
+  "booms": [
+   3.0,
+   9.0,
+   24.0,
+   33.0,
+   42.0
+  ],
+  "hits": [
+   10.45,
+   17.95,
+   25.7,
+   34.7,
+   35.2,
+   35.7
+  ],
+  "beat": [
+   24.0,
+   42.0
+  ],
+  "half": [
+   9.0,
+   24.0
+  ],
+  "bells": [
+   33.0,
+   42.0
+  ]
+ }
+}

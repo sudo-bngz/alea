@@ -1083,6 +1083,7 @@ through `voices/kokoro-misaki.py`) and the score. See `series/README.md`.
 | 07 | Your pictures | `series/07-pictures.alea` (from `series/07-pictures.json`; needs `series/photo.jpg`, yours) | `s07-pictures-reel.mp4` (cover: `s07-pictures-reel-cover.jpg`), 60 s |
 | 08 | Patterns | `series/08-patterns.alea` (from `series/08-patterns.json`) | `s08-patterns-reel.mp4` (cover: `s08-patterns-reel-cover.jpg`), 63 s |
 | 09 | Growing | `series/09-growing.alea` (from `series/09-growing.json`) | `s09-growing-reel.mp4` (cover: `s09-growing-reel-cover.jpg`), 65 s |
+| 10 | Text | `series/10-text.alea` (from `series/10-text.json`) | `s10-text-reel.mp4` (cover: `s10-text-reel-cover.jpg`), 53 s |
 
 ```sh
 cd series && alea 01-tilde.alea --seed 0xa1ea01   # the cover, and the 1080×1920 Reel (about 10 minutes)
@@ -1094,6 +1095,7 @@ cd series && alea 06-filters.alea --seed 0xa1ea01
 cd series && alea 07-pictures.alea --seed 0xa1ea01   # with a photo of yours at series/photo.jpg (portrait)
 cd series && alea 08-patterns.alea --seed 0xa1ea01
 cd series && alea 09-growing.alea --seed 0xa1ea01
+cd series && alea 10-text.alea --seed 0xa1ea01
 ```
 
 **01 · The tilde.** One character, and every run is a different picture. A
@@ -1359,6 +1361,34 @@ Des cellules qui vivent, meurent, et laissent une trace.
 Tout ce que vous voyez est ce seul programme, 10 lignes ; la voix et le son en font partie.
 
 **Hashtags**: `#alea #generativeart #creativecoding #codeart #proceduralart #artgeneratif #programming #opensource #learntocode #computerart #algorithmicart #newmediaart #gameoflife #cellularautomata`
+
+**10 · Text.** Words are pictures too. `text("alea", 0.5, 0.5, 0.5)`, a
+word as a shape, a field like a circle; `warp(w, 0.12, 3)`, the letters
+bending with the space; `paint((f + 1) * w, palette: "ember")`, the waves
+of episode two inside the letters; `choose { "alea" | "luck" | "dice" }`,
+the word drawn by chance, three runs, three words (the program's own
+draws). 53 s in A minor; the end card names 11.
+
+### s10 · Text (Reel)
+
+**EN**
+
+alea, one feature at a time · 10 — Text
+
+Words are pictures too.
+Everything you see is this one program, 5 lines; the voice and the sound are in it too.
+
+The whole series, and the language: alea.bngz.io
+The code: github.com/sudo-bngz/alea → exhibition/series
+
+**FR**
+
+alea, une fonctionnalité à la fois · 10 — Le texte
+
+Les mots aussi sont des images.
+Tout ce que vous voyez est ce seul programme, 5 lignes ; la voix et le son en font partie.
+
+**Hashtags**: `#alea #generativeart #creativecoding #codeart #proceduralart #artgeneratif #programming #opensource #learntocode #computerart #algorithmicart #newmediaart #typography #kinetictypography`
 
 ### Hashtags
 
