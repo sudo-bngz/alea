@@ -44,6 +44,7 @@ alea ring0.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Ree
 alea houle.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 30 s, in a loop (about 15 minutes)
 alea couches.alea --seed 0xa1ea01            # the cover, and the 1080×1920 Reel: 130 s, explained by a voice (needs voices/kokoro.py)
 alea brut.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s (first python3 brut/make-inputs.py CLIP.mov; about 1.5 hours)
+alea flammes.alea --seed 0xa1ea01            # the cover, and the 1080×1920 Reel: 60 s, on a voice (needs flammes/voice.wav; about 40 minutes)
 alea vektor.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 45 minutes)
 alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
@@ -1134,6 +1135,43 @@ et il dessine, chante et parle, un peu autrement à chaque fois. Open source,
 lien en bio. Édition 0xa1ea01.
 
 **Hashtags** (a few, the caption carries the keywords): `#generativeart #creativecoding #rustlang #idm #opensource`
+
+## Seventeenth room: Flammes
+
+| # | Post | Files |
+|---|---|---|
+| 26 | Flammes, Reel (60 s), on a freestyle | `26-flammes-reel.mp4` (cover: `26-flammes-reel-cover.jpg`) |
+
+**How it is made.** A showcase for a broadcast on Momo's Basement: sixty
+seconds of Juste Shani's *La Vraie Vie (Freestyle des Flammes)*, the
+record's own voice and beat (`flammes/voice.wav`, an excerpt of the
+artist's track, not in the repository: put your own sixty seconds there).
+No footage: the picture listens to the voice. `open("flammes/voice.wav")`
+gives `.level`, `.bass`, `.treble` and `.pulse`; the ten scenes cut on the
+kicks (their times measured from the file), and inside them the voice drives
+everything: a waveform scrolled right to left (`at(voice.level, …)` read two
+seconds back along `x`), bars of bass behind the title, embers of `noise`
+rising and lit by the level, then the same embers in a kaleidoscope, the
+name of the artist tilted by the bass, concrete of
+`grain` and `stripes` bent by it, a strobe on the roll of kicks (the page
+inverts when `.pulse` passes 0.55), the label's mark blinking on the beat.
+Black, white and the red of the air light; the title in a black face
+(`fonts/noto-sans-jp-black.ttf`). The end card: the artist, the title,
+*ON AIR · MOMO'S BASEMENT*.
+
+### 26 · Flammes (Reel)
+
+**EN**
+
+ON AIR — Juste Shani, La Vraie Vie (Freestyle des Flammes).
+The picture is a program listening to the voice: every cut is a kick, every flame his level. Written in alea.
+
+**FR**
+
+ON AIR — Juste Shani, La Vraie Vie (Freestyle des Flammes).
+L'image est un programme qui écoute la voix : chaque coupe est un kick, chaque flamme son niveau. Écrit en alea.
+
+**Hashtags**: `#justeshani #lavraievie #freestyle #rapfrancais #rapconscient #hiphop #paris #momosbasement #generativeart #creativecoding #alea`
 
 ### Hashtags
 
