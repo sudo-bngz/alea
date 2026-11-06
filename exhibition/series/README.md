@@ -31,3 +31,4 @@ For a preview, lower the render in a copy (`width: 270, height: 480`,
 | 01 | The tilde | `~`: the same program, a different picture every run; the seed | 55 s |
 | 02 | Fields | a picture is a function of x and y: `paint(x)`, `paint(y)`, a sine, x and y mixed, a palette | 58 s |
 | 03 | Shapes | `circle`, `ring`, `square`; `merge`, `overlap`, `cut`; the numbers left out, drawn every run | 58.5 s |
+| 04 | Transforms | `move`, `rotate`, `tile`, `mirror`, `kaleidoscope`, `warp`, on one shape | 65 s |

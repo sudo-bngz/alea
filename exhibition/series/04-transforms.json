@@ -1,0 +1,347 @@
+{
+ "number": "04",
+ "title": "Transforms",
+ "file": "04-transforms.json",
+ "comment": [
+  "Move it, turn it, tile it, mirror it: one shape (a square with a circle at",
+  "its corner) through move, rotate, tile, mirror, kaleidoscope and warp, the",
+  "original ghosted in grey behind each result. Each result is the very",
+  "expression on screen, applied to the whole canvas and placed in its frame."
+ ],
+ "total": 65.0,
+ "cover": 0.68,
+ "draws": [
+  "let a = square(0.5, 0.5, 0.4, 0, softness: 0.002)",
+  "let b = circle(0.7, 0.3, 0.3, softness: 0.002)",
+  "let s = merge(a, b)",
+  "let insideP = (abs(x - 0.5) < 0.18) * (abs(y - 0.95) < 0.32)",
+  "let ink = [\"#000\", \"#d6d6d6\"]",
+  "let r_move = move(s, 0.1, 0.1)",
+  "let r_rot = rotate(s, 30)",
+  "let r_tile = tile(s, 3)",
+  "let r_mir = mirror(s, \"both\")",
+  "let r_kal = kaleidoscope(rotate(s, 30), 8)",
+  "let r_warp = warp(kaleidoscope(rotate(s, 30), 8), 0.12, 3)"
+ ],
+ "sections": [
+  {
+   "name": "the opening",
+   "start": 0.0,
+   "field": "openf"
+  },
+  {
+   "name": "the hook",
+   "start": 3.0,
+   "label": "transforms",
+   "say": "Move it, turn it, tile it, mirror it.",
+   "at": 3.9,
+   "stage": [
+    "let hk1 = text(\"04  ·  transforms\", x: 0.5, y: 0.74, size: 0.036, font: \"mono\") * (T >= 3.3)",
+    "let hk2 = text(\"alea, one feature at a time\", x: 0.5, y: 0.81, size: 0.03, font: \"mono\") * (T >= 3.3)",
+    "let hookf = max(wave * RED, max(hk1 * INK, hk2 * GREY))"
+   ],
+   "field": "hookf"
+  },
+  {
+   "name": "move: a tenth right, a tenth down",
+   "start": 9.0,
+   "label": "move",
+   "say": "Move it: a tenth to the right, a tenth down.",
+   "at": 11.1,
+   "code": {
+    "at": 9.3,
+    "lines": [
+     "work Transforms {",
+     "  let a = square(0.5, 0.5, 0.4)",
+     "  let b = circle(0.7, 0.3, 0.3)",
+     "  let s = merge(a, b)",
+     "  output move(s, 0.1, 0.1)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr_move = frame(0.5, 0.95, 0.36, 0.64) * (T >= 10.8)",
+    "let movef = max(k2_code, fr_move * RULE)"
+   ],
+   "field": "movef"
+  },
+  {
+   "name": "rotate: thirty degrees around the centre",
+   "start": 16.5,
+   "label": "rotate",
+   "say": "Turn it: thirty degrees, around the centre.",
+   "at": 18.6,
+   "code": {
+    "at": 16.8,
+    "lines": [
+     "work Transforms {",
+     "  let a = square(0.5, 0.5, 0.4)",
+     "  let b = circle(0.7, 0.3, 0.3)",
+     "  let s = merge(a, b)",
+     "  output rotate(s, 30)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr_rot = frame(0.5, 0.95, 0.36, 0.64) * (T >= 18.3)",
+    "let rotf = max(k3_code, fr_rot * RULE)"
+   ],
+   "field": "rotf"
+  },
+  {
+   "name": "tile: the whole canvas, three by three",
+   "start": 23.5,
+   "label": "tile",
+   "say": "Tile it: the whole canvas, three by three.",
+   "at": 25.6,
+   "code": {
+    "at": 23.8,
+    "lines": [
+     "work Transforms {",
+     "  let a = square(0.5, 0.5, 0.4)",
+     "  let b = circle(0.7, 0.3, 0.3)",
+     "  let s = merge(a, b)",
+     "  output tile(s, 3)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr_tile = frame(0.5, 0.95, 0.36, 0.64) * (T >= 25.3)",
+    "let tilef = max(k4_code, fr_tile * RULE)"
+   ],
+   "field": "tilef"
+  },
+  {
+   "name": "mirror: across both axes",
+   "start": 30.5,
+   "label": "mirror",
+   "say": "Mirror it, across both axes.",
+   "at": 32.6,
+   "code": {
+    "at": 30.8,
+    "lines": [
+     "work Transforms {",
+     "  let a = square(0.5, 0.5, 0.4)",
+     "  let b = circle(0.7, 0.3, 0.3)",
+     "  let s = merge(a, b)",
+     "  output mirror(s, \"both\")",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr_mir = frame(0.5, 0.95, 0.36, 0.64) * (T >= 32.3)",
+    "let mirf = max(k5_code, fr_mir * RULE)"
+   ],
+   "field": "mirf"
+  },
+  {
+   "name": "kaleidoscope: one wedge, mirrored eight times",
+   "start": 38.0,
+   "label": "kaleidoscope",
+   "say": "A kaleidoscope: the turned one, mirrored eight times around.",
+   "at": 40.1,
+   "code": {
+    "at": 38.3,
+    "lines": [
+     "work Transforms {",
+     "  let a = square(0.5, 0.5, 0.4)",
+     "  let b = circle(0.7, 0.3, 0.3)",
+     "  let s = merge(a, b)",
+     "  let k = kaleidoscope(rotate(s, 30), 8)",
+     "  output k",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr_kal = frame(0.5, 0.95, 0.36, 0.64) * (T >= 39.8)",
+    "let kalf = max(k6_code, fr_kal * RULE)"
+   ],
+   "field": "kalf"
+  },
+  {
+   "name": "warp: the space bent; they all combine",
+   "start": 47.0,
+   "label": "warp",
+   "say": "And warp bends the space itself. They all combine.",
+   "at": 49.1,
+   "code": {
+    "at": 47.3,
+    "lines": [
+     "work Transforms {",
+     "  let a = square(0.5, 0.5, 0.4)",
+     "  let b = circle(0.7, 0.3, 0.3)",
+     "  let s = merge(a, b)",
+     "  let k = kaleidoscope(rotate(s, 30), 8)",
+     "  output warp(k, 0.12, 3)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr_warp = frame(0.5, 0.95, 0.36, 0.64) * (T >= 48.8)",
+    "let warpf = max(k7_code, fr_warp * RULE)"
+   ],
+   "field": "warpf"
+  },
+  {
+   "name": "the end",
+   "start": 54.0,
+   "say": "Next week: time. Add t, and the picture starts to move.",
+   "at": 57.5,
+   "code": {
+    "at": 54.3,
+    "lines": [
+     "work Transforms {",
+     "  let a = square(0.5, 0.5, 0.4)",
+     "  let b = circle(0.7, 0.3, 0.3)",
+     "  let s = merge(a, b)",
+     "  let k = kaleidoscope(rotate(s, 30), 8)",
+     "  output warp(k, 0.12, 3)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let nsize = 0.2",
+    "let nadv = 0.5172 * nsize",
+    "let nx0e = 0.5 - 2.5 * nadv",
+    "let name2 = text(\"alea\", x: nx0e, y: 0.72, size: nsize, font: \"mono\", align: \"left\") * (T >= 55.6)",
+    "let ecur = (abs(x - (nx0e + 4.5 * nadv)) < nadv * 0.42) * (abs(y - 0.72) < nsize * 0.4) * blink * (T >= 55.6)",
+    "let e1 = text(\"one feature at a time  ·  04  ·  transforms\", x: 0.5, y: 0.86, size: 0.03, font: \"mono\") * (T >= 56.1)",
+    "let e2 = text(\"alea.bngz.io\", x: 0.5, y: 0.97, size: 0.06, font: \"mono\") * (T >= 56.6)",
+    "let e3 = text(\"next  ·  05  ·  time\", x: 0.5, y: 1.10, size: 0.03, font: \"mono\") * (T >= l8.words[2])",
+    "let e4 = text(\"open source  ·  github.com/sudo-bngz/alea\", x: 0.5, y: 1.18, size: 0.026, font: \"mono\") * (T >= 57.8)",
+    "let endf = max(k8_code, max(name2 * INK, max(ecur * RED, max(e1 * INK, max(e2 * RED, max(e3 * GREY, e4 * INK))))))"
+   ],
+   "field": "endf"
+  }
+ ],
+ "overlays": [
+  {
+   "paint": "place(paint(max(s * 0.4, r_move), palette: ink, range: [0, 1]), x: 0.5, y: 0.95, width: 0.36, height: 0.64)",
+   "mask": "insideP * win(10.8, 16.5)"
+  },
+  {
+   "paint": "place(paint(max(s * 0.4, r_rot), palette: ink, range: [0, 1]), x: 0.5, y: 0.95, width: 0.36, height: 0.64)",
+   "mask": "insideP * win(18.3, 23.5)"
+  },
+  {
+   "paint": "place(paint(max(s * 0.4, r_tile), palette: ink, range: [0, 1]), x: 0.5, y: 0.95, width: 0.36, height: 0.64)",
+   "mask": "insideP * win(25.3, 30.5)"
+  },
+  {
+   "paint": "place(paint(max(s * 0.4, r_mir), palette: ink, range: [0, 1]), x: 0.5, y: 0.95, width: 0.36, height: 0.64)",
+   "mask": "insideP * win(32.3, 38.0)"
+  },
+  {
+   "paint": "place(paint(max(s * 0.4, r_kal), palette: ink, range: [0, 1]), x: 0.5, y: 0.95, width: 0.36, height: 0.64)",
+   "mask": "insideP * win(39.8, 47.0)"
+  },
+  {
+   "paint": "place(paint(max(s * 0.4, r_warp), palette: ink, range: [0, 1]), x: 0.5, y: 0.95, width: 0.36, height: 0.64)",
+   "mask": "insideP * win(48.8, 54.0)"
+  }
+ ],
+ "transitions": {
+  "0": "jump()",
+  "1": "jump()",
+  "2": "pixels(0.3, size: 0.04)",
+  "3": "jump()",
+  "4": "glitch(0.4, amount: 0.7)",
+  "5": "jump()",
+  "6": "slide(0.3, angle: 0)",
+  "7": "pixels(0.3, size: 0.05)"
+ },
+ "fadeout": 0.8,
+ "score": {
+  "key": 98.0,
+  "chords": [
+   [
+    12,
+    15,
+    19,
+    26
+   ],
+   [
+    8,
+    12,
+    15,
+    19
+   ],
+   [
+    15,
+    19,
+    22,
+    26
+   ],
+   [
+    10,
+    14,
+    17,
+    20
+   ]
+  ],
+  "roots": [
+   12,
+   8,
+   15,
+   10
+  ],
+  "cuts": [
+   3.0,
+   9.0,
+   16.5,
+   23.5,
+   30.5,
+   38.0,
+   47.0,
+   54.0
+  ],
+  "booms": [
+   3.0,
+   9.0,
+   23.5,
+   38.0,
+   54.0
+  ],
+  "hits": [
+   10.8,
+   18.3,
+   25.3,
+   32.3,
+   39.8,
+   48.8
+  ],
+  "beat": [
+   23.5,
+   54.0
+  ],
+  "half": [
+   9.0,
+   23.5
+  ],
+  "bells": [
+   47.0,
+   54.0
+  ]
+ }
+}
