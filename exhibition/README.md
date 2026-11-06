@@ -1022,7 +1022,7 @@ then the account's handle and a cursor, nothing said yet; then what alea
 is, and what it does, one feature to a cut. Each cut lets its picture
 breathe a second or so before the voice speaks, with room after the line,
 and a longer stop before the features begin. A low voice says it
-(`say` through a neural engine, `voices/kokoro.py`, `af_kore`), its words
+(`say` through a neural engine, `voices/kokoro-misaki.py`, `af_kore`), its words
 typed letter by letter as it speaks. Every picture
 is new, made for this Reel by five small works in `intro/works/` (Trame,
 Orbites, Points, Blocs, Prisme; their editions kept in `intro/stills/`), but
@@ -1060,6 +1060,56 @@ et il dessine, chante et parle, un peu autrement à chaque fois. Open source,
 lien en bio. Édition 0xa1ea01.
 
 **Hashtags** (a few, the caption carries the keywords): `#generativeart #creativecoding #rustlang #idm #opensource`
+
+## The series: alea, one feature at a time
+
+After the introduction, the documentation told one page at a time: an
+episode a week, 45–60 s, one feature, one program that fits on one screen by
+the end, in the exact grammar of *alea speaks*. Each episode is a JSON file
+in `series/` (its sections, the spoken lines, the code that types, the
+stage) and `series/gen.py` is the template that turns it into the `.alea`:
+the opening wave, the red labels, the captions typed as they are said, the
+code a line to an eighth note, the cuts, the end card, the voice (Kore
+through `voices/kokoro-misaki.py`) and the score. See `series/README.md`.
+
+| # | Episode | Files | Reel |
+|---|---|---|---|
+| 01 | The tilde | `series/01-tilde.alea` (from `series/01-tilde.json`) | `s01-tilde-reel.mp4` (cover: `s01-tilde-reel-cover.jpg`), 55 s |
+
+```sh
+cd series && alea 01-tilde.alea --seed 0xa1ea01   # the cover, and the 1080×1920 Reel (about 1 h 20)
+```
+
+**01 · The tilde.** One character, and every run is a different picture. A
+circle whose size is a number, run three times: the same circle, three
+times. The size drawn with `~between(0.1, 0.5)`, in red: three runs, three
+circles, one program; and three more. The same seed twice: the same
+picture, byte for byte. The sizes on screen are this very program's own
+draws, so what it shows is what it says. Eight cuts in 55 s on a 120 BPM
+grid: a pad on tape in A minor, dust, a beat from the tilde on, a stutter
+into each cut, a boom on each section, a glass hit on every run; the end
+card names the next episode.
+
+### s01 · The tilde (Reel)
+
+**EN**
+
+alea, one feature at a time · 01 — The tilde
+
+One character. Every run, a different picture.
+Everything you see is this one program, 4 lines; the voice and the sound are in it too.
+
+The whole series, and the language: alea.bngz.io
+The code: github.com/sudo-bngz/alea → exhibition/series
+
+**FR**
+
+alea, une fonctionnalité à la fois · 01 — Le tilde
+
+Un caractère. À chaque exécution, une autre image.
+Tout ce que vous voyez est ce seul programme, 4 lignes ; la voix et le son en font partie.
+
+**Hashtags**: `#alea #generativeart #creativecoding #codeart #proceduralart #artgeneratif #programming #opensource #learntocode #computerart #algorithmicart #newmediaart`
 
 ### Hashtags
 
