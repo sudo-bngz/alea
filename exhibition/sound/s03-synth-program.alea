@@ -1,0 +1,46 @@
+// alea, one sound at a time · S03 — A synth: the program on screen, whole.
+// The lead, built one unit at a time, over the rhythm of S02.
+// Run it: alea s03-synth-program.alea
+
+work Synth {
+  let m = meter(tempo: 120, bars: 76)
+
+  // the lead: a saw, an envelope, a filter the envelope opens, drive, chorus
+  let lead = synth {
+    let env = adsr(attack: 0.005, decay: 0.15,
+                   sustain: 0.3, release: 0.1)
+    let tone = lowpass(saw(), resonance: 0.5,
+                       cutoff: 200 + 3000 * env)
+    chorus(drive(tone * env, amount: 0.4),
+           depth: 0.6)
+  }
+  let lo = steps("X..x..X..x..X...", bars: m, y: 1)
+  let hi = steps("..x....X...x..x.", bars: m, y: 0.65)
+  let riff = [notes(lo, instrument: lead, key: "E3"),
+              notes(hi, instrument: lead, key: "E3")]
+
+  // the rhythm of S02
+  let kick = synth {
+    sine(50 + 150 * perc(release: 0.03))
+      * perc(release: 0.4)
+  }
+  let rim = synth {
+    bandpass(noise(), cutoff: 3000)
+      * perc(release: 0.03)
+      + sine(1700) * perc(release: 0.02)
+  }
+  let conga = synth {
+    sine(200 + 120 * perc(release: 0.02))
+      * perc(release: 0.25)
+  }
+  let shaker = synth {
+    highpass(noise(), cutoff: 6000)
+      * perc(attack: 0.01, release: 0.06)
+  }
+  let kicks = notes(euclid(4, 16, bars: m), instrument: kick)
+  let rims = notes(euclid(5, 16, bars: m), instrument: rim)
+  let congas = notes(euclid(5, 16, rotate: 3, bars: m), instrument: conga)
+  let shakes = notes(euclid(7, 16, bars: m), instrument: shaker)
+
+  render sound(riff, kicks, rims, congas, shakes, duration: m.length)
+}

@@ -22,7 +22,7 @@ them in the middle, which is the only other difference.
 The look, the opening, the code panel and the captions come from the
 picture series' template (`../series/gen.py`).
 """
-import importlib.util, json, os, sys
+import importlib.util, json, math, os, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 _spec = importlib.util.spec_from_file_location("series_gen", os.path.join(HERE, "..", "series", "gen.py"))
@@ -104,8 +104,20 @@ def track(ep):
     L.append("  let semi(s) = 1 - (s + 0.5) / 36")
     L.append("")
     for ly in ep["layers"]:
+        if ly.get("riff"):
+            continue
         body = " ".join(x.strip() for x in ly["synth"])
         L.append(f"  let {ly['name']} = synth {{ {body} }}")
+    stages = ep.get("stages", [])
+    for j, st in enumerate(stages):
+        body = "; ".join(x.strip() for x in st["synth"]) if len(st["synth"]) > 1 else st["synth"][0]
+        if len(st["synth"]) > 1:
+            L.append(f"  let lead{j} = synth {{")
+            for x in st["synth"]:
+                L.append(f"    {x}")
+            L.append("  }")
+        else:
+            L.append(f"  let lead{j} = synth {{ {body} }}")
     L.append("  let tone = synth { (sine() + sine(note.freq * 1.5) * 0.3) * adsr(attack: 0.4, decay: 0.6, sustain: 0.6, release: 2.5) * 0.5 }")
     L.append("")
     layers = []
@@ -116,14 +128,26 @@ def track(ep):
         x = "0.5"
         e0 = ly["enter"] * 16
         sw = ly.get("swing")
-        spans = [(ly["name"], e0, sw["from"] * 16 if sw else steps_total, None)]
-        if sw:
-            spans.append((ly["name"] + "_sw", sw["from"] * 16, steps_total, sw["amount"]))
-        for pname, a, b, swing in spans:
-            L.append(f"  pattern p_{pname} = repeat {steps_total} event(t: i / {steps_total}, x: {x}, y: 0.5, size: 0.02,")
+        if ly.get("riff"):
+            # the lead: the same pattern, played by each stage's synth in turn
+            bounds = [st["bar"] * 16 for st in stages] + [steps_total]
+            # the mixer brings each layer to one level over the whole track:
+            # a stage that plays longer is turned up by as much, to sound the same
+            spans = [(f"{ly['name']}{j}", max(e0, bounds[j]), bounds[j + 1], None, f"lead{j}",
+                      round(st.get("gain", 1) * ly["gain"] * ((bounds[j + 1] - max(e0, bounds[j])) / 128) ** 0.5, 3))
+                     for j, st in enumerate(stages)]
+        else:
+            spans = [(ly["name"], e0, sw["from"] * 16 if sw else steps_total, None, ly["name"], ly["gain"])]
+            if sw:
+                spans.append((ly["name"] + "_sw", sw["from"] * 16, steps_total, sw["amount"], ly["name"], ly["gain"]))
+        ey, es = ly.get("y", 0.5), ly.get("size", 0.02)
+        for pname, a, b, swing, inst, gain in spans:
+            L.append(f"  pattern p_{pname} = repeat {steps_total} event(t: i / {steps_total}, x: {x}, y: {ey}, size: {es},")
             L.append(f"      intensity: {lst}[i % 16] * {vel} * (i >= {a}) * (i < {b}) * duck(i * SIX))")
             extra = f", tempo: {ep['tempo']}, swing: {swing}" if swing else ""
-            layers.append(f"notes(p_{pname}, instrument: {ly['name']}, gain: {ly['gain']}{extra})")
+            if "key" in ly:
+                extra += f", key: {ly['key']}"
+            layers.append(f"notes(p_{pname}, instrument: {inst}, gain: {gain:g}{extra})")
     L.append(f"  pattern p_tone = repeat 2 event(t: [0.3, 2.4][i] / total, y: semi([0, 7][i]), size: 0.15, intensity: [0.5, 0.3][i])")
     layers.append(f'notes(p_tone, instrument: tone, scale: "chromatic", key: {ep["key"]}, gain: 0.2)')
     L.append("")
@@ -151,6 +175,107 @@ def hit_expr(h, var="col"):
     if len(terms) == 16 and len(set(h)) == 1:
         return f"{h[0]:g}"
     return " + ".join(terms) if terms else "0"
+
+
+SCALES = {"pentatonic": [0, 2, 4, 7, 9]}
+
+
+def riff_steps(ep):
+    """For each sixteenth of the bar: how many steps back the last note of the
+    riff started, how hard it was struck, and its frequency."""
+    notes = [None] * 16
+    for ly in ep["layers"]:
+        if not ly.get("riff"):
+            continue
+        sc = SCALES[ly.get("scale", "pentatonic")]
+        d = min(int((1 - ly.get("y", 0.5)) * 3 * len(sc)), 3 * len(sc) - 1)
+        f = ly["key"] * 2 ** ((sc[d % len(sc)] + 12 * (d // len(sc))) / 12)
+        for k, v in enumerate(hits_of(ly["hits"])):
+            if v > 0:
+                notes[k] = (v, f)
+    back, acc, f0 = [], [], []
+    for k in range(16):
+        j = next(j for j in range(16) if notes[(k - j) % 16])
+        v, f = notes[(k - j) % 16]
+        back.append(j); acc.append(v); f0.append(round(f, 2))
+    return back, acc, f0
+
+
+def synth_view(ep, bar, six):
+    """The lead, drawn from the same numbers that make it: the wave as the sum
+    of its first harmonics (each through the filter), scaled by the envelope
+    and bent by the drive; below, the harmonics as bars and the filter's curve.
+    Each part appears with the unit that brings it."""
+    sc = ep["scope"]
+    at = {st["unit"]: st["bar"] * bar for st in ep["stages"]}
+    back, acc, f0 = riff_steps(ep)
+    N = 10
+    SX0, SW = 0.07, 0.86
+    YC, AY = 0.965, 0.06
+    YB, HB = 1.24, 0.15
+    k = 2 - 1.95 * sc["resonance"]
+    G = 1 + 20 * sc["drive"]
+    L = ["  // ── the lead, drawn: the wave as its harmonics, and the filter ──",
+         f"  let back = {hit_expr(back, 'cur')}",
+         f"  let acc = {hit_expr(acc, 'cur')}",
+         f"  let f0 = {hit_expr(f0, 'cur')}",
+         "  let ts = (fract(T / SIX) + back) * SIX",
+         f"  let gate = ts < {sc['hold']}",
+         f"  let eu = min(1, max(0, ts - {sc['attack']}) / {sc['decay']})",
+         f"  let eh = (ts < {sc['attack']}) * ts / {sc['attack']} + (ts >= {sc['attack']}) * ({sc['sustain']} + {1 - sc['sustain']:g} * (1 - eu) * (1 - eu))",
+         f"  let ev = min(1, max(0, ts - {sc['hold']}) / {sc['release']})",
+         f"  let env = gate * eh + (1 - gate) * {sc['sustain']} * (1 - ev) * (1 - ev)",
+         f"  let on = T >= {at['sine']:.3f}",
+         f"  let isaw = T >= {at['saw']:.3f}",
+         f"  let A = on * acc * ((T < {at['adsr']:.3f}) * gate + (T >= {at['adsr']:.3f}) * env)",
+         f"  let fc = (T >= {at['lowpass']:.3f}) * ({sc['cutoff']} + {sc['sweep']} * env) + (T < {at['lowpass']:.3f}) * 1000000",
+         f"  let lpg(f) = 1 / sqrt((1 - (f / fc) * (f / fc)) * (1 - (f / fc) * (f / fc)) + ({k:g} * f / fc) * ({k:g} * f / fc))",
+         "  let th2(z) = 1 - 2 / (exp(2 * z) + 1)",
+         f"  let isd = T >= {at['drive']:.3f}",
+         f"  let isc = T >= {at['chorus']:.3f}",
+         f"  let inscope = (x >= {SX0}) * (x <= {SX0 + SW:.2f})",
+         f"  let th = (x - {SX0}) / {SW} * 2 * tau",
+         f"  let dthdx = 2 * tau / {SW}",
+         ]
+    two_pi = 2 / 3.141592653589793
+    for n in range(1, N + 1):
+        c = f"((1 - isaw) + isaw * {two_pi:.5f})" if n == 1 else f"isaw * {(two_pi * (-1) ** (n + 1) / n):.5f}"
+        L.append(f"  let a{n} = {c} * lpg({n} * f0)")
+    for tag, ph in [("", "th"), ("c", f"(th - 0.9 - 0.5 * sin(T * tau * 0.8))")]:
+        L.append(f"  let w{tag} = " + " + ".join(f"a{n} * sin({n} * {ph})" if n > 1 else f"a1 * sin({ph})" for n in range(1, N + 1)))
+        L.append(f"  let dw{tag} = " + " + ".join(f"a{n} * {n} * cos({n} * {ph})" if n > 1 else f"a1 * cos({ph})" for n in range(1, N + 1)))
+        L.append(f"  let v{tag} = A * w{tag}")
+        L.append(f"  let tv{tag} = th2({G:g} * v{tag})")
+        L.append(f"  let vo{tag} = v{tag} + isd * (tv{tag} / th2({G:g}) - v{tag})")
+        L.append(f"  let dvo{tag} = A * dw{tag} * (1 + isd * ({G:g} * (1 - tv{tag} * tv{tag}) / th2({G:g}) - 1))")
+        L.append(f"  let sl{tag} = {AY} * dvo{tag} * dthdx")
+        L.append(f"  let line{tag} = (abs(y - ({YC} - {AY} * vo{tag})) / sqrt(1 + sl{tag} * sl{tag}) < 0.0028) * inscope")
+    L += [
+        f"  let axis = (abs(y - {YC}) < 0.0012) * inscope",
+        f'  let lab_w = text("the wave", x: {SX0}, y: {YC - AY - 0.03:.3f}, size: 0.024, font: "mono", align: "left")',
+        f"  let scope = max(axis * RULE, max(linec * isc * FN, max(line * INK, lab_w * GREY))) * on",
+        "",
+        f"  let F = 40 * exp({math.log(256):.5f} * (x - {SX0}) / {SW})",
+        "  let hn = floor(F / f0 + 0.5)",
+        "  let fn = max(1, hn) * f0",
+        f"  let xn = {SX0} + {SW} * ln(fn / 40) / {math.log(256):.5f}",
+        "  let hh = ((hn == 1) + isaw * (hn > 1) / max(1, hn)) * lpg(fn) * A",
+        f"  let bars = (abs(x - xn) < 0.0032) * (hn >= 1) * (hn <= 48) * (y < {YB}) * (y > {YB} - {HB} * hh) * inscope",
+        f"  let isf = T >= {at['lowpass']:.3f}",
+        f"  let fcurve = (abs(y - ({YB} - {HB} * min(1.25, lpg(F)))) < 0.003) * inscope * isf",
+        f"  let xfc = {SX0} + {SW} * ln(clamp(fc, 40, 10240) / 40) / {math.log(256):.5f}",
+        f"  let fmark = (abs(x - xfc) < 0.0025) * (abs(y - ({YB - HB - 0.03:.3f})) < 0.009) * isf",
+        f"  let base = (abs(y - {YB}) < 0.0012) * inscope",
+        f'  let lab_s = text("harmonics  ·  filter", x: {SX0}, y: {YB - HB - 0.03:.3f}, size: 0.024, font: "mono", align: "left")',
+    ]
+    hz = []
+    for f, name in [(100, "100 Hz"), (1000, "1 kHz"), (10000, "10 kHz")]:
+        xx = SX0 + SW * math.log(f / 40) / math.log(256)
+        hz.append(f'text("{name}", x: {min(xx, 0.9):.3f}, y: {YB + 0.022:.3f}, size: 0.02, font: "mono")')
+    L.append(f"  let lab_hz = merge({', '.join(hz)})")
+    L.append("  let spectrum = max(base * RULE, max(bars * NUM, max(fcurve * RED, max(fmark * RED, max(lab_s, lab_hz) * GREY)))) * on")
+    L.append("  let scopes = max(scope, spectrum)")
+    return L
 
 
 def reel(ep):
@@ -261,7 +386,7 @@ def reel(ep):
         L.append(f"  let col = floor((x - {GX0}) / {CW})")
         L.append(f"  let incol = (x >= {GX0}) * (x < {GX0 + 16 * CW:.3f}) * (fract((x - {GX0}) / {CW}) > 0.12) * (fract((x - {GX0}) / {CW}) < 0.88)")
         rows = []
-        for r, ly in enumerate(ep["layers"]):
+        for r, ly in enumerate(l for l in ep["layers"] if not l.get("hidden")):
             ry = GY0 + r * RH
             h = hits_of(ly["hits"])
             enter = ly["enter"] * bar
@@ -274,19 +399,24 @@ def reel(ep):
             L.append(f"  let row{r} = max(in{r} * max(RULE, max((hit{r} > 0) * GREY, max((hit{r} > 0.5) * INK, max((hit{r} > 0.9) * KEY, (lit{r} > 0.3) * RED)))), lab{r} * GREY) * (T >= {shown_at:.3f})")
             rows.append(f"row{r}")
         L.append(f"  let playhead = (abs(x - ({GX0} + (cur + 0.5) * {CW})) < {CW * 0.35:.4f}) * (abs(y - {GY0 - 0.025:.3f}) < 0.005)")
-        L.append(f"  let grid = max(merge({', '.join(rows)}), playhead * RED)")
+        L.append(f"  let {'grid0' if view == 'synth' else 'grid'} = max(merge({', '.join(rows)}), playhead * RED)")
         L.append("")
+        if view == "synth":
+            L += synth_view(ep, bar, six)
+            L.append("  let grid = max(grid0, scopes)")
+            L.append("")
     # the beats
     fields = ["openf * win(0, {:.3f})".format(starts[1]), "hookf * win({:.3f}, {:.3f})".format(starts[1], starts[2])]
+    lay = {**LAY, **ep.get("code", {})}
     for k, b in enumerate(beats):
         a = starts[2 + k]
         L.append(f"  // ── {b['label']} ──")
-        L.extend(S.code_block(f"k{k}", b["code"], a + 0.3, **LAY))
+        L.extend(S.code_block(f"k{k}", b["code"], a + 0.3, **lay))
         fields.append(f"max(k{k}_code, grid) * win({a:.3f}, {starts[3 + k]:.3f})")
     # the drop
     a = starts[-3]
     L.append("  // ── the drop: the beat whole, the meters listening to the track ──")
-    L.extend(S.code_block("kd", ep["drop"]["code"], a + 0.3, **LAY))
+    L.extend(S.code_block("kd", ep["drop"]["code"], a + 0.3, **lay))
     my = ep.get("meters_y", 1.16)
     for j, (band, lv) in enumerate([("bass", "NUM"), ("mid", "FN"), ("treble", "STR")]):
         yy = my + j * ep.get("meters_dy", 0.05)
