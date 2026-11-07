@@ -37,3 +37,4 @@ Reel to about −14 LUFS when encoding (`loudnorm=I=-14:TP=-1`).
 | S02 | Euclid | `euclid(hits, steps, rotate)`, five layers on one wheel, rotation as a second voice | 2:06 |
 | S03 | A synth | `synth { … }` built unit by unit: `sine`, `saw`, `adsr`, `lowpass` opened by the envelope, `drive`, `chorus` | 2:32 |
 | S04 | Notes | `notes(pattern)` as a melody: `tempo`, `scale` (`"minor"`, `"hirajoshi"`), `key`, `swing`, on a piano roll | 1:56 |
+| S05 | Harmony | `chords("i VI III VII")`, a pad (`drone` with `harmony:`), `arp`, a bass on the roots, `chords("functional")` drawn by chance; a keyboard | 1:44 |

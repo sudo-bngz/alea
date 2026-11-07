@@ -1,0 +1,244 @@
+{
+ "number": "S05",
+ "slug": "s05-harmony",
+ "work": "HarmonyS05",
+ "title": "Harmony",
+ "tempo": 120,
+ "bars": 52,
+ "key": 220,
+ "cover": 0.78,
+ "view": "keys",
+ "code": {
+  "size": 0.034,
+  "dy": 0.06
+ },
+ "meters_y": 1.315,
+ "meters_dy": 0.026,
+ "hook": {
+  "bar": 2,
+  "say": "Four chords and an arpeggio."
+ },
+ "harmony": {
+  "key": "A3",
+  "scale": "minor",
+  "written": [
+   "i",
+   "VI",
+   "III",
+   "VII"
+  ],
+  "drawn_bars": [
+   28,
+   36
+  ],
+  "drawn": [
+   "VI7",
+   "iv",
+   "V",
+   "v",
+   "VII",
+   "i7",
+   "iv",
+   "V"
+  ],
+  "pad": {
+   "enter": 4,
+   "voices": 4,
+   "instrument": "strings",
+   "gain": 1.4
+  },
+  "arp": {
+   "enter": 12,
+   "euclid": [
+    7,
+    16,
+    0
+   ],
+   "mode": "updown",
+   "octaves": 2,
+   "gate": 0.6,
+   "instrument": "marimba",
+   "gain": 1.05
+  },
+  "bass": {
+   "enter": 20,
+   "euclid": [
+    3,
+    8,
+    0
+   ],
+   "synth": "(sine() + 0.3 * saw()) * perc(release: 0.4)",
+   "release": 0.4,
+   "gain": 1.26
+  }
+ },
+ "layers": [
+  {
+   "name": "kick",
+   "label": "kick",
+   "hidden": true,
+   "synth": [
+    "sine(50 + 150 * perc(release: 0.03))",
+    "  * perc(release: 0.4)"
+   ],
+   "hits": {
+    "euclid": [
+     4,
+     16,
+     0
+    ]
+   },
+   "enter": 36,
+   "gain": 1.3
+  },
+  {
+   "name": "rim",
+   "label": "rim",
+   "hidden": true,
+   "synth": [
+    "bandpass(noise(), cutoff: 3000)",
+    "  * perc(release: 0.03)",
+    "  + sine(1700) * perc(release: 0.02)"
+   ],
+   "hits": {
+    "euclid": [
+     5,
+     16,
+     0
+    ]
+   },
+   "enter": 36,
+   "gain": 0.45
+  },
+  {
+   "name": "shaker",
+   "label": "shaker",
+   "hidden": true,
+   "synth": [
+    "highpass(noise(), cutoff: 6000)",
+    "  * perc(attack: 0.01, release: 0.06)"
+   ],
+   "hits": {
+    "euclid": [
+     7,
+     16,
+     0
+    ]
+   },
+   "enter": 36,
+   "gain": 0.35
+  }
+ ],
+ "beats": [
+  {
+   "label": "four chords",
+   "bar": 4,
+   "say": "Four chords, counted on the scale: one, six, three, seven.",
+   "code": [
+    "let m = meter(tempo: 120, bars: 52)",
+    "let prog = chords(\"i VI III VII\", key: \"A3\",",
+    "  scale: \"minor\", bars: m, repeat: 13)",
+    "let pad = drone(0.8, voices: 4,",
+    "  instrument: \"strings\", harmony: prog)"
+   ]
+  },
+  {
+   "label": "an arpeggio",
+   "bar": 12,
+   "say": "An arpeggio plays the chord one note at a time.",
+   "code": [
+    "let arps = arp(prog, euclid(7, 16, bars: m),",
+    "  mode: \"updown\", octaves: 2,",
+    "  instrument: \"marimba\")"
+   ]
+  },
+  {
+   "label": "the bass",
+   "bar": 20,
+   "say": "The bass takes the lowest tone of each chord: its root.",
+   "code": [
+    "let bass = synth {",
+    "  (sine() + 0.3 * saw()) * perc(release: 0.4)",
+    "}",
+    "let low = euclid(3, 8, bars: m, y: 1)",
+    "let roots = notes(low, instrument: bass,",
+    "  harmony: prog, key: prog.key / 2)"
+   ]
+  },
+  {
+   "label": "functional",
+   "bar": 28,
+   "say": "Or let chance write the chords: home, away, and back home.",
+   "code": [
+    "let prog = chords(\"functional\", key: \"A3\",",
+    "  scale: \"minor\", bars: m)"
+   ]
+  }
+ ],
+ "drop": {
+  "bar": 36,
+  "label": "the chords, whole",
+  "code": [
+   "let prog = chords(\"i VI III VII\", key: \"A3\",",
+   "  scale: \"minor\", bars: m, repeat: 13)",
+   "let pad = drone(0.8, voices: 4,",
+   "  instrument: \"strings\", harmony: prog)",
+   "let arps = arp(prog, euclid(7, 16, bars: m),",
+   "  mode: \"updown\", octaves: 2,",
+   "  instrument: \"marimba\")",
+   "let roots = notes(low, instrument: bass,",
+   "  harmony: prog, key: prog.key / 2)",
+   "render sound(pad, arps, roots, kicks, rims, shakes)"
+  ]
+ },
+ "end": {
+  "bar": 48,
+  "say": "Next time: drones. Play a picture.",
+  "next": "s06  ·  drones"
+ },
+ "program": [
+  "// alea, one sound at a time · S05 — Harmony: the program on screen, whole.",
+  "// Four chords: a pad holds them, an arpeggio walks them, a bass plays their roots,",
+  "// over the rhythm of S02. Swap the progression for chords(\"functional\", key: \"A3\",",
+  "// scale: \"minor\", bars: m) and chance writes a new one every edition.",
+  "// Run it: alea s05-harmony-program.alea",
+  "",
+  "work Harmony {",
+  "  let m = meter(tempo: 120, bars: 52)",
+  "  let prog = chords(\"i VI III VII\", key: \"A3\",",
+  "    scale: \"minor\", bars: m, repeat: 13)",
+  "",
+  "  let pad = drone(0.8, voices: 4,",
+  "    instrument: \"strings\", harmony: prog)",
+  "  let arps = arp(prog, euclid(7, 16, bars: m),",
+  "    mode: \"updown\", octaves: 2,",
+  "    instrument: \"marimba\")",
+  "  let bass = synth {",
+  "    (sine() + 0.3 * saw()) * perc(release: 0.4)",
+  "  }",
+  "  let low = euclid(3, 8, bars: m, y: 1)",
+  "  let roots = notes(low, instrument: bass,",
+  "    harmony: prog, key: prog.key / 2)",
+  "",
+  "  // the rhythm of S02",
+  "  let kick = synth {",
+  "    sine(50 + 150 * perc(release: 0.03))",
+  "      * perc(release: 0.4)",
+  "  }",
+  "  let rim = synth {",
+  "    bandpass(noise(), cutoff: 3000)",
+  "      * perc(release: 0.03)",
+  "      + sine(1700) * perc(release: 0.02)",
+  "  }",
+  "  let shaker = synth {",
+  "    highpass(noise(), cutoff: 6000)",
+  "      * perc(attack: 0.01, release: 0.06)",
+  "  }",
+  "  let kicks = notes(euclid(4, 16, bars: m), instrument: kick)",
+  "  let rims = notes(euclid(5, 16, bars: m), instrument: rim)",
+  "  let shakes = notes(euclid(7, 16, bars: m), instrument: shaker)",
+  "",
+  "  render sound(pad, arps, roots, kicks, rims, shakes, duration: m.length)",
+  "}"
+ ]
+}
