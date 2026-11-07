@@ -34,3 +34,4 @@ Reel to about −14 LUFS when encoding (`loudnorm=I=-14:TP=-1`).
 | # | Episode | Feature | Length |
 |---|---|---|---|
 | S01 | The beat | `meter`, `steps("X...x...")`, a synth per drum, chance on the hats, `swing` | 2:00 |
+| S02 | Euclid | `euclid(hits, steps, rotate)`, five layers on one wheel, rotation as a second voice | 2:06 |

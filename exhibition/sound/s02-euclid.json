@@ -1,0 +1,247 @@
+{
+ "number": "S02",
+ "slug": "s02-euclid",
+ "work": "EuclidS02",
+ "title": "Euclid",
+ "tempo": 118,
+ "bars": 62,
+ "key": 146.83,
+ "cover": 0.8,
+ "view": "wheel",
+ "meters_y": 1.3,
+ "meters_dy": 0.035,
+ "hook": {
+  "bar": 2,
+  "say": "Spread five hits over sixteen steps."
+ },
+ "layers": [
+  {
+   "name": "kick",
+   "label": "kick",
+   "synth": [
+    "sine(50 + 150 * perc(release: 0.03))",
+    "  * perc(release: 0.4)"
+   ],
+   "hits": {
+    "euclid": [
+     4,
+     16,
+     0
+    ]
+   },
+   "enter": 8,
+   "gain": 1.3
+  },
+  {
+   "name": "rim",
+   "label": "rim",
+   "synth": [
+    "bandpass(noise(), cutoff: 3000)",
+    "  * perc(release: 0.03)",
+    "  + sine(1700) * perc(release: 0.02)"
+   ],
+   "hits": {
+    "euclid": [
+     5,
+     16,
+     0
+    ]
+   },
+   "enter": 16,
+   "gain": 0.45
+  },
+  {
+   "name": "conga",
+   "label": "conga",
+   "synth": [
+    "sine(200 + 120 * perc(release: 0.02))",
+    "  * perc(release: 0.25)"
+   ],
+   "hits": {
+    "euclid": [
+     5,
+     16,
+     3
+    ]
+   },
+   "enter": 24,
+   "gain": 0.6
+  },
+  {
+   "name": "bell",
+   "label": "bell",
+   "synth": [
+    "(square(560) + square(845)) * 0.3",
+    "  * perc(release: 0.18)"
+   ],
+   "hits": {
+    "euclid": [
+     3,
+     8,
+     0
+    ]
+   },
+   "enter": 32,
+   "gain": 0.5
+  },
+  {
+   "name": "shaker",
+   "label": "shaker",
+   "synth": [
+    "highpass(noise(), cutoff: 6000)",
+    "  * perc(attack: 0.01, release: 0.06)"
+   ],
+   "hits": {
+    "euclid": [
+     7,
+     16,
+     0
+    ]
+   },
+   "enter": 38,
+   "gain": 0.35
+  }
+ ],
+ "beats": [
+  {
+   "label": "four over sixteen",
+   "bar": 5,
+   "say": "Four hits over sixteen steps, as even as they go: the kick.",
+   "code": [
+    "let m = meter(tempo: 118, bars: 62)",
+    "let kick = synth {",
+    "  sine(50 + 150 * perc(release: 0.03))",
+    "    * perc(release: 0.4)",
+    "}",
+    "let k = euclid(4, 16, bars: m)",
+    "let kicks = notes(k, instrument: kick)"
+   ],
+   "rows": [
+    "kick"
+   ]
+  },
+  {
+   "label": "five over sixteen",
+   "bar": 13,
+   "say": "Five over sixteen can't be even. The gaps are the groove.",
+   "code": [
+    "let rim = synth {",
+    "  bandpass(noise(), cutoff: 3000)",
+    "    * perc(release: 0.03)",
+    "    + sine(1700) * perc(release: 0.02)",
+    "}",
+    "let r = euclid(5, 16, bars: m)",
+    "let rims = notes(r, instrument: rim)"
+   ],
+   "rows": [
+    "rim"
+   ]
+  },
+  {
+   "label": "rotate",
+   "bar": 21,
+   "say": "Rotate: the same five hits, started three steps later.",
+   "code": [
+    "let conga = synth {",
+    "  sine(200 + 120 * perc(release: 0.02))",
+    "    * perc(release: 0.25)",
+    "}",
+    "let c = euclid(5, 16, rotate: 3, bars: m)",
+    "let congas = notes(c, instrument: conga)"
+   ],
+   "rows": [
+    "conga"
+   ]
+  },
+  {
+   "label": "three over eight",
+   "bar": 29,
+   "say": "Three over eight: the tresillo, against the kick's four.",
+   "code": [
+    "let bell = synth {",
+    "  (square(560) + square(845)) * 0.3",
+    "    * perc(release: 0.18)",
+    "}",
+    "let b = euclid(3, 8, bars: m)",
+    "let bells = notes(b, instrument: bell)"
+   ],
+   "rows": [
+    "bell"
+   ]
+  },
+  {
+   "label": "seven over sixteen",
+   "bar": 35,
+   "say": "Seven over sixteen. One formula makes every rhythm here.",
+   "code": [
+    "let shaker = synth {",
+    "  highpass(noise(), cutoff: 6000)",
+    "    * perc(attack: 0.01, release: 0.06)",
+    "}",
+    "let s = euclid(7, 16, bars: m)",
+    "let shakes = notes(s, instrument: shaker)"
+   ],
+   "rows": [
+    "shaker"
+   ]
+  }
+ ],
+ "drop": {
+  "bar": 41,
+  "code": [
+   "let m = meter(tempo: 118, bars: 62)",
+   "let k = euclid(4, 16, bars: m)",
+   "let r = euclid(5, 16, bars: m)",
+   "let c = euclid(5, 16, rotate: 3, bars: m)",
+   "let b = euclid(3, 8, bars: m)",
+   "let s = euclid(7, 16, bars: m)",
+   "render sound(kicks, rims, congas, bells, shakes)"
+  ],
+  "label": "the rhythm, whole"
+ },
+ "end": {
+  "bar": 59,
+  "say": "Next time: a synth, built one unit at a time.",
+  "next": "s03  ·  a synth"
+ },
+ "program": [
+  "// alea, one sound at a time · S02 — Euclid: the program on screen, whole.",
+  "// Run it: alea s02-euclid-program.alea",
+  "",
+  "work Euclid {",
+  "  let m = meter(tempo: 118, bars: 62)",
+  "  let kick = synth {",
+  "    sine(50 + 150 * perc(release: 0.03))",
+  "      * perc(release: 0.4)",
+  "  }",
+  "  let rim = synth {",
+  "    bandpass(noise(), cutoff: 3000)",
+  "      * perc(release: 0.03)",
+  "      + sine(1700) * perc(release: 0.02)",
+  "  }",
+  "  let conga = synth {",
+  "    sine(200 + 120 * perc(release: 0.02))",
+  "      * perc(release: 0.25)",
+  "  }",
+  "  let bell = synth {",
+  "    (square(560) + square(845)) * 0.3",
+  "      * perc(release: 0.18)",
+  "  }",
+  "  let shaker = synth {",
+  "    highpass(noise(), cutoff: 6000)",
+  "      * perc(attack: 0.01, release: 0.06)",
+  "  }",
+  "  let k = euclid(4, 16, bars: m)",
+  "  let r = euclid(5, 16, bars: m)",
+  "  let c = euclid(5, 16, rotate: 3, bars: m)",
+  "  let b = euclid(3, 8, bars: m)",
+  "  let s = euclid(7, 16, bars: m)",
+  "  let kicks = notes(k, instrument: kick)",
+  "  let rims = notes(r, instrument: rim)",
+  "  let congas = notes(c, instrument: conga)",
+  "  let bells = notes(b, instrument: bell)",
+  "  let shakes = notes(s, instrument: shaker)",
+  "  render sound(kicks, rims, congas, bells, shakes, duration: m.length)",
+  "}"
+ ]
+}

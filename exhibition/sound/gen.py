@@ -45,7 +45,20 @@ def times(ep):
     return bar, bar / 16
 
 
+def euclid16(hits, steps, rotate=0):
+    """alea's `euclid` (src/eval.rs) on a bar of sixteen sixteenths: a hit on step k
+    when ((k - rotate) * hits) mod steps < hits; 1 on the first of the cycle, 0.8 after."""
+    out = [0.0] * 16
+    for k in range(steps):
+        kk = (k - rotate) % steps
+        if (kk * hits) % steps < hits:
+            out[k * 16 // steps] = 1.0 if kk == 0 else 0.8
+    return out
+
+
 def hits_of(s):
+    if isinstance(s, dict):
+        return euclid16(*s["euclid"])
     v = {"X": 1.0, "x": 0.65, "o": 0.35}
     cells = [v.get(c, 0.0) for c in s if not c.isspace()]
     assert len(cells) == 16, s
@@ -132,9 +145,9 @@ def program(ep):
 
 # ── pass 2: the Reel ──────────────────────────────────────────────────────
 
-def hit_expr(h):
-    """a field of `col`: the step's value in the pattern, as a sum of tests."""
-    terms = [f"(col == {k}) * {v:g}" for k, v in enumerate(h) if v > 0]
+def hit_expr(h, var="col"):
+    """a field of `var`: the step's value in the pattern, as a sum of tests."""
+    terms = [f"({var} == {k}) * {v:g}" for k, v in enumerate(h) if v > 0]
     if len(terms) == 16 and len(set(h)) == 1:
         return f"{h[0]:g}"
     return " + ".join(terms) if terms else "0"
@@ -172,7 +185,7 @@ def reel(ep):
     labels = [("h_hook", f"sound  ·  {ep['number'].lower()}", starts[1], starts[2])]
     for k, b in enumerate(beats):
         labels.append((f"h_{k}", b["label"], starts[2 + k], starts[3 + k]))
-    labels.append(("h_drop", "the beat, whole", starts[-3], starts[-2]))
+    labels.append(("h_drop", ep["drop"].get("label", "the beat, whole"), starts[-3], starts[-2]))
     for n, s, a, b in labels:
         L.append(f'  let {n} = text("{s}", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win({a:.3f}, {b:.3f})')
     L.append(f"  let header = merge({', '.join(n for n, *_ in labels)})")
@@ -205,28 +218,64 @@ def reel(ep):
         "",
     ]
     # the step grid
-    L.append("  // ── the step grid: a row per layer, lit on the meter's clock ──")
-    L.append("  let step16 = floor(T / SIX)")
-    L.append("  let cur = step16 % 16")
-    L.append("  let flash = clamp(1 - fract(T / SIX) * 0.6, 0, 1)")
-    L.append(f"  let col = floor((x - {GX0}) / {CW})")
-    L.append(f"  let incol = (x >= {GX0}) * (x < {GX0 + 16 * CW:.3f}) * (fract((x - {GX0}) / {CW}) > 0.12) * (fract((x - {GX0}) / {CW}) < 0.88)")
-    rows = []
-    for r, ly in enumerate(ep["layers"]):
-        ry = GY0 + r * RH
-        h = hits_of(ly["hits"])
-        enter = ly["enter"] * bar
-        shown = [b["bar"] for b in beats if ly["name"] in b.get("rows", [])]
-        shown_at = (min(shown) * bar + 0.3) if shown else enter
-        L.append(f"  let in{r} = incol * ((y - {ry:.3f}) / {RH} > 0.15) * ((y - {ry:.3f}) / {RH} < 0.85)")
-        L.append(f"  let hit{r} = {hit_expr(h)}")
-        L.append(f"  let lit{r} = hit{r} * (col == cur) * flash * (T >= {enter:.3f})")
-        L.append(f'  let lab{r} = text("{ly["label"]}", x: 0.07, y: {ry + RH / 2:.3f}, size: 0.03, font: "mono", align: "left")')
-        L.append(f"  let row{r} = max(in{r} * max(RULE, max((hit{r} > 0) * GREY, max((hit{r} > 0.5) * INK, max((hit{r} > 0.9) * KEY, (lit{r} > 0.3) * RED)))), lab{r} * GREY) * (T >= {shown_at:.3f})")
-        rows.append(f"row{r}")
-    L.append(f"  let playhead = (abs(x - ({GX0} + (cur + 0.5) * {CW})) < {CW * 0.35:.4f}) * (abs(y - {GY0 - 0.025:.3f}) < 0.005)")
-    L.append(f"  let grid = max(merge({', '.join(rows)}), playhead * RED)")
-    L.append("")
+    view = ep.get("view", "grid")
+    if view == "wheel":
+        CX, CY, R0, DR = 0.5, 0.93, 0.12, 0.05
+        rmax = R0 + DR * (len(ep["layers"]) - 1)
+        L.append("  // ── the wheel: a ring of sixteen steps per layer, lit on the meter's clock ──")
+        L.append("  let step16 = floor(T / SIX)")
+        L.append("  let cur = step16 % 16")
+        L.append("  let flash = clamp(1 - fract(T / SIX) * 0.6, 0, 1)")
+        L.append(f"  let wdx = x - {CX}")
+        L.append(f"  let wdy = y - {CY}")
+        L.append("  let wr = sqrt(wdx * wdx + wdy * wdy)")
+        L.append("  let wa = fract(atan2(wdx, -wdy) / tau)")
+        L.append("  let wk = floor(wa * 16 + 0.5) % 16")
+        L.append("  let wak = wk / 16 * tau")
+        rows, shown_ats = [], []
+        for r, ly in enumerate(ep["layers"]):
+            R = R0 + r * DR
+            h = hits_of(ly["hits"])
+            enter = ly["enter"] * bar
+            shown = [b["bar"] for b in beats if ly["name"] in b.get("rows", [])]
+            shown_at = (min(shown) * bar + 0.3) if shown else enter
+            shown_ats.append(shown_at)
+            L.append(f"  let dx{r} = x - ({CX} + {R:.3f} * sin(wak))")
+            L.append(f"  let dy{r} = y - ({CY} - {R:.3f} * cos(wak))")
+            L.append(f"  let in{r} = (dx{r} * dx{r} + dy{r} * dy{r}) < 0.000169")
+            L.append(f"  let hit{r} = {hit_expr(h, 'wk')}")
+            L.append(f"  let lit{r} = hit{r} * (wk == cur) * flash * (T >= {enter:.3f})")
+            L.append(f'  let lab{r} = text("{ly["label"]}", x: 0.06, y: {CY - R:.3f}, size: 0.028, font: "mono", align: "left")')
+            L.append(f"  let row{r} = max(in{r} * max(RULE, max((hit{r} > 0) * GREY, max((hit{r} > 0.5) * INK, max((hit{r} > 0.9) * KEY, (lit{r} > 0.3) * RED)))), lab{r} * GREY) * (T >= {shown_at:.3f})")
+            rows.append(f"row{r}")
+        reach = " + ".join(f"{DR} * (T >= {t:.3f})" for t in shown_ats[1:]) or "0"
+        L.append(f"  let reach = {R0 + 0.03} + {reach}")
+        L.append(f"  let hand = (abs(fract(wa - cur / 16 + 0.5) - 0.5) * tau * wr < 0.0025) * (wr > 0.06) * (wr < reach)")
+        L.append(f"  let grid = max(merge({', '.join(rows)}), hand * GREY)")
+        L.append("")
+    else:
+        L.append("  // ── the step grid: a row per layer, lit on the meter's clock ──")
+        L.append("  let step16 = floor(T / SIX)")
+        L.append("  let cur = step16 % 16")
+        L.append("  let flash = clamp(1 - fract(T / SIX) * 0.6, 0, 1)")
+        L.append(f"  let col = floor((x - {GX0}) / {CW})")
+        L.append(f"  let incol = (x >= {GX0}) * (x < {GX0 + 16 * CW:.3f}) * (fract((x - {GX0}) / {CW}) > 0.12) * (fract((x - {GX0}) / {CW}) < 0.88)")
+        rows = []
+        for r, ly in enumerate(ep["layers"]):
+            ry = GY0 + r * RH
+            h = hits_of(ly["hits"])
+            enter = ly["enter"] * bar
+            shown = [b["bar"] for b in beats if ly["name"] in b.get("rows", [])]
+            shown_at = (min(shown) * bar + 0.3) if shown else enter
+            L.append(f"  let in{r} = incol * ((y - {ry:.3f}) / {RH} > 0.15) * ((y - {ry:.3f}) / {RH} < 0.85)")
+            L.append(f"  let hit{r} = {hit_expr(h)}")
+            L.append(f"  let lit{r} = hit{r} * (col == cur) * flash * (T >= {enter:.3f})")
+            L.append(f'  let lab{r} = text("{ly["label"]}", x: 0.07, y: {ry + RH / 2:.3f}, size: 0.03, font: "mono", align: "left")')
+            L.append(f"  let row{r} = max(in{r} * max(RULE, max((hit{r} > 0) * GREY, max((hit{r} > 0.5) * INK, max((hit{r} > 0.9) * KEY, (lit{r} > 0.3) * RED)))), lab{r} * GREY) * (T >= {shown_at:.3f})")
+            rows.append(f"row{r}")
+        L.append(f"  let playhead = (abs(x - ({GX0} + (cur + 0.5) * {CW})) < {CW * 0.35:.4f}) * (abs(y - {GY0 - 0.025:.3f}) < 0.005)")
+        L.append(f"  let grid = max(merge({', '.join(rows)}), playhead * RED)")
+        L.append("")
     # the beats
     fields = ["openf * win(0, {:.3f})".format(starts[1]), "hookf * win({:.3f}, {:.3f})".format(starts[1], starts[2])]
     for k, b in enumerate(beats):
@@ -238,9 +287,9 @@ def reel(ep):
     a = starts[-3]
     L.append("  // ── the drop: the beat whole, the meters listening to the track ──")
     L.extend(S.code_block("kd", ep["drop"]["code"], a + 0.3, **LAY))
-    my = 1.16
+    my = ep.get("meters_y", 1.16)
     for j, (band, lv) in enumerate([("bass", "NUM"), ("mid", "FN"), ("treble", "STR")]):
-        yy = my + j * 0.05
+        yy = my + j * ep.get("meters_dy", 0.05)
         L.append(f'  let ml{j} = text("{band}", x: 0.07, y: {yy:.3f}, size: 0.026, font: "mono", align: "left")')
         L.append(f"  let mb{j} = (x >= {GX0}) * (x < {GX0} + 0.72 * clamp(song.{band}, 0, 1)) * (abs(y - {yy:.3f}) < 0.012)")
     L.append("  let meters = max(max(ml0, max(ml1, ml2)) * GREY, max(mb0 * NUM, max(mb1 * FN, mb2 * STR)))")
