@@ -1,0 +1,222 @@
+{
+ "number": "S01",
+ "slug": "s01-beat",
+ "work": "BeatS01",
+ "title": "The beat",
+ "tempo": 124,
+ "bars": 62,
+ "key": 110,
+ "cover": 0.8,
+ "hook": {
+  "bar": 2,
+  "say": "A drum machine, written as a string."
+ },
+ "layers": [
+  {
+   "name": "kick",
+   "label": "kick",
+   "synth": [
+    "sine(50 + 150 * perc(release: 0.03))",
+    "  * perc(release: 0.4)"
+   ],
+   "hits": "X...x...X...x...",
+   "enter": 8,
+   "gain": 1.3
+  },
+  {
+   "name": "clap",
+   "label": "clap",
+   "synth": [
+    "bandpass(noise(), cutoff: 1500)",
+    "  * perc(release: 0.15)"
+   ],
+   "hits": "....X.......X...",
+   "enter": 16,
+   "gain": 0.7
+  },
+  {
+   "name": "hat",
+   "label": "hat",
+   "synth": [
+    "highpass(noise(), cutoff: 8000)",
+    "  * perc(release: 0.04)"
+   ],
+   "hits": "xxxxxxxxxxxxxxxx",
+   "chance": [
+    0.2,
+    0.8
+   ],
+   "enter": 24,
+   "gain": 0.35,
+   "swing": {
+    "from": 32,
+    "amount": 0.58
+   }
+  },
+  {
+   "name": "ohat",
+   "label": "open",
+   "synth": [
+    "highpass(noise(), cutoff: 6000)",
+    "  * perc(release: 0.25)"
+   ],
+   "hits": "..x...x...x...x.",
+   "enter": 32,
+   "gain": 0.4
+  },
+  {
+   "name": "wood",
+   "label": "wood",
+   "synth": [
+    "sine(800 + 400 * perc(release: 0.01))",
+    "  * perc(release: 0.08)"
+   ],
+   "hits": "..o..X.o...o.x..",
+   "enter": 38,
+   "gain": 0.45
+  }
+ ],
+ "beats": [
+  {
+   "label": "the kick",
+   "bar": 5,
+   "say": "Sixteen steps a bar. Each x is a hit: the kick.",
+   "code": [
+    "let m = meter(tempo: 124, bars: 62)",
+    "let kick = synth {",
+    "  sine(50 + 150 * perc(release: 0.03))",
+    "    * perc(release: 0.4)",
+    "}",
+    "let k = steps(\"X...x...X...x...\", bars: m)",
+    "let kicks = notes(k, instrument: kick)"
+   ],
+   "rows": [
+    "kick"
+   ]
+  },
+  {
+   "label": "the clap",
+   "bar": 13,
+   "say": "A second string: the clap, on two and four.",
+   "code": [
+    "let clap = synth {",
+    "  bandpass(noise(), cutoff: 1500)",
+    "    * perc(release: 0.15)",
+    "}",
+    "let c = steps(\"....X.......X...\", bars: m)",
+    "let claps = notes(c, instrument: clap)"
+   ],
+   "rows": [
+    "clap"
+   ]
+  },
+  {
+   "label": "chance",
+   "bar": 21,
+   "say": "Hats on every step, each one as loud as chance says.",
+   "code": [
+    "let hat = synth {",
+    "  highpass(noise(), cutoff: 8000)",
+    "    * perc(release: 0.04)",
+    "}",
+    "pattern h = repeat 992 event(t: i / n, x: 0.5,",
+    "  intensity: ~uniform(0.2, 0.8))",
+    "let hats = notes(h, instrument: hat)"
+   ],
+   "rows": [
+    "hat"
+   ]
+  },
+  {
+   "label": "swing",
+   "bar": 29,
+   "say": "An open hat off the beat. And swing: the hats lean late.",
+   "code": [
+    "let ohat = synth {",
+    "  highpass(noise(), cutoff: 6000)",
+    "    * perc(release: 0.25)",
+    "}",
+    "let o = steps(\"..x...x...x...x.\", bars: m)",
+    "let opens = notes(o, instrument: ohat)",
+    "let hats = notes(h, instrument: hat,",
+    "  tempo: 124, swing: 0.58)"
+   ],
+   "rows": [
+    "ohat"
+   ]
+  },
+  {
+   "label": "loud and soft",
+   "bar": 35,
+   "say": "Capital X is loud, small o is soft. A wood block.",
+   "code": [
+    "let wood = synth {",
+    "  sine(800 + 400 * perc(release: 0.01))",
+    "    * perc(release: 0.08)",
+    "}",
+    "let w = steps(\"..o..X.o...o.x..\", bars: m)",
+    "let woods = notes(w, instrument: wood)"
+   ],
+   "rows": [
+    "wood"
+   ]
+  }
+ ],
+ "drop": {
+  "bar": 41,
+  "code": [
+   "let m = meter(tempo: 124, bars: 62)",
+   "let k = steps(\"X...x...X...x...\", bars: m)",
+   "let c = steps(\"....X.......X...\", bars: m)",
+   "let o = steps(\"..x...x...x...x.\", bars: m)",
+   "let w = steps(\"..o..X.o...o.x..\", bars: m)",
+   "render sound(kicks, claps, hats, opens,",
+   "  woods, duration: m.length)"
+  ]
+ },
+ "end": {
+  "bar": 59,
+  "say": "Next time: Euclid. Five hits spread over sixteen steps.",
+  "next": "s02  ·  euclid"
+ },
+ "program": [
+  "// alea, one sound at a time · S01 — The beat: the program on screen, whole.",
+  "// Run it: alea s01-beat-program.alea",
+  "",
+  "work Beat {",
+  "  let m = meter(tempo: 124, bars: 62)",
+  "  let kick = synth {",
+  "    sine(50 + 150 * perc(release: 0.03))",
+  "      * perc(release: 0.4)",
+  "  }",
+  "  let clap = synth {",
+  "    bandpass(noise(), cutoff: 1500)",
+  "      * perc(release: 0.15)",
+  "  }",
+  "  let hat = synth {",
+  "    highpass(noise(), cutoff: 8000)",
+  "      * perc(release: 0.04)",
+  "  }",
+  "  let ohat = synth {",
+  "    highpass(noise(), cutoff: 6000)",
+  "      * perc(release: 0.25)",
+  "  }",
+  "  let wood = synth {",
+  "    sine(800 + 400 * perc(release: 0.01))",
+  "      * perc(release: 0.08)",
+  "  }",
+  "  let k = steps(\"X...x...X...x...\", bars: m)",
+  "  let c = steps(\"....X.......X...\", bars: m)",
+  "  pattern h = repeat 992 event(t: i / n, x: 0.5,",
+  "    intensity: ~uniform(0.2, 0.8))",
+  "  let o = steps(\"..x...x...x...x.\", bars: m)",
+  "  let w = steps(\"..o..X.o...o.x..\", bars: m)",
+  "  let kicks = notes(k, instrument: kick)",
+  "  let claps = notes(c, instrument: clap)",
+  "  let hats = notes(h, instrument: hat, tempo: 124, swing: 0.58)",
+  "  let opens = notes(o, instrument: ohat)",
+  "  let woods = notes(w, instrument: wood)",
+  "  render sound(kicks, claps, hats, opens, woods, duration: m.length)",
+  "}"
+ ]
+}

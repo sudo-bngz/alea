@@ -1,0 +1,299 @@
+{
+ "number": "07",
+ "title": "Your pictures",
+ "file": "07-pictures.json",
+ "comment": [
+  "Your photos are fields too: open one, its painting as it is; its luminance,",
+  "a field from 0 to 1, painted in ember; its own five colours as a palette;",
+  "the painting itself in pixels; a kaleidoscope of the field in its own",
+  "colours. photo.jpg is yours (a frame of a phone clip here; not in the repo):",
+  "put any photo there."
+ ],
+ "total": 60.0,
+ "cover": 0.733,
+ "draws": [
+  "let photo = open(\"photo.jpg\")",
+  "let pal = colours(photo, 5)",
+  "let insideP = (abs(x - 0.5) < 0.18) * (abs(y - 0.95) < 0.32)"
+ ],
+ "sections": [
+  {
+   "name": "the opening",
+   "start": 0.0,
+   "field": "openf"
+  },
+  {
+   "name": "the hook",
+   "start": 3.0,
+   "label": "your pictures",
+   "say": "Your photos are fields too.",
+   "at": 3.9,
+   "stage": [
+    "let hk1 = text(\"07  ·  your pictures\", x: 0.5, y: 0.74, size: 0.036, font: \"mono\") * (T >= 3.3)",
+    "let hk2 = text(\"alea, one feature at a time\", x: 0.5, y: 0.81, size: 0.03, font: \"mono\") * (T >= 3.3)",
+    "let hookf = max(wave * RED, max(hk1 * INK, hk2 * GREY))"
+   ],
+   "field": "hookf"
+  },
+  {
+   "name": "open: the photo, as it is",
+   "start": 9.0,
+   "label": "open",
+   "say": "Open a photo. Its painting, as it is.",
+   "at": 10.75,
+   "code": {
+    "at": 9.3,
+    "lines": [
+     "work Pictures {",
+     "  let photo = open(\"photo.jpg\")",
+     "  output photo.painting",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr2 = frame(0.5, 0.95, 0.36, 0.64) * (T >= 10.45)",
+    "let s2f = max(k2_code, fr2 * RULE)"
+   ],
+   "field": "s2f"
+  },
+  {
+   "name": "its luminance, a field, painted in ember",
+   "start": 16.0,
+   "label": "luma",
+   "say": "Its luminance is a field, zero to one. Paint it in ember.",
+   "at": 18.0,
+   "code": {
+    "at": 16.3,
+    "lines": [
+     "work Pictures {",
+     "  let photo = open(\"photo.jpg\")",
+     "  let f = photo.luma",
+     "  output paint(f, palette: \"ember\")",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr3 = frame(0.5, 0.95, 0.36, 0.64) * (T >= 17.7)",
+    "let s3f = max(k3_code, fr3 * RULE)"
+   ],
+   "field": "s3f"
+  },
+  {
+   "name": "its own five colours as a palette",
+   "start": 24.0,
+   "label": "its colours",
+   "say": "Its own five colours, as a palette.",
+   "at": 26.25,
+   "code": {
+    "at": 24.3,
+    "lines": [
+     "work Pictures {",
+     "  let photo = open(\"photo.jpg\")",
+     "  let f = photo.luma",
+     "  let pal = colours(photo, 5)",
+     "  output paint(f, palette: pal)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr4 = frame(0.5, 0.95, 0.36, 0.64) * (T >= 25.95)",
+    "let s4f = max(k4_code, fr4 * RULE)"
+   ],
+   "field": "s4f"
+  },
+  {
+   "name": "the painting itself, in pixels",
+   "start": 32.0,
+   "label": "pixels",
+   "say": "The painting itself, in pixels.",
+   "at": 33.75,
+   "code": {
+    "at": 32.3,
+    "lines": [
+     "work Pictures {",
+     "  let photo = open(\"photo.jpg\")",
+     "  output pixelate(photo.painting, 0.04)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr5 = frame(0.5, 0.95, 0.36, 0.64) * (T >= 33.45)",
+    "let s5f = max(k5_code, fr5 * RULE)"
+   ],
+   "field": "s5f"
+  },
+  {
+   "name": "a kaleidoscope of the field, in its own colours",
+   "start": 40.0,
+   "label": "kaleidoscope",
+   "say": "A field like any other: a kaleidoscope, in its own colours.",
+   "at": 42.25,
+   "code": {
+    "at": 40.3,
+    "lines": [
+     "work Pictures {",
+     "  let photo = open(\"photo.jpg\")",
+     "  let k = kaleidoscope(photo.luma, 8)",
+     "  let pal = colours(photo, 5)",
+     "  output paint(k, palette: pal)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr6 = frame(0.5, 0.95, 0.36, 0.64) * (T >= 41.95)",
+    "let s6f = max(k6_code, fr6 * RULE)"
+   ],
+   "field": "s6f"
+  },
+  {
+   "name": "the end",
+   "start": 49.0,
+   "say": "Next week: patterns. Ten thousand dots, each one drawn by chance.",
+   "at": 52.6,
+   "code": {
+    "at": 49.3,
+    "lines": [
+     "work Pictures {",
+     "  let photo = open(\"photo.jpg\")",
+     "  let k = kaleidoscope(photo.luma, 8)",
+     "  let pal = colours(photo, 5)",
+     "  output paint(k, palette: pal)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let nsize = 0.2",
+    "let nadv = 0.5172 * nsize",
+    "let nx0e = 0.5 - 2.5 * nadv",
+    "let name2 = text(\"alea\", x: nx0e, y: 0.68, size: nsize, font: \"mono\", align: \"left\") * (T >= 50.8)",
+    "let ecur = (abs(x - (nx0e + 4.5 * nadv)) < nadv * 0.42) * (abs(y - 0.68) < nsize * 0.4) * blink * (T >= 50.8)",
+    "let e1 = text(\"one feature at a time  ·  07  ·  your pictures\", x: 0.5, y: 0.82, size: 0.03, font: \"mono\") * (T >= 51.3)",
+    "let e2 = text(\"alea.bngz.io\", x: 0.5, y: 0.93, size: 0.06, font: \"mono\") * (T >= 51.8)",
+    "let e3 = text(\"next  ·  08  ·  patterns\", x: 0.5, y: 1.06, size: 0.03, font: \"mono\") * (T >= l7.words[2])",
+    "let e4 = text(\"open source  ·  github.com/sudo-bngz/alea\", x: 0.5, y: 1.14, size: 0.026, font: \"mono\") * (T >= 52.8)",
+    "let endf = max(k7_code, max(name2 * INK, max(ecur * RED, max(e1 * INK, max(e2 * RED, max(e3 * GREY, e4 * INK))))))"
+   ],
+   "field": "endf"
+  }
+ ],
+ "overlays": [
+  {
+   "paint": "place(photo.painting, x: 0.5, y: 0.95, width: 0.36, height: 0.64)",
+   "mask": "insideP * win(10.45, 16.0)"
+  },
+  {
+   "paint": "place(paint(photo.luma, palette: \"ember\", range: [0, 1]), x: 0.5, y: 0.95, width: 0.36, height: 0.64)",
+   "mask": "insideP * win(17.7, 24.0)"
+  },
+  {
+   "paint": "place(paint(photo.luma, palette: pal, range: [0, 1]), x: 0.5, y: 0.95, width: 0.36, height: 0.64)",
+   "mask": "insideP * win(25.95, 32.0)"
+  },
+  {
+   "paint": "place(pixelate(photo.painting, 0.04), x: 0.5, y: 0.95, width: 0.36, height: 0.64)",
+   "mask": "insideP * win(33.45, 40.0)"
+  },
+  {
+   "paint": "place(paint(kaleidoscope(photo.luma, 8), palette: pal, range: [0, 1]), x: 0.5, y: 0.95, width: 0.36, height: 0.64)",
+   "mask": "insideP * win(41.95, 49.0)"
+  }
+ ],
+ "transitions": {
+  "0": "jump()",
+  "1": "jump()",
+  "2": "pixels(0.3, size: 0.04)",
+  "3": "jump()",
+  "4": "glitch(0.4, amount: 0.7)",
+  "5": "jump()",
+  "6": "pixels(0.3, size: 0.05)"
+ },
+ "fadeout": 0.8,
+ "score": {
+  "key": 87.31,
+  "chords": [
+   [
+    12,
+    15,
+    19,
+    26
+   ],
+   [
+    8,
+    12,
+    15,
+    19
+   ],
+   [
+    15,
+    19,
+    22,
+    26
+   ],
+   [
+    10,
+    14,
+    17,
+    20
+   ]
+  ],
+  "roots": [
+   12,
+   8,
+   15,
+   10
+  ],
+  "cuts": [
+   3.0,
+   9.0,
+   16.0,
+   24.0,
+   32.0,
+   40.0,
+   49.0
+  ],
+  "booms": [
+   3.0,
+   9.0,
+   24.0,
+   40.0,
+   49.0
+  ],
+  "hits": [
+   10.45,
+   17.7,
+   25.95,
+   33.45,
+   41.95
+  ],
+  "beat": [
+   24.0,
+   49.0
+  ],
+  "half": [
+   9.0,
+   24.0
+  ],
+  "bells": [
+   40.0,
+   49.0
+  ]
+ }
+}

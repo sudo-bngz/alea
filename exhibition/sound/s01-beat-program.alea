@@ -1,0 +1,38 @@
+// alea, one sound at a time · S01 — The beat: the program on screen, whole.
+// Run it: alea s01-beat-program.alea
+
+work Beat {
+  let m = meter(tempo: 124, bars: 62)
+  let kick = synth {
+    sine(50 + 150 * perc(release: 0.03))
+      * perc(release: 0.4)
+  }
+  let clap = synth {
+    bandpass(noise(), cutoff: 1500)
+      * perc(release: 0.15)
+  }
+  let hat = synth {
+    highpass(noise(), cutoff: 8000)
+      * perc(release: 0.04)
+  }
+  let ohat = synth {
+    highpass(noise(), cutoff: 6000)
+      * perc(release: 0.25)
+  }
+  let wood = synth {
+    sine(800 + 400 * perc(release: 0.01))
+      * perc(release: 0.08)
+  }
+  let k = steps("X...x...X...x...", bars: m)
+  let c = steps("....X.......X...", bars: m)
+  pattern h = repeat 992 event(t: i / n, x: 0.5,
+    intensity: ~uniform(0.2, 0.8))
+  let o = steps("..x...x...x...x.", bars: m)
+  let w = steps("..o..X.o...o.x..", bars: m)
+  let kicks = notes(k, instrument: kick)
+  let claps = notes(c, instrument: clap)
+  let hats = notes(h, instrument: hat, tempo: 124, swing: 0.58)
+  let opens = notes(o, instrument: ohat)
+  let woods = notes(w, instrument: wood)
+  render sound(kicks, claps, hats, opens, woods, duration: m.length)
+}
