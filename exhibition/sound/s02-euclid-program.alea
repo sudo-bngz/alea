@@ -1,0 +1,38 @@
+// alea, one sound at a time · S02 — Euclid: the program on screen, whole.
+// Run it: alea s02-euclid-program.alea
+
+work Euclid {
+  let m = meter(tempo: 118, bars: 62)
+  let kick = synth {
+    sine(50 + 150 * perc(release: 0.03))
+      * perc(release: 0.4)
+  }
+  let rim = synth {
+    bandpass(noise(), cutoff: 3000)
+      * perc(release: 0.03)
+      + sine(1700) * perc(release: 0.02)
+  }
+  let conga = synth {
+    sine(200 + 120 * perc(release: 0.02))
+      * perc(release: 0.25)
+  }
+  let bell = synth {
+    (square(560) + square(845)) * 0.3
+      * perc(release: 0.18)
+  }
+  let shaker = synth {
+    highpass(noise(), cutoff: 6000)
+      * perc(attack: 0.01, release: 0.06)
+  }
+  let k = euclid(4, 16, bars: m)
+  let r = euclid(5, 16, bars: m)
+  let c = euclid(5, 16, rotate: 3, bars: m)
+  let b = euclid(3, 8, bars: m)
+  let s = euclid(7, 16, bars: m)
+  let kicks = notes(k, instrument: kick)
+  let rims = notes(r, instrument: rim)
+  let congas = notes(c, instrument: conga)
+  let bells = notes(b, instrument: bell)
+  let shakes = notes(s, instrument: shaker)
+  render sound(kicks, rims, congas, bells, shakes, duration: m.length)
+}
