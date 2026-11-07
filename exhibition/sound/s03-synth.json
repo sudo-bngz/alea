@@ -1,0 +1,212 @@
+{
+ "number": "S03",
+ "slug": "s03-synth",
+ "work": "SynthS03",
+ "title": "A synth",
+ "tempo": 120,
+ "bars": 76,
+ "key": 164.81,
+ "cover": 0.62,
+ "view": "synth",
+ "code": {"size": 0.034, "dy": 0.06},
+ "meters_y": 1.315,
+ "meters_dy": 0.026,
+ "hook": {
+  "bar": 2,
+  "say": "A synth, one unit at a time."
+ },
+ "scope": {
+  "attack": 0.005, "decay": 0.15, "sustain": 0.3, "release": 0.1, "hold": 0.32,
+  "cutoff": 200, "sweep": 3000, "resonance": 0.5,
+  "drive": 0.4, "chorus": 0.6
+ },
+ "layers": [
+  {
+   "name": "lo", "label": "E3", "hits": "X..x..X..x..X...", "y": 1, "size": 0.012,
+   "key": 164.81, "gain": 1.0, "enter": 5, "riff": true
+  },
+  {
+   "name": "hi", "label": "E4", "hits": "..x....X...x..x.", "y": 0.65, "size": 0.012,
+   "key": 164.81, "gain": 1.0, "enter": 5, "riff": true
+  },
+  {
+   "name": "kick", "label": "kick", "hidden": true,
+   "synth": ["sine(50 + 150 * perc(release: 0.03))", "  * perc(release: 0.4)"],
+   "hits": {"euclid": [4, 16, 0]}, "enter": 53, "gain": 1.3
+  },
+  {
+   "name": "rim", "label": "rim", "hidden": true,
+   "synth": ["bandpass(noise(), cutoff: 3000)", "  * perc(release: 0.03)", "  + sine(1700) * perc(release: 0.02)"],
+   "hits": {"euclid": [5, 16, 0]}, "enter": 53, "gain": 0.45
+  },
+  {
+   "name": "conga", "label": "conga", "hidden": true,
+   "synth": ["sine(200 + 120 * perc(release: 0.02))", "  * perc(release: 0.25)"],
+   "hits": {"euclid": [5, 16, 3]}, "enter": 53, "gain": 0.6
+  },
+  {
+   "name": "shaker", "label": "shaker", "hidden": true,
+   "synth": ["highpass(noise(), cutoff: 6000)", "  * perc(attack: 0.01, release: 0.06)"],
+   "hits": {"euclid": [7, 16, 0]}, "enter": 53, "gain": 0.35
+  }
+ ],
+ "stages": [
+  {"unit": "sine", "bar": 5, "synth": ["sine()"], "gain": 0.76},
+  {"unit": "saw", "bar": 13, "synth": ["saw()"], "gain": 0.69},
+  {"unit": "adsr", "bar": 21, "synth": ["saw() * adsr(attack: 0.005, decay: 0.15, sustain: 0.3, release: 0.1)"], "gain": 0.7},
+  {"unit": "lowpass", "bar": 29, "synth": ["let env = adsr(attack: 0.005, decay: 0.15, sustain: 0.3, release: 0.1)", "lowpass(saw(), resonance: 0.5, cutoff: 200 + 3000 * env) * env"], "gain": 0.72},
+  {"unit": "drive", "bar": 37, "synth": ["let env = adsr(attack: 0.005, decay: 0.15, sustain: 0.3, release: 0.1)", "drive(lowpass(saw(), resonance: 0.5, cutoff: 200 + 3000 * env) * env, amount: 0.4)"], "gain": 0.72},
+  {"unit": "chorus", "bar": 45, "synth": ["let env = adsr(attack: 0.005, decay: 0.15, sustain: 0.3, release: 0.1)", "chorus(drive(lowpass(saw(), resonance: 0.5, cutoff: 200 + 3000 * env) * env, amount: 0.4), depth: 0.6)"], "gain": 0.72}
+ ],
+ "beats": [
+  {
+   "label": "a sine",
+   "bar": 5,
+   "say": "A sine: one frequency, and nothing above it. Pure, and thin.",
+   "code": [
+    "let m = meter(tempo: 120, bars: 76)",
+    "let lead = synth {",
+    "  sine()",
+    "}",
+    "let lo = steps(\"X..x..X..x..X...\", bars: m, y: 1)",
+    "let hi = steps(\"..x....X...x..x.\", bars: m, y: 0.65)",
+    "let riff = [notes(lo, instrument: lead, key: \"E3\"),",
+    "            notes(hi, instrument: lead, key: \"E3\")]"
+   ],
+   "rows": ["lo", "hi"]
+  },
+  {
+   "label": "a saw",
+   "bar": 13,
+   "say": "A saw: the same note, with every harmonic stacked above it.",
+   "code": [
+    "let lead = synth {",
+    "  saw()",
+    "}"
+   ]
+  },
+  {
+   "label": "an envelope",
+   "bar": 21,
+   "say": "An envelope: how fast a note starts, falls, and holds.",
+   "code": [
+    "let lead = synth {",
+    "  let env = adsr(attack: 0.005, decay: 0.15,",
+    "                 sustain: 0.3, release: 0.1)",
+    "  saw() * env",
+    "}"
+   ]
+  },
+  {
+   "label": "a filter",
+   "bar": 29,
+   "say": "A low-pass filter, opened by the same envelope. Now it plucks.",
+   "code": [
+    "let lead = synth {",
+    "  let env = adsr(attack: 0.005, decay: 0.15,",
+    "                 sustain: 0.3, release: 0.1)",
+    "  let tone = lowpass(saw(), resonance: 0.5,",
+    "                     cutoff: 200 + 3000 * env)",
+    "  tone * env",
+    "}"
+   ]
+  },
+  {
+   "label": "drive",
+   "bar": 37,
+   "say": "Drive bends the top of the wave. Rounder, louder, more bite.",
+   "code": [
+    "let lead = synth {",
+    "  let env = adsr(attack: 0.005, decay: 0.15,",
+    "                 sustain: 0.3, release: 0.1)",
+    "  let tone = lowpass(saw(), resonance: 0.5,",
+    "                     cutoff: 200 + 3000 * env)",
+    "  drive(tone * env, amount: 0.4)",
+    "}"
+   ]
+  },
+  {
+   "label": "chorus",
+   "bar": 45,
+   "say": "Chorus adds a late copy that sways. The sound gets wide.",
+   "code": [
+    "let lead = synth {",
+    "  let env = adsr(attack: 0.005, decay: 0.15,",
+    "                 sustain: 0.3, release: 0.1)",
+    "  let tone = lowpass(saw(), resonance: 0.5,",
+    "                     cutoff: 200 + 3000 * env)",
+    "  chorus(drive(tone * env, amount: 0.4),",
+    "         depth: 0.6)",
+    "}"
+   ]
+  }
+ ],
+ "drop": {
+  "bar": 53,
+  "label": "the synth, whole",
+  "code": [
+   "let lead = synth {",
+   "  let env = adsr(attack: 0.005, decay: 0.15,",
+   "                 sustain: 0.3, release: 0.1)",
+   "  let tone = lowpass(saw(), resonance: 0.5,",
+   "                     cutoff: 200 + 3000 * env)",
+   "  chorus(drive(tone * env, amount: 0.4),",
+   "         depth: 0.6)",
+   "}",
+   "render sound(riff, kicks, rims, congas, shakes)"
+  ]
+ },
+ "end": {
+  "bar": 73,
+  "say": "Next time: notes. A pattern of dots becomes a melody.",
+  "next": "s04  ·  notes"
+ },
+ "program": [
+  "// alea, one sound at a time · S03 — A synth: the program on screen, whole.",
+  "// The lead, built one unit at a time, over the rhythm of S02.",
+  "// Run it: alea s03-synth-program.alea",
+  "",
+  "work Synth {",
+  "  let m = meter(tempo: 120, bars: 76)",
+  "",
+  "  // the lead: a saw, an envelope, a filter the envelope opens, drive, chorus",
+  "  let lead = synth {",
+  "    let env = adsr(attack: 0.005, decay: 0.15,",
+  "                   sustain: 0.3, release: 0.1)",
+  "    let tone = lowpass(saw(), resonance: 0.5,",
+  "                       cutoff: 200 + 3000 * env)",
+  "    chorus(drive(tone * env, amount: 0.4),",
+  "           depth: 0.6)",
+  "  }",
+  "  let lo = steps(\"X..x..X..x..X...\", bars: m, y: 1)",
+  "  let hi = steps(\"..x....X...x..x.\", bars: m, y: 0.65)",
+  "  let riff = [notes(lo, instrument: lead, key: \"E3\"),",
+  "              notes(hi, instrument: lead, key: \"E3\")]",
+  "",
+  "  // the rhythm of S02",
+  "  let kick = synth {",
+  "    sine(50 + 150 * perc(release: 0.03))",
+  "      * perc(release: 0.4)",
+  "  }",
+  "  let rim = synth {",
+  "    bandpass(noise(), cutoff: 3000)",
+  "      * perc(release: 0.03)",
+  "      + sine(1700) * perc(release: 0.02)",
+  "  }",
+  "  let conga = synth {",
+  "    sine(200 + 120 * perc(release: 0.02))",
+  "      * perc(release: 0.25)",
+  "  }",
+  "  let shaker = synth {",
+  "    highpass(noise(), cutoff: 6000)",
+  "      * perc(attack: 0.01, release: 0.06)",
+  "  }",
+  "  let kicks = notes(euclid(4, 16, bars: m), instrument: kick)",
+  "  let rims = notes(euclid(5, 16, bars: m), instrument: rim)",
+  "  let congas = notes(euclid(5, 16, rotate: 3, bars: m), instrument: conga)",
+  "  let shakes = notes(euclid(7, 16, bars: m), instrument: shaker)",
+  "",
+  "  render sound(riff, kicks, rims, congas, shakes, duration: m.length)",
+  "}"
+ ]
+}
