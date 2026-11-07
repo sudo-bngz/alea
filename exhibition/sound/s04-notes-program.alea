@@ -1,0 +1,49 @@
+// alea, one sound at a time · S04 — Notes: the program on screen, whole.
+// A pattern of dots, played as a melody by the lead of S03, over the rhythm of S02.
+// Run it: alea s04-notes-program.alea
+
+work Notes {
+  let m = meter(tempo: 116, bars: 56)
+
+  // the lead of S03
+  let lead = synth {
+    let env = adsr(attack: 0.005, decay: 0.15,
+                   sustain: 0.3, release: 0.1)
+    let tone = lowpass(saw(), resonance: 0.5,
+                       cutoff: 200 + 3000 * env)
+    chorus(drive(tone * env, amount: 0.4),
+           depth: 0.6)
+  }
+
+  // the dots: a two-bar tune, when (in sixteenths) and how high (on the scale)
+  let when = [0, 2, 3, 6, 8, 10, 11, 14,
+    16, 18, 19, 22, 24, 26, 27, 30]
+  let high = [5, 7, 8, 7, 6, 5, 6, 3,
+    4, 5, 4, 2, 3, 5, 4, 0]
+  pattern dots = repeat 16 * 28 event(
+    t: (32 * floor(i / 16) + when[i % 16]) / 896,
+    y: 1 - (high[i % 16] + 0.5) / 15)
+  let tune = notes(dots, instrument: lead,
+    tempo: 116, scale: "hirajoshi",
+    key: "E3", swing: 0.64)
+
+  // the rhythm of S02
+  let kick = synth {
+    sine(50 + 150 * perc(release: 0.03))
+      * perc(release: 0.4)
+  }
+  let rim = synth {
+    bandpass(noise(), cutoff: 3000)
+      * perc(release: 0.03)
+      + sine(1700) * perc(release: 0.02)
+  }
+  let shaker = synth {
+    highpass(noise(), cutoff: 6000)
+      * perc(attack: 0.01, release: 0.06)
+  }
+  let kicks = notes(euclid(4, 16, bars: m), instrument: kick)
+  let rims = notes(euclid(5, 16, bars: m), instrument: rim)
+  let shakes = notes(euclid(7, 16, bars: m), instrument: shaker)
+
+  render sound(tune, kicks, rims, shakes, duration: m.length)
+}
