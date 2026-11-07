@@ -1,0 +1,329 @@
+{
+ "number": "06",
+ "title": "Filters",
+ "file": "06-filters.json",
+ "comment": [
+  "Blur, pixels, edges, film grain: one word each, on the waves of episode two.",
+  "blur, pixelate, edges and film; vignette and chroma on the",
+  "painting itself. Each result is the very expression on screen, painted",
+  "inside its frame."
+ ],
+ "total": 62.0,
+ "cover": 0.758,
+ "draws": [
+  "let u = (x - 0.25) / 0.5",
+  "let v = (y - 0.6) / 0.5",
+  "let inside = (abs(x - 0.5) < 0.25) * (abs(y - 0.85) < 0.25)",
+  "let fu = sin(u * 30 + sin(v * 9) * 2)"
+ ],
+ "sections": [
+  {
+   "name": "the opening",
+   "start": 0.0,
+   "field": "openf"
+  },
+  {
+   "name": "the hook",
+   "start": 3.0,
+   "label": "filters",
+   "say": "Blur, pixels, edges, film grain. One word each.",
+   "at": 3.9,
+   "stage": [
+    "let hk1 = text(\"06  ·  filters\", x: 0.5, y: 0.74, size: 0.036, font: \"mono\") * (T >= 3.3)",
+    "let hk2 = text(\"alea, one feature at a time\", x: 0.5, y: 0.81, size: 0.03, font: \"mono\") * (T >= 3.3)",
+    "let hookf = max(wave * RED, max(hk1 * INK, hk2 * GREY))"
+   ],
+   "field": "hookf"
+  },
+  {
+   "name": "the field: the waves of episode two",
+   "start": 9.0,
+   "label": "the field",
+   "say": "The waves from episode two. Now, one word each.",
+   "at": 10.75,
+   "code": {
+    "at": 9.3,
+    "lines": [
+     "work Filters {",
+     "  let f = sin(x * 30 + sin(y * 9) * 2)",
+     "  output paint(f, palette: \"ember\")",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr2 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 10.45)",
+    "let s2f = max(k2_code, fr2 * RULE)"
+   ],
+   "field": "s2f"
+  },
+  {
+   "name": "blur: a soft average",
+   "start": 16.0,
+   "label": "blur",
+   "say": "Blur: a soft average around each point.",
+   "at": 18.0,
+   "code": {
+    "at": 16.3,
+    "lines": [
+     "work Filters {",
+     "  let f = sin(x * 30 + sin(y * 9) * 2)",
+     "  let p = paint(f, palette: \"ember\")",
+     "  output blur(p, 0.06)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr3 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 17.7)",
+    "let s3f = max(k3_code, fr3 * RULE)"
+   ],
+   "field": "s3f"
+  },
+  {
+   "name": "pixelate: one value per cell",
+   "start": 23.0,
+   "label": "pixelate",
+   "say": "Pixelate: one value per square cell.",
+   "at": 25.0,
+   "code": {
+    "at": 23.3,
+    "lines": [
+     "work Filters {",
+     "  let f = sin(x * 30 + sin(y * 9) * 2)",
+     "  let g = pixelate(f, 0.05)",
+     "  output paint(g, palette: \"ember\")",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr4 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 24.7)",
+    "let s4f = max(k4_code, fr4 * RULE)"
+   ],
+   "field": "s4f"
+  },
+  {
+   "name": "edges: where the value changes fast",
+   "start": 30.0,
+   "label": "edges",
+   "say": "Edges: where the value changes fast.",
+   "at": 32.0,
+   "code": {
+    "at": 30.3,
+    "lines": [
+     "work Filters {",
+     "  let f = sin(x * 30 + sin(y * 9) * 2)",
+     "  let g = edges(f)",
+     "  output paint(g, palette: \"ember\")",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr5 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 31.7)",
+    "let s5f = max(k5_code, fr5 * RULE)"
+   ],
+   "field": "s5f"
+  },
+  {
+   "name": "film: grain, new at every frame",
+   "start": 37.0,
+   "label": "film",
+   "say": "Film: grain, new at every frame.",
+   "at": 39.0,
+   "code": {
+    "at": 37.3,
+    "lines": [
+     "work Filters {",
+     "  let f = sin(x * 30 + sin(y * 9) * 2)",
+     "  let g = film(f, 0.4)",
+     "  output paint(g, palette: \"ember\")",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr6 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 38.7)",
+    "let s6f = max(k6_code, fr6 * RULE)"
+   ],
+   "field": "s6f"
+  },
+  {
+   "name": "bloom and chroma, on the painting",
+   "start": 44.0,
+   "label": "on the painting",
+   "say": "Vignette and chroma work on the painting itself.",
+   "at": 46.0,
+   "code": {
+    "at": 44.3,
+    "lines": [
+     "work Filters {",
+     "  let f = sin(x * 30 + sin(y * 9) * 2)",
+     "  let p = paint(f, palette: \"ember\")",
+     "  output chroma(vignette(p, 0.8), 2)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let fr7 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 45.7)",
+    "let s7f = max(k7_code, fr7 * RULE)"
+   ],
+   "field": "s7f"
+  },
+  {
+   "name": "the end",
+   "start": 51.0,
+   "say": "Next week: your pictures. Your photos are fields too.",
+   "at": 54.6,
+   "code": {
+    "at": 51.3,
+    "lines": [
+     "work Filters {",
+     "  let f = sin(x * 30 + sin(y * 9) * 2)",
+     "  let p = paint(f, palette: \"ember\")",
+     "  output chroma(vignette(p, 0.8), 2)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12
+    }
+   },
+   "stage": [
+    "let nsize = 0.2",
+    "let nadv = 0.5172 * nsize",
+    "let nx0e = 0.5 - 2.5 * nadv",
+    "let name2 = text(\"alea\", x: nx0e, y: 0.64, size: nsize, font: \"mono\", align: \"left\") * (T >= 52.6)",
+    "let ecur = (abs(x - (nx0e + 4.5 * nadv)) < nadv * 0.42) * (abs(y - 0.64) < nsize * 0.4) * blink * (T >= 52.6)",
+    "let e1 = text(\"one feature at a time  ·  06  ·  filters\", x: 0.5, y: 0.78, size: 0.03, font: \"mono\") * (T >= 53.1)",
+    "let e2 = text(\"alea.bngz.io\", x: 0.5, y: 0.89, size: 0.06, font: \"mono\") * (T >= 53.6)",
+    "let e3 = text(\"next  ·  07  ·  your pictures\", x: 0.5, y: 1.02, size: 0.03, font: \"mono\") * (T >= l8.words[2])",
+    "let e4 = text(\"open source  ·  github.com/sudo-bngz/alea\", x: 0.5, y: 1.1, size: 0.026, font: \"mono\") * (T >= 54.8)",
+    "let endf = max(k8_code, max(name2 * INK, max(ecur * RED, max(e1 * INK, max(e2 * RED, max(e3 * GREY, e4 * INK))))))"
+   ],
+   "field": "endf"
+  }
+ ],
+ "overlays": [
+  {
+   "paint": "paint(fu, palette: \"ember\", range: [-1, 1])",
+   "mask": "inside * win(10.45, 16.0)"
+  },
+  {
+   "paint": "blur(paint(fu, palette: \"ember\", range: [-1, 1]), 0.03)",
+   "mask": "inside * win(17.7, 23.0)"
+  },
+  {
+   "paint": "paint(pixelate(fu, 0.025), palette: \"ember\", range: [-1, 1])",
+   "mask": "inside * win(24.7, 30.0)"
+  },
+  {
+   "paint": "paint(edges(fu), palette: \"ember\")",
+   "mask": "inside * win(31.7, 37.0)"
+  },
+  {
+   "paint": "paint(film(fu, 0.4), palette: \"ember\", range: [-1.4, 1.4])",
+   "mask": "inside * win(38.7, 44.0)"
+  },
+  {
+   "paint": "chroma(vignette(paint(fu, palette: \"ember\", range: [-1, 1]), 0.8), 2)",
+   "mask": "inside * win(45.7, 51.0)"
+  }
+ ],
+ "transitions": {
+  "0": "jump()",
+  "1": "jump()",
+  "2": "pixels(0.3, size: 0.04)",
+  "3": "jump()",
+  "4": "glitch(0.4, amount: 0.7)",
+  "5": "jump()",
+  "6": "slide(0.3, angle: 0)",
+  "7": "pixels(0.3, size: 0.05)"
+ },
+ "fadeout": 0.8,
+ "score": {
+  "key": 73.42,
+  "chords": [
+   [
+    12,
+    15,
+    19,
+    26
+   ],
+   [
+    8,
+    12,
+    15,
+    19
+   ],
+   [
+    15,
+    19,
+    22,
+    26
+   ],
+   [
+    10,
+    14,
+    17,
+    20
+   ]
+  ],
+  "roots": [
+   12,
+   8,
+   15,
+   10
+  ],
+  "cuts": [
+   3.0,
+   9.0,
+   16.0,
+   23.0,
+   30.0,
+   37.0,
+   44.0,
+   51.0
+  ],
+  "booms": [
+   3.0,
+   9.0,
+   23.0,
+   37.0,
+   51.0
+  ],
+  "hits": [
+   10.45,
+   17.7,
+   24.7,
+   31.7,
+   38.7,
+   45.7
+  ],
+  "beat": [
+   23.0,
+   51.0
+  ],
+  "half": [
+   9.0,
+   23.0
+  ],
+  "bells": [
+   44.0,
+   51.0
+  ]
+ }
+}

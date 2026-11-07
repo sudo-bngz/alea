@@ -1,0 +1,319 @@
+{
+ "number": "09",
+ "title": "Growing",
+ "file": "09-growing.json",
+ "comment": [
+  "Cells that live, die, and leave a trace: a grid seeded by chance; Conway's",
+  "rule (three neighbours, born; two or three, lives on; else, dies); a second",
+  "field that keeps a trace of where life has been; then 256 cells a side over",
+  "300 generations. Each grid is grown by this very program (grow blocks",
+  "below), played back eight seconds a beat with `at`."
+ ],
+ "total": 65.0,
+ "cover": 0.754,
+ "draws": [
+  "let inside = (abs(x - 0.5) < 0.22) * (abs(y - 1.05) < 0.22)",
+  "let ink = [\"#000\", \"#d6d6d6\"]",
+  "grow over 64 for 100 {",
+  "  c2 = ~~uniform(0, 1) < 0.3",
+  "    then c2",
+  "}",
+  "grow over 64 for 100 {",
+  "  c3 = ~~uniform(0, 1) < 0.3",
+  "    then neighbours(c3) == 3 or (c3 and neighbours(c3) == 2)",
+  "}",
+  "grow over 64 for 100 {",
+  "  c4 = ~~uniform(0, 1) < 0.3",
+  "    then neighbours(c4) == 3 or (c4 and neighbours(c4) == 2)",
+  "  tr4 = 0",
+  "    then max(tr4 * 0.95, c4)",
+  "}",
+  "grow over 256 for 300 {",
+  "  c5 = ~~uniform(0, 1) < 0.3",
+  "    then neighbours(c5) == 3 or (c5 and neighbours(c5) == 2)",
+  "  tr5 = 0",
+  "    then max(tr5 * 0.95, c5)",
+  "}"
+ ],
+ "sections": [
+  {
+   "name": "the opening",
+   "start": 0.0,
+   "field": "openf"
+  },
+  {
+   "name": "the hook",
+   "start": 3.0,
+   "label": "growing",
+   "say": "Cells that live, die, and leave a trace.",
+   "at": 3.9,
+   "stage": [
+    "let hk1 = text(\"09  ·  growing\", x: 0.5, y: 0.74, size: 0.036, font: \"mono\") * (T >= 3.3)",
+    "let hk2 = text(\"alea, one feature at a time\", x: 0.5, y: 0.81, size: 0.03, font: \"mono\") * (T >= 3.3)",
+    "let hookf = max(wave * RED, max(hk1 * INK, hk2 * GREY))"
+   ],
+   "field": "hookf"
+  },
+  {
+   "name": "the seed: a grid, alive by chance",
+   "start": 9.0,
+   "label": "the seed",
+   "say": "A grid, sixty-four cells a side. Each starts alive by chance.",
+   "at": 11.5,
+   "code": {
+    "at": 9.3,
+    "lines": [
+     "work Life {",
+     "  grow over 64 for 100 {",
+     "    cells = ~~uniform(0, 1) < 0.3",
+     "      then cells",
+     "  }",
+     "  output cells",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let fr2 = frame(0.5, 1.05, 0.44, 0.44) * (T >= 11.2)",
+    "let r2 = move(zoom(pixelate(at(c2, 0), 1 / 64), 0.44), 0, 0.55) * inside * (T >= 11.2)",
+    "let s2f = max(k2_code, fr2 * RULE)"
+   ],
+   "field": "s2f"
+  },
+  {
+   "name": "the rule: born, lives on, dies",
+   "start": 18.0,
+   "label": "the rule",
+   "say": "Three neighbours: born. Two or three: lives on. Else: dies.",
+   "at": 20.75,
+   "code": {
+    "at": 18.3,
+    "lines": [
+     "work Life {",
+     "  grow over 64 for 100 {",
+     "    cells = ~~uniform(0, 1) < 0.3",
+     "      then neighbours(cells) == 3",
+     "        or (cells and neighbours(cells) == 2)",
+     "  }",
+     "  output cells",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let fr3 = frame(0.5, 1.05, 0.44, 0.44) * (T >= 20.45)",
+    "let r3 = move(zoom(pixelate(at(c3, floor(clamp((T - 20.45) / 8, 0, 1) * 100) / 100), 1 / 64), 0.44), 0, 0.55) * inside * (T >= 20.45)",
+    "let s3f = max(k3_code, fr3 * RULE)"
+   ],
+   "field": "s3f"
+  },
+  {
+   "name": "a second field keeps a trace",
+   "start": 30.0,
+   "label": "the trace",
+   "say": "A second field keeps a trace of where life has been.",
+   "at": 33.25,
+   "code": {
+    "at": 30.3,
+    "lines": [
+     "work Life {",
+     "  grow over 64 for 100 {",
+     "    cells = ~~uniform(0, 1) < 0.3",
+     "      then neighbours(cells) == 3",
+     "        or (cells and neighbours(cells) == 2)",
+     "    trace = 0",
+     "      then max(trace * 0.95, cells)",
+     "  }",
+     "  output trace",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let fr4 = frame(0.5, 1.05, 0.44, 0.44) * (T >= 32.95)",
+    "let r4 = move(zoom(pixelate(at(tr4, floor(clamp((T - 32.95) / 8, 0, 1) * 100) / 100), 1 / 64), 0.44), 0, 0.55) * inside * (T >= 32.95)",
+    "let s4f = max(k4_code, fr4 * RULE)"
+   ],
+   "field": "s4f"
+  },
+  {
+   "name": "256 a side, 300 generations",
+   "start": 42.0,
+   "label": "finer",
+   "say": "Two hundred and fifty-six a side, three hundred generations.",
+   "at": 45.25,
+   "code": {
+    "at": 42.3,
+    "lines": [
+     "work Life {",
+     "  grow over 256 for 300 {",
+     "    cells = ~~uniform(0, 1) < 0.3",
+     "      then neighbours(cells) == 3",
+     "        or (cells and neighbours(cells) == 2)",
+     "    trace = 0",
+     "      then max(trace * 0.95, cells)",
+     "  }",
+     "  output trace",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let fr5 = frame(0.5, 1.05, 0.44, 0.44) * (T >= 44.95)",
+    "let r5 = move(zoom(pixelate(at(tr5, floor(clamp((T - 44.95) / 8, 0, 1) * 300) / 300), 1 / 256), 0.44), 0, 0.55) * inside * (T >= 44.95)",
+    "let s5f = max(k5_code, fr5 * RULE)"
+   ],
+   "field": "s5f"
+  },
+  {
+   "name": "the end",
+   "start": 54.0,
+   "say": "Next week: text. Words are pictures too.",
+   "at": 58.6,
+   "code": {
+    "at": 54.3,
+    "lines": [
+     "work Life {",
+     "  grow over 256 for 300 {",
+     "    cells = ~~uniform(0, 1) < 0.3",
+     "      then neighbours(cells) == 3",
+     "        or (cells and neighbours(cells) == 2)",
+     "    trace = 0",
+     "      then max(trace * 0.95, cells)",
+     "  }",
+     "  output trace",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let nsize = 0.2",
+    "let nadv = 0.5172 * nsize",
+    "let nx0e = 0.5 - 2.5 * nadv",
+    "let name2 = text(\"alea\", x: nx0e, y: 0.9, size: nsize, font: \"mono\", align: \"left\") * (T >= 56.8)",
+    "let ecur = (abs(x - (nx0e + 4.5 * nadv)) < nadv * 0.42) * (abs(y - 0.9) < nsize * 0.4) * blink * (T >= 56.8)",
+    "let e1 = text(\"one feature at a time  ·  09  ·  growing\", x: 0.5, y: 1.03, size: 0.03, font: \"mono\") * (T >= 57.3)",
+    "let e2 = text(\"alea.bngz.io\", x: 0.5, y: 1.13, size: 0.06, font: \"mono\") * (T >= 57.8)",
+    "let e3 = text(\"next  ·  10  ·  text\", x: 0.5, y: 1.25, size: 0.03, font: \"mono\") * (T >= l6.words[2])",
+    "let e4 = text(\"open source  ·  github.com/sudo-bngz/alea\", x: 0.5, y: 1.32, size: 0.026, font: \"mono\") * (T >= 58.8)",
+    "let endf = max(k6_code, max(name2 * INK, max(ecur * RED, max(e1 * INK, max(e2 * RED, max(e3 * GREY, e4 * INK))))))"
+   ],
+   "field": "endf"
+  }
+ ],
+ "transitions": {
+  "0": "jump()",
+  "1": "jump()",
+  "2": "pixels(0.3, size: 0.04)",
+  "3": "jump()",
+  "4": "glitch(0.4, amount: 0.7)",
+  "5": "pixels(0.3, size: 0.05)"
+ },
+ "fadeout": 0.8,
+ "score": {
+  "key": 65.41,
+  "chords": [
+   [
+    12,
+    15,
+    19,
+    26
+   ],
+   [
+    8,
+    12,
+    15,
+    19
+   ],
+   [
+    15,
+    19,
+    22,
+    26
+   ],
+   [
+    10,
+    14,
+    17,
+    20
+   ]
+  ],
+  "roots": [
+   12,
+   8,
+   15,
+   10
+  ],
+  "cuts": [
+   3.0,
+   9.0,
+   18.0,
+   30.0,
+   42.0,
+   54.0
+  ],
+  "booms": [
+   3.0,
+   9.0,
+   30.0,
+   42.0,
+   54.0
+  ],
+  "hits": [
+   11.2,
+   20.45,
+   32.95,
+   44.95
+  ],
+  "beat": [
+   30.0,
+   54.0
+  ],
+  "half": [
+   18.0,
+   30.0
+  ],
+  "bells": [
+   42.0,
+   54.0
+  ]
+ },
+ "overlays": [
+  {
+   "paint": "paint(clamp(r2, 0, 1), palette: ink, range: [0, 1])",
+   "mask": "inside * win(11.2, 18.0)"
+  },
+  {
+   "paint": "paint(clamp(r3, 0, 1), palette: ink, range: [0, 1])",
+   "mask": "inside * win(20.45, 30.0)"
+  },
+  {
+   "paint": "paint(clamp(r4, 0, 1), palette: ink, range: [0, 1])",
+   "mask": "inside * win(32.95, 42.0)"
+  },
+  {
+   "paint": "paint(clamp(r5, 0, 1), palette: ink, range: [0, 1])",
+   "mask": "inside * win(44.95, 54.0)"
+  }
+ ]
+}

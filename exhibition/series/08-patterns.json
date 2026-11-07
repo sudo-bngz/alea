@@ -1,0 +1,302 @@
+{
+ "number": "08",
+ "title": "Patterns",
+ "file": "08-patterns.json",
+ "comment": [
+  "Ten thousand dots, each one drawn by chance: a hundred events with no",
+  "position given; ten thousand; x from a bell curve and y from a beta; i, the",
+  "index, with no chance at all; and in a sound, each event a note (the forty",
+  "bells you hear are the forty dots, through `notes`). The dots are this",
+  "program's own draws."
+ ],
+ "total": 63.0,
+ "cover": 0.46,
+ "draws": [
+  "let inside = (abs(x - 0.5) < 0.25) * (abs(y - 0.85) < 0.25)",
+  "pattern d2 = repeat 100 event(size: 0.01)",
+  "pattern d3 = repeat 10000 event(size: 0.003)",
+  "pattern d4 = repeat 3000 event(x: ~normal(0.5, 0.1), y: ~beta(2, 5), size: 0.004)",
+  "pattern d5 = repeat 100 event(x: i / n, y: 0.5 + sin(i / 8) / 3, size: 0.012)",
+  "pattern d6 = repeat 40 event(x: i / n, t: (43.95 + i / n * 4) / total, y: ~beta(2, 5), size: 0.012)"
+ ],
+ "sections": [
+  {
+   "name": "the opening",
+   "start": 0.0,
+   "field": "openf"
+  },
+  {
+   "name": "the hook",
+   "start": 3.0,
+   "label": "patterns",
+   "say": "Ten thousand dots, each one drawn by chance.",
+   "at": 3.9,
+   "stage": [
+    "let hk1 = text(\"08  ·  patterns\", x: 0.5, y: 0.74, size: 0.036, font: \"mono\") * (T >= 3.3)",
+    "let hk2 = text(\"alea, one feature at a time\", x: 0.5, y: 0.81, size: 0.03, font: \"mono\") * (T >= 3.3)",
+    "let hookf = max(wave * RED, max(hk1 * INK, hk2 * GREY))"
+   ],
+   "field": "hookf"
+  },
+  {
+   "name": "a hundred events, each one drawn",
+   "start": 9.0,
+   "label": "a hundred",
+   "say": "A hundred events. No position given: each one is drawn.",
+   "at": 11.0,
+   "code": {
+    "at": 9.3,
+    "lines": [
+     "work Patterns {",
+     "  pattern dots = repeat 100",
+     "    event(size: 0.01)",
+     "  output dots",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let fr2 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 10.7)",
+    "let r2 = clamp(move(zoom(d2, 0.5), 0, 0.35), 0, 1) * inside * (T >= 10.7)",
+    "let s2f = max(k2_code, max(fr2 * RULE, r2 * INK))"
+   ],
+   "field": "s2f"
+  },
+  {
+   "name": "ten thousand, another ten thousand every run",
+   "start": 17.0,
+   "label": "ten thousand",
+   "say": "Ten thousand. Every run, another ten thousand.",
+   "at": 19.0,
+   "code": {
+    "at": 17.3,
+    "lines": [
+     "work Patterns {",
+     "  pattern dots = repeat 10000",
+     "    event(size: 0.003)",
+     "  output dots",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let fr3 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 18.7)",
+    "let r3 = clamp(move(zoom(d3, 0.5), 0, 0.35), 0, 1) * inside * (T >= 18.7)",
+    "let s3f = max(k3_code, max(fr3 * RULE, r3 * INK))"
+   ],
+   "field": "s3f"
+  },
+  {
+   "name": "x from a bell curve, y from a beta",
+   "start": 25.0,
+   "label": "a shape",
+   "say": "x from a bell curve, y from a beta: chance has a shape.",
+   "at": 27.0,
+   "code": {
+    "at": 25.3,
+    "lines": [
+     "work Patterns {",
+     "  pattern dots = repeat 3000",
+     "    event(x: ~normal(0.5, 0.1), y: ~beta(2, 5))",
+     "  output dots",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let fr4 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 26.7)",
+    "let r4 = clamp(move(zoom(d4, 0.5), 0, 0.35), 0, 1) * inside * (T >= 26.7)",
+    "let s4f = max(k4_code, max(fr4 * RULE, r4 * INK))"
+   ],
+   "field": "s4f"
+  },
+  {
+   "name": "no chance: i, the event's index",
+   "start": 34.0,
+   "label": "the index",
+   "say": "Or no chance at all: i is the event's index.",
+   "at": 36.0,
+   "code": {
+    "at": 34.3,
+    "lines": [
+     "work Patterns {",
+     "  pattern dots = repeat 100",
+     "    event(x: i / n, y: 0.5 + sin(i / 8) / 3)",
+     "  output dots",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let fr5 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 35.7)",
+    "let r5 = clamp(move(zoom(d5, 0.5), 0, 0.35), 0, 1) * inside * (T >= 35.7)",
+    "let s5f = max(k5_code, max(fr5 * RULE, r5 * INK))"
+   ],
+   "field": "s5f"
+  },
+  {
+   "name": "in a sound, each event a note",
+   "start": 42.0,
+   "label": "a sound",
+   "say": "In a sound, each event is a note.",
+   "at": 44.25,
+   "code": {
+    "at": 42.3,
+    "lines": [
+     "work Patterns {",
+     "  pattern dots = repeat 40",
+     "    event(x: i / n, t: i / n, y: ~beta(2, 5))",
+     "  output dots",
+     "  render video(output, dots, duration: 4)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let fr6 = frame(0.5, 0.85, 0.5, 0.5) * (T >= 43.95)",
+    "let r6 = clamp(move(zoom(d6, 0.5), 0, 0.35), 0, 1) * inside * (T >= 43.95)",
+    "let ph6 = (abs(x - (0.25 + 0.5 * clamp((T - 43.95) / 4, 0, 1))) < 0.002) * inside * (T >= 43.95)",
+    "let s6f = max(k6_code, max(fr6 * RULE, max(r6 * INK, ph6 * RED)))"
+   ],
+   "field": "s6f"
+  },
+  {
+   "name": "the end",
+   "start": 52.0,
+   "say": "Next week: growing. Cells that live, die, and leave a trace.",
+   "at": 55.6,
+   "code": {
+    "at": 52.3,
+    "lines": [
+     "work Patterns {",
+     "  pattern dots = repeat 40",
+     "    event(x: i / n, t: i / n, y: ~beta(2, 5))",
+     "  output dots",
+     "  render video(output, dots, duration: 4)",
+     "}"
+    ],
+    "layout": {
+     "y0": 0.12,
+     "size": 0.036,
+     "dy": 0.065
+    }
+   },
+   "stage": [
+    "let nsize = 0.2",
+    "let nadv = 0.5172 * nsize",
+    "let nx0e = 0.5 - 2.5 * nadv",
+    "let name2 = text(\"alea\", x: nx0e, y: 0.64, size: nsize, font: \"mono\", align: \"left\") * (T >= 53.8)",
+    "let ecur = (abs(x - (nx0e + 4.5 * nadv)) < nadv * 0.42) * (abs(y - 0.64) < nsize * 0.4) * blink * (T >= 53.8)",
+    "let e1 = text(\"one feature at a time  ·  08  ·  patterns\", x: 0.5, y: 0.78, size: 0.03, font: \"mono\") * (T >= 54.3)",
+    "let e2 = text(\"alea.bngz.io\", x: 0.5, y: 0.89, size: 0.06, font: \"mono\") * (T >= 54.8)",
+    "let e3 = text(\"next  ·  09  ·  growing\", x: 0.5, y: 1.02, size: 0.03, font: \"mono\") * (T >= l7.words[2])",
+    "let e4 = text(\"open source  ·  github.com/sudo-bngz/alea\", x: 0.5, y: 1.1, size: 0.026, font: \"mono\") * (T >= 55.8)",
+    "let endf = max(k7_code, max(name2 * INK, max(ecur * RED, max(e1 * INK, max(e2 * RED, max(e3 * GREY, e4 * INK))))))"
+   ],
+   "field": "endf"
+  }
+ ],
+ "transitions": {
+  "0": "jump()",
+  "1": "jump()",
+  "2": "pixels(0.3, size: 0.04)",
+  "3": "jump()",
+  "4": "glitch(0.4, amount: 0.7)",
+  "5": "jump()",
+  "6": "pixels(0.3, size: 0.05)"
+ },
+ "fadeout": 0.8,
+ "score": {
+  "key": 110.0,
+  "chords": [
+   [
+    12,
+    15,
+    19,
+    26
+   ],
+   [
+    8,
+    12,
+    15,
+    19
+   ],
+   [
+    15,
+    19,
+    22,
+    26
+   ],
+   [
+    10,
+    14,
+    17,
+    20
+   ]
+  ],
+  "roots": [
+   12,
+   8,
+   15,
+   10
+  ],
+  "cuts": [
+   3.0,
+   9.0,
+   17.0,
+   25.0,
+   34.0,
+   42.0,
+   52.0
+  ],
+  "booms": [
+   3.0,
+   9.0,
+   25.0,
+   42.0,
+   52.0
+  ],
+  "hits": [
+   10.7,
+   18.7,
+   26.7,
+   35.7,
+   43.95
+  ],
+  "beat": [
+   25.0,
+   42.0
+  ],
+  "half": [
+   9.0,
+   25.0
+  ],
+  "bells": [
+   52.0,
+   52.0
+  ],
+  "layers": [
+   "notes(d6, gain: 0.7)"
+  ]
+ }
+}
