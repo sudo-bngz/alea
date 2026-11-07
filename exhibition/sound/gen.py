@@ -22,6 +22,7 @@ them in the middle, which is the only other difference.
 The look, the opening, the code panel and the captions come from the
 picture series' template (`../series/gen.py`).
 """
+import re
 import importlib.util, json, math, os, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -163,6 +164,22 @@ def track(ep):
                     layers.append(f'arp({which}, p_arp_{which}, mode: "{p["mode"]}", octaves: {p["octaves"]}, gate: {p["gate"]}, instrument: "{p["instrument"]}", gain: {g(p["gain"], wins):g})')
                 else:
                     layers.append(f"notes(p_bass_{which}, instrument: bass, harmony: {which}, key: {which}.key / 2, gain: {g(p['gain'], wins):g})")
+        L.append("")
+    dr = ep.get("drone")
+    if dr:
+        # the drone: one layer per stage, the field held to its bars; the
+        # texture from its bar on; each turned down by how little it plays
+        L.append(f"  let waves = {dr['field']}")
+        L.append("  let won(s, a, b) = clamp((s - a) / 0.5, 0, 1) * clamp((b - s) / 0.5, 0, 1)")
+        ends = [st["bar"] for st in dr["stages"][1:]] + [nb]
+        for st, b in zip(dr["stages"], ends):
+            a = st["bar"]
+            gain = round(st["gain"] * ((b - a) / nb) ** 0.5, 3)
+            layers.append(f'drone(waves * won(t * total, {a * bar:.3f}, {b * bar + 0.5:.3f}) * duck(t * total), voices: {st["voices"]}, instrument: "{st["instrument"]}", key: {ep["key"]}, gain: {gain:g})')
+        tx = dr.get("texture")
+        if tx:
+            gain = round(tx["gain"] * ((nb - tx["bar"]) / nb) ** 0.5, 3)
+            layers.append(f'texture(waves * won(t * total, {tx["bar"] * bar:.3f}, {total + 1:.3f}) * duck(t * total), kind: "{tx["kind"]}", gain: {gain:g})')
         L.append("")
     tu = ep.get("tune")
     if tu:
@@ -590,6 +607,52 @@ def keys_view(ep, bar, six):
     return L
 
 
+def field_view(ep, bar, six):
+    """The picture the drone plays, as it plays it: the field on a square (its
+    x and y from 0 to 1, its t the work's), the stage's listening lines across
+    it, each line's two ears (x = 0.3 and 0.7) swelling with what they hear,
+    and a bar per voice for its loudness."""
+    dr = ep["drone"]
+    total = ep["bars"] * bar
+    S = 0.62
+    SX0, SY0 = 0.07, 0.68
+    BX0, BW = SX0 + S + 0.03, 0.93 - (SX0 + S + 0.03)
+    stages = dr["stages"]
+    f = re.sub(r"\bx\b", "u", dr["field"])
+    f = re.sub(r"\by\b", "v", f)
+    f = re.sub(r"\bt\b", "w", f)
+    L = ["  // ── the picture played: the field, its listening lines, its voices ──",
+         f"  let fwave(u, v, w) = {f}",
+         f"  let ft = T / {total:.4f}",
+         f"  let fx = (x - {SX0}) / {S}",
+         f"  let fy = (y - {SY0}) / {S}",
+         "  let insq = (fx >= 0) * (fx < 1) * (fy >= 0) * (fy < 1)",
+         "  let pic = insq * fwave(fx, fy, ft)",
+         "  let sj = " + " + ".join(f"(T >= {st['bar'] * bar:.3f})" for st in stages[1:]),
+         "  let nv = " + " + ".join(f"(sj == {j}) * {st['voices']}" for j, st in enumerate(stages)),
+         "  let lk = floor(fy * nv)",
+         "  let lc = (lk + 0.5) / nv",
+         f"  let line = insq * (abs(fy - lc) * {S} < 0.0015)",
+         "  let hl = fwave(0.3, lc, ft)",
+         "  let hr = fwave(0.7, lc, ft)",
+         f"  let ear(cx, h) = ((x - ({SX0} + cx * {S})) * (x - ({SX0} + cx * {S})) + (y - ({SY0} + lc * {S})) * (y - ({SY0} + lc * {S}))) < (0.004 + 0.012 * h) * (0.004 + 0.012 * h)",
+         "  let ears = insq * max(ear(0.3, hl), ear(0.7, hr))",
+         f"  let bl = (x >= {BX0:.3f}) * (x < {BX0:.3f} + {BW:.3f} * (hl + hr) / 2) * (fy >= 0) * (fy < 1) * (abs(fy - lc) * {S} < 0.18 * {S} / nv)"]
+    labs = []
+    for j, st in enumerate(stages):
+        L.append(f'  let sl{j} = text("{st["label"]}", x: {SX0}, y: {SY0 - 0.03:.3f}, size: 0.026, font: "mono", align: "left") * (sj == {j})')
+        labs.append(f"sl{j}")
+    tx = dr.get("texture")
+    if tx:
+        L.append(f'  let txl = text("{tx["label"]}", x: 0.62, y: {SY0 - 0.03:.3f}, size: 0.026, font: "mono", align: "left") * (T >= {tx["bar"] * bar:.3f})')
+    else:
+        L.append("  let txl = 0")
+    L.append(f"  let slab = merge({', '.join(labs)})")
+    L.append("  let grid = max(max(pic * GREY, line * FN), max(max(ears * RED, bl * FN), max(slab * GREY, txl * NUM)))")
+    L.append("")
+    return L
+
+
 def maxes_expr(xs):
     return xs[0] if len(xs) == 1 else f"max({xs[0]}, {maxes_expr(xs[1:])})"
 
@@ -664,6 +727,8 @@ def reel(ep):
         L += roll_view(ep, bar, six)
     elif view == "keys":
         L += keys_view(ep, bar, six)
+    elif view == "field":
+        L += field_view(ep, bar, six)
     elif view == "wheel":
         CX, CY, R0, DR = 0.5, 0.93, 0.12, 0.05
         rmax = R0 + DR * (len(ep["layers"]) - 1)

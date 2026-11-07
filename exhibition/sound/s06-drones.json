@@ -1,0 +1,123 @@
+{
+ "number": "S06",
+ "slug": "s06-drones",
+ "work": "DronesS06",
+ "title": "Drones",
+ "tempo": 120,
+ "bars": 52,
+ "key": 110,
+ "cover": 0.78,
+ "view": "field",
+ "code": {
+  "size": 0.034,
+  "dy": 0.06
+ },
+ "meters_y": 1.315,
+ "meters_dy": 0.026,
+ "hook": {
+  "bar": 2,
+  "say": "Play a picture."
+ },
+ "drone": {
+  "field": "0.5 + 0.5 * sin(x * 12 + sin(y * 9) * 2 - t * 60)",
+  "stages": [
+   {
+    "bar": 4,
+    "voices": 6,
+    "instrument": "sine",
+    "gain": 1.7,
+    "label": "6 voices  ·  sine"
+   },
+   {
+    "bar": 12,
+    "voices": 12,
+    "instrument": "sine",
+    "gain": 1.7,
+    "label": "12 voices  ·  sine"
+   },
+   {
+    "bar": 20,
+    "voices": 12,
+    "instrument": "strings",
+    "gain": 1.5,
+    "label": "12 voices  ·  strings"
+   }
+  ],
+  "texture": {
+   "bar": 28,
+   "kind": "rain",
+   "gain": 1.0,
+   "label": "+ rain"
+  }
+ },
+ "layers": [],
+ "beats": [
+  {
+   "label": "a field",
+   "bar": 4,
+   "say": "A drone plays a picture. Each voice listens along one line.",
+   "code": [
+    "let waves = 0.5 + 0.5 * sin(x * 12",
+    "  + sin(y * 9) * 2 - t * 60)",
+    "let pad = drone(waves)"
+   ]
+  },
+  {
+   "label": "voices",
+   "bar": 12,
+   "say": "Twelve voices: twelve lines, twelve notes of the scale.",
+   "code": [
+    "let pad = drone(waves, voices: 12)"
+   ]
+  },
+  {
+   "label": "strings",
+   "bar": 20,
+   "say": "Strings: three players for each voice, with vibrato.",
+   "code": [
+    "let pad = drone(waves, voices: 12,",
+    "  instrument: \"strings\")"
+   ]
+  },
+  {
+   "label": "rain",
+   "bar": 28,
+   "say": "Rain listens to the whole picture at once.",
+   "code": [
+    "let rain = texture(waves, kind: \"rain\")"
+   ]
+  }
+ ],
+ "drop": {
+  "bar": 36,
+  "label": "the picture, whole",
+  "code": [
+   "let waves = 0.5 + 0.5 * sin(x * 12",
+   "  + sin(y * 9) * 2 - t * 60)",
+   "let pad = drone(waves, voices: 12,",
+   "  instrument: \"strings\")",
+   "let rain = texture(waves, kind: \"rain\")",
+   "render sound(pad, rain, duration: 104)"
+  ]
+ },
+ "end": {
+  "bar": 48,
+  "say": "Next time: a voice. The voice you hear is in the program.",
+  "next": "s07  ·  voice"
+ },
+ "program": [
+  "// alea, one sound at a time · S06 — Drones: the program on screen, whole.",
+  "// The waves of picture episode 02, set moving by t, and played: twelve voices",
+  "// each listen along one line of the picture, and the rain to all of it.",
+  "// Run it: alea s06-drones-program.alea",
+  "",
+  "work Drones {",
+  "  let waves = 0.5 + 0.5 * sin(x * 12",
+  "    + sin(y * 9) * 2 - t * 60)",
+  "  let pad = drone(waves, voices: 12,",
+  "    instrument: \"strings\")",
+  "  let rain = texture(waves, kind: \"rain\")",
+  "  render sound(pad, rain, duration: 104)",
+  "}"
+ ]
+}
