@@ -258,8 +258,10 @@ def track(ep):
             if "key" in ly:
                 extra += f", key: {ly['key']}"
             layers.append(f"notes(p_{pname}, instrument: {inst}, gain: {gain:g}{extra})")
-    L.append(f"  pattern p_tone = repeat 2 event(t: [0.3, 2.4][i] / total, y: semi([0, 7][i]), size: 0.15, intensity: [0.5, 0.3][i])")
-    layers.append(f'notes(p_tone, instrument: tone, scale: "chromatic", key: {ep["key"]}, gain: 0.2)')
+    if not ep.get("music"):
+        # the opening's tone (an episode on someone's music opens on that music)
+        L.append(f"  pattern p_tone = repeat 2 event(t: [0.3, 2.4][i] / total, y: semi([0, 7][i]), size: 0.15, intensity: [0.5, 0.3][i])")
+        layers.append(f'notes(p_tone, instrument: tone, scale: "chromatic", key: {ep["key"]}, gain: 0.2)')
     layers += [n for n, *_ in demos]
     L.append("")
     L.append("  let music = [")
@@ -713,6 +715,27 @@ def voice_view(ep, bar, six):
     return L
 
 
+def listen_view(ep, bar, six):
+    """The picture listening to the music (not the voice: it opens the music
+    alone), built up a beat at a time with the very lines on screen, and the
+    music's credit under it."""
+    mu = ep["music"]
+    v = mu["var"]
+    starts = [b["bar"] * bar for b in ep["beats"]]
+    L = ["  // ── the picture listening: the lines on screen, on the music alone ──",
+         f'  let {v} = open("{mu["file"]}")',
+         f"  let core = circle(0.5, 1, 0.04 + 0.13 * {v}.level) * (T >= {starts[0]:.3f})",
+         f"  let low = ring(0.5, 1, 0.21, 0.004 + 0.04 * {v}.bass) * (T >= {starts[1]:.3f})",
+         "  let a = atan2(y - 1, x - 0.5)",
+         f"  let rays = (abs(fract(a / tau * 32) - 0.5) < 0.1) * ring(0.5, 1, 0.265, 0.01 + 0.05 * {v}.mid) * (T >= {starts[2]:.3f})",
+         f"  let sparks = (abs(fract(a / tau * 96) - 0.5) < 0.2) * ring(0.5, 1, 0.315, 0.002 + 0.02 * {v}.treble) * (T >= {starts[2]:.3f})",
+         f"  let hit = ring(0.5, 1, 0.1 + 0.2 * {v}.pulse, 0.006) * (T >= {starts[3]:.3f})",
+         f'  let credit = text("{mu["credit"]}", x: 0.5, y: 1.375, size: 0.022, font: "mono")',
+         "  let grid = max(max(core * GREY, low * FN), max(max(rays * STR, sparks * NUM), max(hit * RED, credit * GREY)))",
+         ""]
+    return L
+
+
 def maxes_expr(xs):
     return xs[0] if len(xs) == 1 else f"max({xs[0]}, {maxes_expr(xs[1:])})"
 
@@ -792,6 +815,8 @@ def reel(ep):
         L += field_view(ep, bar, six)
     elif view == "voice":
         L += voice_view(ep, bar, six)
+    elif view == "listen":
+        L += listen_view(ep, bar, six)
     elif view == "wheel":
         CX, CY, R0, DR = 0.5, 0.93, 0.12, 0.05
         rmax = R0 + DR * (len(ep["layers"]) - 1)

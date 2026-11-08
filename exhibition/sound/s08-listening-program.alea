@@ -1,0 +1,20 @@
+// alea, one sound at a time · S08 — Listening: the program on screen, whole.
+// The music is not made here: it is a track by JL (Momo's Basement), opened
+// and listened to. Put a WAV named jl.wav next to this file, then
+// run it: alea s08-listening-program.alea
+
+work Listening {
+  let jl = open("jl.wav")
+  let core = circle(0.5, 1, 0.04 + 0.13 * jl.level)
+  let low = ring(0.5, 1, 0.21, 0.004 + 0.04 * jl.bass)
+  let a = atan2(y - 1, x - 0.5)
+  let rays = (abs(fract(a / tau * 32) - 0.5) < 0.1)
+    * ring(0.5, 1, 0.265, 0.01 + 0.05 * jl.mid)
+  let sparks = (abs(fract(a / tau * 96) - 0.5) < 0.2)
+    * ring(0.5, 1, 0.315, 0.002 + 0.02 * jl.treble)
+  let hit = ring(0.5, 1, 0.1 + 0.2 * jl.pulse, 0.006)
+
+  palette ["#000000", "#8f8f8f", "#6fa8dc", "#93c47d", "#f1c232", "#e8553a"]
+  render video(max(max(core * 0.2, low * 0.4), max(max(rays * 0.6, sparks * 0.8), hit)),
+    width: 1080, height: 1920, sound: [jl])
+}

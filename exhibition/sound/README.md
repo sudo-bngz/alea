@@ -40,3 +40,4 @@ Reel to about −14 LUFS when encoding (`loudnorm=I=-14:TP=-1`).
 | S05 | Harmony | `chords("i VI III VII")`, a pad (`drone` with `harmony:`), `arp`, a bass on the roots, `chords("functional")` drawn by chance; a keyboard | 1:44 |
 | S06 | Drones | `drone(field)` playing the waves of picture episode 02, `voices`, `instrument: "strings"`, `texture(kind: "rain")`; the field with its listening lines | 1:44 |
 | S07 | Voice | `say` with alea's own voice, `.words` typed as said, `pitch` and `size`, `melody` sung on the bar; a scrolling waveform | 1:44 |
+| S08 | Listening | `open` a track (JL, Momo's Basement) and draw it: `.level`, `.bass`, `.mid`, `.treble`, `.pulse`; the music is mixed under the voice by `s08-mix.sh` | 1:49 |
