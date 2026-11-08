@@ -41,3 +41,4 @@ Reel to about −14 LUFS when encoding (`loudnorm=I=-14:TP=-1`).
 | S06 | Drones | `drone(field)` playing the waves of picture episode 02, `voices`, `instrument: "strings"`, `texture(kind: "rain")`; the field with its listening lines | 1:44 |
 | S07 | Voice | `say` with alea's own voice, `.words` typed as said, `pitch` and `size`, `melody` sung on the bar; a scrolling waveform | 1:44 |
 | S08 | Listening | `open` a track (JL, Momo's Basement) and draw it: `.level`, `.bass`, `.mid`, `.treble`, `.pulse`; the music is mixed under the voice by `s08-mix.sh` | 1:49 |
+| S09 | Editions | one program with `~` in tempo, key, scale, rhythm and sound, rendered with `--seed 1, 2, 3`; the three side by side, then one after another (`s09-mix.py`) | 1:46 |

@@ -1,0 +1,214 @@
+{
+ "number": "S09",
+ "slug": "s09-editions",
+ "work": "EditionsS09",
+ "title": "Editions",
+ "tempo": 120,
+ "bars": 53,
+ "key": 110,
+ "cover": 0.8,
+ "view": "editions",
+ "voice_only": true,
+ "code": {
+  "size": 0.034,
+  "dy": 0.06
+ },
+ "meters_y": 1.7,
+ "meters_dy": 0.026,
+ "hook": {
+  "bar": 2,
+  "say": "One program. Three seeds, three tracks."
+ },
+ "editions": {
+  "seeds": [
+   1,
+   2,
+   3
+  ],
+  "values": [
+   {
+    "tempo": 110,
+    "key": "A2",
+    "scale": "phrygian",
+    "hits": 4,
+    "turn": 2,
+    "cutoff": 2731
+   },
+   {
+    "tempo": 128,
+    "key": "D3",
+    "scale": "hirajoshi",
+    "hits": 7,
+    "turn": 1,
+    "cutoff": 2627
+   },
+   {
+    "tempo": 119,
+    "key": "A2",
+    "scale": "dorian",
+    "hits": 3,
+    "turn": 4,
+    "cutoff": 3029
+   }
+  ],
+  "plays": [
+   [
+    0,
+    8,
+    0,
+    30
+   ],
+   [
+    8,
+    18,
+    0,
+    0
+   ],
+   [
+    18,
+    28,
+    1,
+    0
+   ],
+   [
+    28,
+    38,
+    2,
+    0
+   ],
+   [
+    38,
+    42,
+    0,
+    20
+   ],
+   [
+    42,
+    46,
+    1,
+    20
+   ],
+   [
+    46,
+    50,
+    2,
+    20
+   ],
+   [
+    50,
+    53,
+    2,
+    28
+   ]
+  ]
+ },
+ "layers": [],
+ "beats": [
+  {
+   "label": "the draws",
+   "bar": 4,
+   "say": "Each tilde is a draw: the tempo, the key, the scale, the rhythm, the sound.",
+   "code": [
+    "let tempo = floor(~uniform(96, 133))",
+    "let key = choose([\"A2\", \"C3\", \"D3\", \"E2\", \"G2\"])",
+    "let scale = choose([\"minor\", \"dorian\",",
+    "  \"phrygian\", \"hirajoshi\"])",
+    "let hits = floor(~uniform(3, 8))",
+    "let turn = floor(~uniform(0, 8))",
+    "let cutoff = floor(~uniform(600, 3600))"
+   ]
+  },
+  {
+   "label": "seed 1",
+   "bar": 8,
+   "say": "Seed one draws this track.",
+   "code": [
+    "$ alea s09-editions-program.alea --seed 1"
+   ]
+  },
+  {
+   "label": "seed 2",
+   "bar": 18,
+   "say": "The same program, seed two: another track.",
+   "code": [
+    "$ alea s09-editions-program.alea --seed 2"
+   ]
+  },
+  {
+   "label": "seed 3",
+   "bar": 28,
+   "say": "Seed three. Nothing else has changed.",
+   "code": [
+    "$ alea s09-editions-program.alea --seed 3"
+   ]
+  }
+ ],
+ "drop": {
+  "bar": 38,
+  "label": "one after another",
+  "code": [
+   "let tempo = floor(~uniform(96, 133))",
+   "let key = choose([\"A2\", \"C3\", \"D3\", \"E2\", \"G2\"])",
+   "let scale = choose([\"minor\", \"dorian\",",
+   "  \"phrygian\", \"hirajoshi\"])",
+   "let hits = floor(~uniform(3, 8))",
+   "let turn = floor(~uniform(0, 8))",
+   "let cutoff = floor(~uniform(600, 3600))",
+   "// one program; --seed 1, 2, 3: three tracks"
+  ]
+ },
+ "end": {
+  "bar": 50,
+  "say": "Next time: live. It plays your synths, in time with your DAW.",
+  "next": "s10  ·  live"
+ },
+ "program": [
+  "// alea, one sound at a time · S09 — Editions: one program, a track for every seed.",
+  "// The S01–S05 track (the rhythm of S02, the lead of S03, the harmony of S05)",
+  "// with its tempo, key, scale, rhythm and sound drawn by chance.",
+  "// Run it: alea s09-editions-program.alea --seed 1   (then 2, then 3)",
+  "",
+  "work Edition {",
+  "  // the draws: each ~ is drawn once, from the seed",
+  "  let tempo = floor(~uniform(96, 133))",
+  "  let key = choose([\"A2\", \"C3\", \"D3\", \"E2\", \"G2\"])",
+  "  let scale = choose([\"minor\", \"dorian\",",
+  "    \"phrygian\", \"hirajoshi\"])",
+  "  let hits = floor(~uniform(3, 8))",
+  "  let turn = floor(~uniform(0, 8))",
+  "  let cutoff = floor(~uniform(600, 3600))",
+  "",
+  "  let m = meter(tempo: tempo, bars: 24)",
+  "  let prog = chords(\"functional\", key: key, scale: scale, bars: m)",
+  "",
+  "  let lead = synth {",
+  "    let env = adsr(attack: 0.005, decay: 0.15,",
+  "                   sustain: 0.3, release: 0.1)",
+  "    lowpass(saw(), resonance: 0.4,",
+  "            cutoff: 150 + cutoff * env) * env",
+  "  }",
+  "  let kick = synth {",
+  "    sine(50 + 150 * perc(release: 0.03))",
+  "      * perc(release: 0.4)",
+  "  }",
+  "  let rim = synth {",
+  "    bandpass(noise(), cutoff: 3000)",
+  "      * perc(release: 0.03)",
+  "      + sine(1700) * perc(release: 0.02)",
+  "  }",
+  "  let shaker = synth {",
+  "    highpass(noise(), cutoff: 6000)",
+  "      * perc(attack: 0.01, release: 0.06)",
+  "  }",
+  "",
+  "  let kicks = notes(euclid(4, 16, bars: m), instrument: kick, gain: 1.3)",
+  "  let rims = notes(euclid(hits, 16, rotate: turn, bars: m), instrument: rim, gain: 0.45)",
+  "  let shakes = notes(euclid(7, 16, bars: m), instrument: shaker, gain: 0.35)",
+  "  let pad = drone(0.8, voices: 4, instrument: \"strings\", harmony: prog, gain: 0.5)",
+  "  let arps = arp(prog, euclid(hits + 2, 16, rotate: turn, bars: m),",
+  "    mode: \"updown\", instrument: lead, gain: 0.7)",
+  "",
+  "  render sound(pad, arps, kicks, rims, shakes, duration: m.length)",
+  "}"
+ ]
+}

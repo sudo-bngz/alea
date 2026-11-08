@@ -1,0 +1,47 @@
+// alea, one sound at a time · S09 — Editions: one program, a track for every seed.
+// The S01–S05 track (the rhythm of S02, the lead of S03, the harmony of S05)
+// with its tempo, key, scale, rhythm and sound drawn by chance.
+// Run it: alea s09-editions-program.alea --seed 1   (then 2, then 3)
+
+work Edition {
+  // the draws: each ~ is drawn once, from the seed
+  let tempo = floor(~uniform(96, 133))
+  let key = choose(["A2", "C3", "D3", "E2", "G2"])
+  let scale = choose(["minor", "dorian",
+    "phrygian", "hirajoshi"])
+  let hits = floor(~uniform(3, 8))
+  let turn = floor(~uniform(0, 8))
+  let cutoff = floor(~uniform(600, 3600))
+
+  let m = meter(tempo: tempo, bars: 24)
+  let prog = chords("functional", key: key, scale: scale, bars: m)
+
+  let lead = synth {
+    let env = adsr(attack: 0.005, decay: 0.15,
+                   sustain: 0.3, release: 0.1)
+    lowpass(saw(), resonance: 0.4,
+            cutoff: 150 + cutoff * env) * env
+  }
+  let kick = synth {
+    sine(50 + 150 * perc(release: 0.03))
+      * perc(release: 0.4)
+  }
+  let rim = synth {
+    bandpass(noise(), cutoff: 3000)
+      * perc(release: 0.03)
+      + sine(1700) * perc(release: 0.02)
+  }
+  let shaker = synth {
+    highpass(noise(), cutoff: 6000)
+      * perc(attack: 0.01, release: 0.06)
+  }
+
+  let kicks = notes(euclid(4, 16, bars: m), instrument: kick, gain: 1.3)
+  let rims = notes(euclid(hits, 16, rotate: turn, bars: m), instrument: rim, gain: 0.45)
+  let shakes = notes(euclid(7, 16, bars: m), instrument: shaker, gain: 0.35)
+  let pad = drone(0.8, voices: 4, instrument: "strings", harmony: prog, gain: 0.5)
+  let arps = arp(prog, euclid(hits + 2, 16, rotate: turn, bars: m),
+    mode: "updown", instrument: lead, gain: 0.7)
+
+  render sound(pad, arps, kicks, rims, shakes, duration: m.length)
+}

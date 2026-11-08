@@ -258,7 +258,7 @@ def track(ep):
             if "key" in ly:
                 extra += f", key: {ly['key']}"
             layers.append(f"notes(p_{pname}, instrument: {inst}, gain: {gain:g}{extra})")
-    if not ep.get("music"):
+    if not (ep.get("music") or ep.get("voice_only")):
         # the opening's tone (an episode on someone's music opens on that music)
         L.append(f"  pattern p_tone = repeat 2 event(t: [0.3, 2.4][i] / total, y: semi([0, 7][i]), size: 0.15, intensity: [0.5, 0.3][i])")
         layers.append(f'notes(p_tone, instrument: tone, scale: "chromatic", key: {ep["key"]}, gain: 0.2)')
@@ -736,6 +736,54 @@ def listen_view(ep, bar, six):
     return L
 
 
+def editions_view(ep, bar, six):
+    """Three editions side by side: what each seed drew (read from a render of
+    the program with that seed: alea draws the same values every time), and
+    a wheel of its rhythm (kick inside, rim outside) whose hand turns at that
+    edition's own tempo while its music plays, the column in red."""
+    ed = ep["editions"]
+    vals = ed["values"]
+    cxs = [0.215, 0.5, 0.785]
+    CY, RO, RI, RD = 1.08, 0.12, 0.078, 0.011
+    first = ep["beats"][0]["bar"] * bar
+    L = ["  // ── the editions: what each seed drew, and its rhythm going round ──"]
+    fields = []
+    for k, (v, cx) in enumerate(zip(vals, cxs)):
+        shown = ep["beats"][k + 1]["bar"] * bar
+        plays = [p for p in ed["plays"] if p[2] == k]
+        L.append(f"  let on{k} = " + " + ".join(f"(T >= {a * bar:.3f}) * (T < {b * bar:.3f})" for a, b, _, _ in plays))
+        L.append(f"  let cur{k} = " + " + ".join(
+            f"(T >= {a * bar:.3f}) * (T < {b * bar:.3f}) * (((T - {a * bar:.3f} + {off}) * {v['tempo'] / 15:.5f}) % 16)"
+            for a, b, _, off in plays))
+        L.append(f"  let dx{k} = x - {cx}")
+        L.append(f"  let dy{k} = y - {CY}")
+        L.append(f"  let wr{k} = sqrt(dx{k} * dx{k} + dy{k} * dy{k})")
+        L.append(f"  let wa{k} = fract(atan2(dx{k}, -dy{k}) / tau)")
+        L.append(f"  let wk{k} = floor(wa{k} * 16 + 0.5) % 16")
+        L.append(f"  let arc{k} = (abs(fract(wa{k} * 16 + 0.5) - 0.5) / 16) * tau")
+        for name, R, h in (("rim", RO, euclid16(v["hits"], 16, v["turn"])), ("kick", RI, euclid16(4, 16, 0))):
+            L.append(f"  let {name}dot{k} = ((wr{k} - {R}) * (wr{k} - {R}) + (arc{k} * {R}) * (arc{k} * {R})) < {RD * RD:.6f}")
+            L.append(f"  let {name}hit{k} = {hit_expr(h, var=f'wk{k}')}")
+        L.append(f"  let hand{k} = on{k} * (abs(fract(wa{k} - cur{k} / 16 + 0.5) - 0.5) * tau * wr{k} < 0.0022) * (wr{k} > 0.02) * (wr{k} < {RO + 0.025})")
+        L.append(f"  let now{k} = on{k} * (wk{k} == floor(cur{k} + 0.5) % 16)")
+        L.append(f"  let wheel{k} = (T >= {shown:.3f}) * max(max(rimdot{k} * (1 - rimhit{k}) * RULE, kickdot{k} * (1 - kickhit{k}) * RULE),"
+                 f" max(max(rimdot{k} * rimhit{k} * FN, kickdot{k} * kickhit{k} * GREY), max(hand{k} * RED, (rimdot{k} * rimhit{k} + kickdot{k} * kickhit{k}) * now{k} * RED)))")
+        x0 = cx - 0.125
+        lines = [f"{v['tempo']} BPM", f"{v['key']}  {v['scale']}", f"rim {v['hits']}/16 +{v['turn']}", f"cutoff {v['cutoff']}"]
+        L.append(f'  let head{k} = text("seed {ed["seeds"][k]}", x: {x0:.3f}, y: 0.70, size: 0.038, font: "mono", align: "left") * (T >= {first:.3f})')
+        txt = []
+        for j, s in enumerate(lines):
+            L.append(f'  let v{k}_{j} = text("{s}", x: {x0:.3f}, y: {0.76 + 0.04 * j:.3f}, size: 0.028, font: "mono", align: "left") * (T >= {shown:.3f})')
+            txt.append(f"v{k}_{j}")
+        L.append(f'  let q{k} = text("~", x: {x0:.3f}, y: 0.755, size: 0.034, font: "mono", align: "left") * (T >= {first:.3f}) * (T < {shown:.3f})')
+        L.append(f"  let vals{k} = merge({', '.join(txt)})")
+        L.append(f"  let col{k} = max(max(head{k} * ((1 - on{k}) * GREY + on{k} * RED), vals{k} * INK), max(q{k} * NUM, wheel{k}))")
+        fields.append(f"col{k}")
+    L.append(f"  let grid = {maxes_expr(fields)}")
+    L.append("")
+    return L
+
+
 def maxes_expr(xs):
     return xs[0] if len(xs) == 1 else f"max({xs[0]}, {maxes_expr(xs[1:])})"
 
@@ -817,6 +865,8 @@ def reel(ep):
         L += voice_view(ep, bar, six)
     elif view == "listen":
         L += listen_view(ep, bar, six)
+    elif view == "editions":
+        L += editions_view(ep, bar, six)
     elif view == "wheel":
         CX, CY, R0, DR = 0.5, 0.93, 0.12, 0.05
         rmax = R0 + DR * (len(ep["layers"]) - 1)
