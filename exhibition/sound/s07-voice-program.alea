@@ -1,0 +1,34 @@
+// alea, one sound at a time · S07 — Voice: the program on screen, whole.
+// alea's own voice, a pulse through resonators, sung on the bar over a pad
+// and the rhythm of S02. Run it: alea s07-voice-program.alea
+
+work Voice {
+  let m = meter(tempo: 120, bars: 52)
+
+  let sing(at) = say("one sound at a time",
+    at: at, pitch: "A2",
+    melody: [0, 3, 7, 10, 12])
+  let pad = drone(0.6, voices: 3, key: 110)
+
+  // the rhythm of S02
+  let kick = synth {
+    sine(50 + 150 * perc(release: 0.03))
+      * perc(release: 0.4)
+  }
+  let rim = synth {
+    bandpass(noise(), cutoff: 3000)
+      * perc(release: 0.03)
+      + sine(1700) * perc(release: 0.02)
+  }
+  let shaker = synth {
+    highpass(noise(), cutoff: 6000)
+      * perc(attack: 0.01, release: 0.06)
+  }
+  let kicks = notes(euclid(4, 16, bars: m), instrument: kick)
+  let rims = notes(euclid(5, 16, bars: m), instrument: rim)
+  let shakes = notes(euclid(7, 16, bars: m), instrument: shaker)
+
+  render sound(sing(72), sing(76), sing(80),
+    sing(84), sing(88), sing(92),
+    pad, kicks, rims, shakes, duration: m.length)
+}

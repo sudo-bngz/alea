@@ -80,6 +80,25 @@ def say_lines(ep):
     return [f'  let {n} = say("{s}", at: {a:.2f}, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)' for n, s, a in lines_said(ep)]
 
 
+def demo_lines(ep):
+    """The voices that are the subject (alea's own, not the narrator's): each
+    after its beat's spoken line, or on its bars. (name, code line, window
+    start expr, window end expr, entry)."""
+    bar, _ = times(ep)
+    out = []
+    for e in ep.get("demos", []):
+        args = (", " + e["args"]) if e["args"] else ""
+        if "beat" in e:
+            n = f"d{len(out)}"
+            out.append((n, f'  let {n} = say("{e["text"]}", at: l{e["beat"] + 1}.end + 0.6{args}, gain: {e["gain"]})', f"{n}.start", f"{n}.end + 2.5", e))
+        else:
+            names = [f"d{len(out) + k}" for k in range(len(e["bars"]))]
+            for k, (n, b) in enumerate(zip(names, e["bars"])):
+                end = f"{names[k + 1]}.start" if k + 1 < len(names) else f"{n}.end + 2.5"
+                out.append((n, f'  let {n} = say("{e["text"]}", at: {b * bar:.3f}{args}, gain: {e["gain"]})', f"{n}.start", end, e))
+    return out
+
+
 # ── pass 1: the track ─────────────────────────────────────────────────────
 
 def track(ep):
@@ -110,6 +129,9 @@ def track(ep):
     L.append(f"  let talk(s) = {talks}")
     L.append("  let duck(s) = 1 - 0.5 * min(1, talk(s))")
     L.append("  let semi(s) = 1 - (s + 0.5) / 36")
+    demos = demo_lines(ep)
+    for _, line, *_ in demos:
+        L.append(line)
     L.append("")
     for ly in ep["layers"]:
         if ly.get("riff"):
@@ -238,6 +260,7 @@ def track(ep):
             layers.append(f"notes(p_{pname}, instrument: {inst}, gain: {gain:g}{extra})")
     L.append(f"  pattern p_tone = repeat 2 event(t: [0.3, 2.4][i] / total, y: semi([0, 7][i]), size: 0.15, intensity: [0.5, 0.3][i])")
     layers.append(f'notes(p_tone, instrument: tone, scale: "chromatic", key: {ep["key"]}, gain: 0.2)')
+    layers += [n for n, *_ in demos]
     L.append("")
     L.append("  let music = [")
     L.append("    " + ", ".join(n for n, _, _ in lines_said(ep)) + ",")
@@ -653,6 +676,43 @@ def field_view(ep, bar, six):
     return L
 
 
+def voice_view(ep, bar, six):
+    """alea's own voice, as it speaks: its words typed as each one starts (the
+    word being said in red), what it is told (pitch, size, melody) above, and
+    the track's level scrolling past below, the last three seconds."""
+    total = ep["bars"] * bar
+    WX0, WY0, WS, WDY = 0.07, 0.82, 0.055, 0.078
+    cw = 0.5172 * WS
+    per_line = int(0.86 / cw)
+    VX0, VW, VY, VH = 0.07, 0.86, 1.13, 0.11
+    L = ["  // ── the voice: its words as said, and its sound going by ──"]
+    typed, saying, labs = [], [], []
+    for i, (n, _, a, b, e) in enumerate(demo_lines(ep)):
+        L.append(f"  let vis{i} = (T >= {a}) * (T < {b})")
+        line, col = 0, 0
+        for j, w in enumerate(e["text"].split()):
+            if col and col + 1 + len(w) > per_line:
+                line, col = line + 1, 0
+            x = WX0 + (col + (1 if col else 0)) * cw
+            col += (1 if col else 0) + len(w)
+            L.append(f'  let w{i}_{j} = text("{w}", x: {x:.4f}, y: {WY0 + line * WDY:.3f}, size: {WS}, font: "mono", align: "left") * vis{i} * (T >= {n}.words[{j}])')
+            typed.append(f"w{i}_{j}")
+            saying.append(f"w{i}_{j} * (T < {n}.ends[{j}])")
+        L.append(f'  let vl{i} = text("{e["label"]}", x: {WX0}, y: {WY0 - 0.07:.3f}, size: 0.026, font: "mono", align: "left") * vis{i}')
+        labs.append(f"vl{i}")
+    L += [f"  let typed = merge({', '.join(typed)})",
+          f"  let saying = merge({', '.join(saying)})",
+          f"  let vlabs = merge({', '.join(labs)})",
+          f"  let wx = (x - {VX0}) / {VW}",
+          f"  let hist = at(song.level, clamp((T - (1 - wx) * 3) / {total:.4f}, 0, 1))",
+          f"  let inwave = (wx >= 0) * (wx < 1)",
+          f"  let wavef = inwave * (abs(y - {VY}) < 0.002 + {VH} * clamp(hist, 0, 1))",
+          f"  let nowl = (abs(x - {VX0 + VW:.3f}) < 0.0015) * (abs(y - {VY}) < {VH + 0.01})",
+          "  let grid = max(max(typed * INK, saying * RED), max(max(wavef * FN, nowl * RED), vlabs * GREY))",
+          ""]
+    return L
+
+
 def maxes_expr(xs):
     return xs[0] if len(xs) == 1 else f"max({xs[0]}, {maxes_expr(xs[1:])})"
 
@@ -684,6 +744,7 @@ def reel(ep):
     L.append("")
     L.append("  // ── the voice (in the track; here for the captions' timings) ──")
     L += say_lines(ep)
+    L += [line for _, line, *_ in demo_lines(ep)]
     L.append("")
     # labels and captions
     labels = [("h_hook", f"sound  ·  {ep['number'].lower()}", starts[1], starts[2])]
@@ -729,6 +790,8 @@ def reel(ep):
         L += keys_view(ep, bar, six)
     elif view == "field":
         L += field_view(ep, bar, six)
+    elif view == "voice":
+        L += voice_view(ep, bar, six)
     elif view == "wheel":
         CX, CY, R0, DR = 0.5, 0.93, 0.12, 0.05
         rmax = R0 + DR * (len(ep["layers"]) - 1)
