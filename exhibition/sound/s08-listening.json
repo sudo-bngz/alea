@@ -103,9 +103,9 @@
   "    * ring(0.5, 1, 0.315, 0.002 + 0.02 * jl.treble)",
   "  let hit = ring(0.5, 1, 0.1 + 0.2 * jl.pulse, 0.006)",
   "",
-  "  palette [\"#000000\", \"#8f8f8f\", \"#6fa8dc\", \"#93c47d\", \"#f1c232\", \"#e8553a\"]",
   "  render video(max(max(core * 0.2, low * 0.4), max(max(rays * 0.6, sparks * 0.8), hit)),",
-  "    width: 1080, height: 1920, sound: [jl])",
+  "    width: 1080, height: 1920, range: [0, 1], sound: [jl],",
+  "    palette: [\"#000000\", \"#8f8f8f\", \"#6fa8dc\", \"#93c47d\", \"#f1c232\", \"#e8553a\"])",
   "}"
  ]
 }
