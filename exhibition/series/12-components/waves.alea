@@ -1,0 +1,7 @@
+// Waves: the field of episode 02, as a component (episode 12).
+work Waves(freq = 30) {
+  output (sin(x * freq + sin(y * 9) * 2) + 1) / 2
+
+  // used only when this file runs on its own
+  render image(output, palette: "ink")
+}

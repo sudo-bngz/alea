@@ -40,3 +40,4 @@ For a preview, lower the render in a copy (`width: 270, height: 480`,
 | 09 | Growing | `grow over N for S { … then … }`, `~~`, `neighbours`, a trace field, played back with `at` | 65 s |
 | 10 | Text | `text(words, x, y, size)` as a field: warped, multiplied by a field, chosen by chance | 53 s |
 | 11 | Sculpture | `render sculpture(field)` to STL: a field as heights, `relief` and `base` in millimetres, `at` for a moment; the objects shown are the files alea wrote (`11-sculpture.sh`, `stl-view.py`) | 53 s |
+| 12 | Components | `output` makes a work a component, `use` brings it in, every call a new draw, small works into bigger ones (`12-components/moon.alea`, `waves.alea`) | 53 s |
