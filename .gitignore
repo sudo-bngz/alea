@@ -50,3 +50,6 @@ exhibition/series/photo.jpg
 exhibition/sound/*.wav
 __pycache__/
 exhibition/series/11-sculpture*.png
+
+# Rêve: a frame of the phone clip of Brut, taken by exhibition/reve/README
+exhibition/reve/studio.jpg

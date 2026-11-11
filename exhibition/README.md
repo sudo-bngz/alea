@@ -28,6 +28,7 @@ same image again, exactly; any other seed draws a work no one has seen.
 | **Brut** | `brut.alea` (+ `brut/`) | A phone clip of the basement, torn to pieces: ten scenes cut on a 128 bpm grid, each a different way of breaking the picture (stills strobing, red green and blue pulled apart, a grid of sixteen frames, a kaleidoscope of the orange record, the clip seen through the label's globe, warped backwards in the break, edges and scanlines, the ghosts of two moments, eight stuttering strips, the stamp), the clip's own sound chopped through a modular patch, and a Detroit track underneath. |
 | **Couches** | `couches.alea` (+ `couches/`) | How a network works, explained by a voice in two minutes: what a protocol is, the seven layers of the OSI model, encapsulation (a message wrapped in a header at every layer on its way down, unwrapped on its way up), and each layer with its protocols: HTTP and DNS, TCP's numbered segments and UDP's stream, IP addresses and routers hop by hop, Ethernet frames and ARP on one cable, bits as voltage, light and radio. Ten works on a timeline, the words typed as they are said, a stack of seven layers lighting the one we are in. |
 | **Houle** | `houle.alea` (+ `houle/`) | The swell, in half a minute, white and blue: what a wave is and how the sea moves, abstract. The horizon; grains of water turning in circles as the wave passes through them; rows of water lifted by waves of three lengths; rings crossing and adding up; the open sea in 3D; the same rows curled over into a breaking crest; the foam on the sand. Seven works crossed slowly by morphs and fades; a pad, the waves and drops of glass, breathing with the sea. |
+| **Rêve** | `reve.alea` (+ `reve/`) | A dream, in a minute, made of one photo of the studio (a frame of Brut's clip): the photo drifting; space bending under it; folded into a turning mandala of hands and knobs; only its own colours left (`colours()`), flowing as marble; its brightness redrawn as contour bands in those colours, mirrored and warped; the photo surfacing again as you wake. Six scenes melting into each other; a pad in A lydian breathing four times, a low tide, drops of glass. |
 
 ## Replaying the editions
 
@@ -45,6 +46,7 @@ alea houle.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Ree
 alea couches.alea --seed 0xa1ea01            # the cover, and the 1080×1920 Reel: 130 s, explained by a voice (needs voices/kokoro.py)
 alea brut.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s (first python3 brut/make-inputs.py CLIP.mov; about 1.5 hours)
 alea flammes.alea --seed 0xa1ea01            # the cover, and the 1080×1920 Reel: 60 s, on a voice (needs flammes/voice.wav; about 40 minutes)
+alea reve.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, a dream (needs reve/studio.jpg: a frame of Brut's clip, see below; about 45 minutes)
 alea vektor.alea --seed 0xa1ea01             # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 45 minutes)
 alea babel.alea --seed 0xa1ea01              # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 30 minutes)
 alea hana.alea --seed 0xa1ea01               # the cover, and the 1080×1920 Reel: 60 s, in a loop (about 20 minutes)
@@ -84,9 +86,17 @@ The posted editions:
 | Houle Reel | 0xa1ea01 |
 | Couches Reel | 0xa1ea01 |
 | Brut Reel | 0xa1ea01 |
+| Rêve Reel | 0xa1ea01 |
 
 All images are 1080 × 1350 (4:5, Instagram's portrait format); the Reel is
 1080 × 1920 (9:16), 15 seconds, with sound.
+
+`reve/studio.jpg` is one frame of the phone clip of Brut, 4.16 s in, kept out of
+the repository:
+
+```sh
+ffmpeg -ss 4.16 -i CLIP.mov -frames:v 1 -q:v 2 reve/studio.jpg
+```
 
 ## Posting plan
 

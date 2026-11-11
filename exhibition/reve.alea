@@ -1,0 +1,82 @@
+// Rêve — a dream, in a minute, made of one photo: a frame of the studio
+// (the phone clip of Brut: a deck, a mixer, the poster, the crates). The
+// photo as it is, drifting; then space bending under it; then folded into
+// a turning mandala; then only its colours (colours(), its own palette)
+// flowing as marble; then its brightness redrawn as contour bands in those
+// colours, mirrored, warped, cycling; then the photo surfacing again, as
+// you wake. Six scenes melting into each other.
+//
+// The sound dreams with it: a pad in A lydian breathing four times in the
+// minute, a low tide, drops of glass, a wash at every crossing.
+//
+// reve/studio.jpg is a frame of the clip (not in the repository): see
+// exhibition/README for how to take it.
+
+work Reve {
+  let photo = open("reve/studio.jpg")
+  let pic = photo.painting
+  let pal = colours(photo, 8)                                  // the photo's own colours, darkest first
+  let dream(f) = paint(f, palette: pal, range: [0, 1])
+  let breathe = 0.5 - 0.5 * cos(t * tau * 4)
+  // a painting can't be bent, its channels can: each one moved the same way, then added back
+  let red(f) = paint(f, [[0, "#000000"], [1, "#ff0000"]], range: [0, 1])
+  let green(f) = paint(f, [[0, "#000000"], [1, "#00ff00"]], range: [0, 1])
+  let blue(f) = paint(f, [[0, "#000000"], [1, "#0000ff"]], range: [0, 1])
+  let rgb(r, g, b) = overlay(red(r), green(g), blue(b), blend: "add")
+
+  // 1 · the source: the photo, drifting in
+  let drift(c) = zoom(c, by: 1.04 + 0.1 * t, x: 0.55, y: 0.3)
+  let source = film(rgb(drift(photo.red), drift(photo.green), drift(photo.blue)), amount: 0.04)
+
+  // 2 · melting: space bends under the photo, the colours come apart
+  let bend(c, k) = warp(rotate(zoom(c, by: 1.15 + 0.25 * t, x: 0.5, y: 0.3), angle: 12 * t, x: 0.5, y: 0.5),
+                        amount: (0.01 + 0.09 * t) * k, scale: 3)
+  let melt = chroma(bloom(rgb(bend(photo.red, 1.2), bend(photo.green, 1), bend(photo.blue, 0.8)), amount: 0.9), amount: 2)
+
+  // 3 · mandala: the hands, the deck and the mixer folded eight times, turning
+  let fold(c) = warp(kaleidoscope(rotate(zoom(c, by: 2.4 + 0.4 * sin(t * tau), x: 0.62, y: 0.66), angle: 90 * t, x: 0.62, y: 0.66),
+                                  sides: 8, x: 0.5, y: 0.5), amount: 0.02 + 0.02 * sin(t * tau * 2), scale: 2)
+  let mandala = chroma(bloom(rgb(fold(photo.red), fold(photo.green), fold(photo.blue)), amount: 0.6), amount: 1.2)
+
+  // 4 · its colours only: marble flowing in the photo's palette, round and round it
+  let flow = noise(x * 1.6, y * 1.6 - t * 0.6, t * 0.8)
+  let swirl = fract(0.5 + 0.5 * sin(x * 5 + y * 3 + 7 * flow + t * tau) + 1.5 * flow + 0.5 * t)
+  let marble = bloom(dream(warp(swirl, amount: 0.05, scale: 2)), amount: 0.6)
+
+  // 5 · another image: the photo's brightness, redrawn as bands of its colours
+  let bands = fract(photo.luma * 3 + t * 1.5 + 0.15 * noise(x * 3, y * 3, t * 2))
+  let other = chroma(bloom(dream(warp(mirror(bands, axis: "vertical"), amount: 0.03 + 0.03 * t, scale: 4)), amount: 1), amount: 1)
+
+  // 6 · waking: the photo surfaces through the bands
+  let wake = overlay(dream(fract(photo.luma * 2 + t * 0.6)), blur(pic, radius: 0.004), mask: smoothstep(0.1, 0.8, t))
+
+  let reel = timeline([
+      scene(source, 7),                     morph(1.4, amount: 0.25),
+      scene(melt, 10),                      morph(1.6, amount: 0.3),
+      scene(mandala, 11),                   morph(1.6, amount: 0.3),
+      scene(marble, 10),                    morph(1.6, amount: 0.3),
+      scene(other, 13),                     morph(1.6, amount: 0.3),
+      scene(vignette(wake, amount: 0.4), 9),
+  ])                                                                           // 60 s
+  let look = film(reel, amount: 0.03)
+
+  // ── the sound: a dream breathing four times in the minute ──
+  let pad = synth {
+    let env = adsr(attack: 2.5, decay: 1, sustain: 0.9, release: 4)
+    chorus(lowpass(triangle(note.freq) + saw(note.freq * 1.004) * 0.3 + sine(note.freq * 2) * 0.25,
+                   cutoff: 400 + 1600 * note.level, resonance: 0.15) * env, depth: 1, rate: 0.15, mix: 0.7)
+  }
+  let tide = synth { (sine(note.freq) + sine(note.freq * 2) * 0.1) * adsr(attack: 3, decay: 1, sustain: 1, release: 4) }
+  let wash = synth { lowpass(noise(), cutoff: 500 + 2500 * perc(attack: 0.8, release: 2), resonance: 0.2) * perc(attack: 0.8, release: 2) }
+  pattern drops = repeat 46 event(t: ~uniform(0.03, 0.97), x: ~uniform(0.15, 0.85), y: ~between(0.3, 0.95), size: ~between(0.03, 0.08),
+                                  intensity: ~between(0.15, 0.5))
+  let music = [
+    drone(0.25 + 0.65 * breathe + y * 0, voices: 5, instrument: pad, scale: "lydian", key: 110, gain: 0.9),
+    drone(0.4 + 0.5 * breathe + y * 0, voices: 1, instrument: tide, key: 55, gain: 0.7),
+    notes(drops, instrument: "glass", scale: "pentatonic", key: 880, gain: 0.35),
+    notes(reel.cues, instrument: wash, gain: 0.35),
+  ]
+
+  render image(look, width: 1080, height: 1920, at: 25 / 60)                 // the cover: the mandala
+  render video(look, fps: 30, width: 1080, height: 1920, sound: music, room: 0.7, echo: 0.35)
+}
