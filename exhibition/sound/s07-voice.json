@@ -1,0 +1,225 @@
+{
+ "number": "S07",
+ "slug": "s07-voice",
+ "work": "VoiceS07",
+ "title": "Voice",
+ "tempo": 120,
+ "bars": 52,
+ "key": 110,
+ "cover": 0.6,
+ "view": "voice",
+ "code": {
+  "size": 0.034,
+  "dy": 0.06
+ },
+ "meters_y": 1.315,
+ "meters_dy": 0.026,
+ "hook": {
+  "bar": 2,
+  "say": "The voice you hear is in the program."
+ },
+ "drone": {
+  "field": "0.6",
+  "stages": [
+   {
+    "bar": 4,
+    "voices": 3,
+    "instrument": "sine",
+    "gain": 1.25,
+    "label": "pad"
+   }
+  ]
+ },
+ "demos": [
+  {
+   "beat": 0,
+   "text": "I am a program. I speak in formants.",
+   "args": "",
+   "gain": 2.0,
+   "label": "alea's voice  ·  pitch 110  ·  size 1"
+  },
+  {
+   "beat": 1,
+   "text": "one sound at a time",
+   "args": "speed: 0.8",
+   "gain": 2.0,
+   "label": "v.words  ·  a time for each word"
+  },
+  {
+   "beat": 2,
+   "text": "I am a program. I speak in formants.",
+   "args": "pitch: 196, size: 0.85",
+   "gain": 2.0,
+   "label": "pitch 196  ·  size 0.85"
+  },
+  {
+   "beat": 3,
+   "text": "one sound at a time",
+   "args": "pitch: \"A2\", melody: [0, 3, 7, 10, 12]",
+   "gain": 2.0,
+   "label": "sung  ·  A2  ·  0 3 7 10 12"
+  },
+  {
+   "bars": [
+    36,
+    38,
+    40,
+    42,
+    44,
+    46
+   ],
+   "text": "one sound at a time",
+   "args": "pitch: \"A2\", melody: [0, 3, 7, 10, 12]",
+   "gain": 2.0,
+   "label": "sung  ·  on the bar"
+  }
+ ],
+ "layers": [
+  {
+   "name": "kick",
+   "label": "kick",
+   "hidden": true,
+   "synth": [
+    "sine(50 + 150 * perc(release: 0.03))",
+    "  * perc(release: 0.4)"
+   ],
+   "hits": {
+    "euclid": [
+     4,
+     16,
+     0
+    ]
+   },
+   "enter": 36,
+   "gain": 1.3
+  },
+  {
+   "name": "rim",
+   "label": "rim",
+   "hidden": true,
+   "synth": [
+    "bandpass(noise(), cutoff: 3000)",
+    "  * perc(release: 0.03)",
+    "  + sine(1700) * perc(release: 0.02)"
+   ],
+   "hits": {
+    "euclid": [
+     5,
+     16,
+     0
+    ]
+   },
+   "enter": 36,
+   "gain": 0.45
+  },
+  {
+   "name": "shaker",
+   "label": "shaker",
+   "hidden": true,
+   "synth": [
+    "highpass(noise(), cutoff: 6000)",
+    "  * perc(attack: 0.01, release: 0.06)"
+   ],
+   "hits": {
+    "euclid": [
+     7,
+     16,
+     0
+    ]
+   },
+   "enter": 36,
+   "gain": 0.35
+  }
+ ],
+ "beats": [
+  {
+   "label": "say",
+   "bar": 4,
+   "say": "The next voice is alea's own, built from formants, like the first speaking machines.",
+   "code": [
+    "let v = say(\"I am a program. I speak in formants.\")"
+   ]
+  },
+  {
+   "label": "words",
+   "bar": 12,
+   "say": "Each word comes with its time, so the screen can type it as it is said.",
+   "code": [
+    "let v = say(\"one sound at a time\", speed: 0.8)",
+    "// v.words: when each word starts, in seconds"
+   ]
+  },
+  {
+   "label": "pitch",
+   "bar": 20,
+   "say": "Pitch and size change who speaks: a higher voice, a smaller throat.",
+   "code": [
+    "let v = say(\"I am a program. I speak in formants.\",",
+    "  pitch: 196, size: 0.85)"
+   ]
+  },
+  {
+   "label": "melody",
+   "bar": 28,
+   "say": "Give it a melody and it sings, one note for each syllable.",
+   "code": [
+    "let v = say(\"one sound at a time\",",
+    "  pitch: \"A2\", melody: [0, 3, 7, 10, 12])"
+   ]
+  }
+ ],
+ "drop": {
+  "bar": 36,
+  "label": "sung on the bar",
+  "code": [
+   "let sing(at) = say(\"one sound at a time\",",
+   "  at: at, pitch: \"A2\",",
+   "  melody: [0, 3, 7, 10, 12])",
+   "let pad = drone(0.6, voices: 3, key: 110)",
+   "render sound(sing(72), sing(76), sing(80),",
+   "  sing(84), sing(88), sing(92),",
+   "  pad, kicks, rims, shakes)"
+  ]
+ },
+ "end": {
+  "bar": 48,
+  "say": "Next time: listening. Play it a track, and the picture listens.",
+  "next": "s08  ·  listening"
+ },
+ "program": [
+  "// alea, one sound at a time · S07 — Voice: the program on screen, whole.",
+  "// alea's own voice, a pulse through resonators, sung on the bar over a pad",
+  "// and the rhythm of S02. Run it: alea s07-voice-program.alea",
+  "",
+  "work Voice {",
+  "  let m = meter(tempo: 120, bars: 52)",
+  "",
+  "  let sing(at) = say(\"one sound at a time\",",
+  "    at: at, pitch: \"A2\",",
+  "    melody: [0, 3, 7, 10, 12])",
+  "  let pad = drone(0.6, voices: 3, key: 110)",
+  "",
+  "  // the rhythm of S02",
+  "  let kick = synth {",
+  "    sine(50 + 150 * perc(release: 0.03))",
+  "      * perc(release: 0.4)",
+  "  }",
+  "  let rim = synth {",
+  "    bandpass(noise(), cutoff: 3000)",
+  "      * perc(release: 0.03)",
+  "      + sine(1700) * perc(release: 0.02)",
+  "  }",
+  "  let shaker = synth {",
+  "    highpass(noise(), cutoff: 6000)",
+  "      * perc(attack: 0.01, release: 0.06)",
+  "  }",
+  "  let kicks = notes(euclid(4, 16, bars: m), instrument: kick)",
+  "  let rims = notes(euclid(5, 16, bars: m), instrument: rim)",
+  "  let shakes = notes(euclid(7, 16, bars: m), instrument: shaker)",
+  "",
+  "  render sound(sing(72), sing(76), sing(80),",
+  "    sing(84), sing(88), sing(92),",
+  "    pad, kicks, rims, shakes, duration: m.length)",
+  "}"
+ ]
+}

@@ -1,0 +1,43 @@
+// alea, one sound at a time · S05 — Harmony: the program on screen, whole.
+// Four chords: a pad holds them, an arpeggio walks them, a bass plays their roots,
+// over the rhythm of S02. Swap the progression for chords("functional", key: "A3",
+// scale: "minor", bars: m) and chance writes a new one every edition.
+// Run it: alea s05-harmony-program.alea
+
+work Harmony {
+  let m = meter(tempo: 120, bars: 52)
+  let prog = chords("i VI III VII", key: "A3",
+    scale: "minor", bars: m, repeat: 13)
+
+  let pad = drone(0.8, voices: 4,
+    instrument: "strings", harmony: prog)
+  let arps = arp(prog, euclid(7, 16, bars: m),
+    mode: "updown", octaves: 2,
+    instrument: "marimba")
+  let bass = synth {
+    (sine() + 0.3 * saw()) * perc(release: 0.4)
+  }
+  let low = euclid(3, 8, bars: m, y: 1)
+  let roots = notes(low, instrument: bass,
+    harmony: prog, key: prog.key / 2)
+
+  // the rhythm of S02
+  let kick = synth {
+    sine(50 + 150 * perc(release: 0.03))
+      * perc(release: 0.4)
+  }
+  let rim = synth {
+    bandpass(noise(), cutoff: 3000)
+      * perc(release: 0.03)
+      + sine(1700) * perc(release: 0.02)
+  }
+  let shaker = synth {
+    highpass(noise(), cutoff: 6000)
+      * perc(attack: 0.01, release: 0.06)
+  }
+  let kicks = notes(euclid(4, 16, bars: m), instrument: kick)
+  let rims = notes(euclid(5, 16, bars: m), instrument: rim)
+  let shakes = notes(euclid(7, 16, bars: m), instrument: shaker)
+
+  render sound(pad, arps, roots, kicks, rims, shakes, duration: m.length)
+}

@@ -22,7 +22,8 @@ them in the middle, which is the only other difference.
 The look, the opening, the code panel and the captions come from the
 picture series' template (`../series/gen.py`).
 """
-import importlib.util, json, os, sys
+import re
+import importlib.util, json, math, os, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 _spec = importlib.util.spec_from_file_location("series_gen", os.path.join(HERE, "..", "series", "gen.py"))
@@ -45,7 +46,20 @@ def times(ep):
     return bar, bar / 16
 
 
+def euclid16(hits, steps, rotate=0):
+    """alea's `euclid` (src/eval.rs) on a bar of sixteen sixteenths: a hit on step k
+    when ((k - rotate) * hits) mod steps < hits; 1 on the first of the cycle, 0.8 after."""
+    out = [0.0] * 16
+    for k in range(steps):
+        kk = (k - rotate) % steps
+        if (kk * hits) % steps < hits:
+            out[k * 16 // steps] = 1.0 if kk == 0 else 0.8
+    return out
+
+
 def hits_of(s):
+    if isinstance(s, dict):
+        return euclid16(*s["euclid"])
     v = {"X": 1.0, "x": 0.65, "o": 0.35}
     cells = [v.get(c, 0.0) for c in s if not c.isspace()]
     assert len(cells) == 16, s
@@ -66,6 +80,25 @@ def say_lines(ep):
     return [f'  let {n} = say("{s}", at: {a:.2f}, engine: ENGINE, voice: VOICE, speed: 1.0, gain: 2.5)' for n, s, a in lines_said(ep)]
 
 
+def demo_lines(ep):
+    """The voices that are the subject (alea's own, not the narrator's): each
+    after its beat's spoken line, or on its bars. (name, code line, window
+    start expr, window end expr, entry)."""
+    bar, _ = times(ep)
+    out = []
+    for e in ep.get("demos", []):
+        args = (", " + e["args"]) if e["args"] else ""
+        if "beat" in e:
+            n = f"d{len(out)}"
+            out.append((n, f'  let {n} = say("{e["text"]}", at: l{e["beat"] + 1}.end + 0.6{args}, gain: {e["gain"]})', f"{n}.start", f"{n}.end + 2.5", e))
+        else:
+            names = [f"d{len(out) + k}" for k in range(len(e["bars"]))]
+            for k, (n, b) in enumerate(zip(names, e["bars"])):
+                end = f"{names[k + 1]}.start" if k + 1 < len(names) else f"{n}.end + 2.5"
+                out.append((n, f'  let {n} = say("{e["text"]}", at: {b * bar:.3f}{args}, gain: {e["gain"]})', f"{n}.start", end, e))
+    return out
+
+
 # ── pass 1: the track ─────────────────────────────────────────────────────
 
 def track(ep):
@@ -84,18 +117,120 @@ def track(ep):
          f"  let SIX = {six:.6f}",
          f'  let ENGINE = "{ENGINE}"',
          f'  let VOICE = "{VOICE}"']
+    hm = ep.get("harmony")
+    if hm:
+        # the drawn progression first: every pattern draws from the same stream,
+        # so the Reel (which draws nothing else) shows the very chords played here
+        L.append(f"  let m = meter(tempo: {ep['tempo']}, bars: {nb})")
+        L.append(f'  let drawn = chords("functional", key: "{hm["key"]}", scale: "{hm["scale"]}", bars: m)')
+        L.append(f'  let prog = chords("{" ".join(hm["written"])}", key: "{hm["key"]}", scale: "{hm["scale"]}", bars: m, repeat: {nb // len(hm["written"])})')
     L += say_lines(ep)
-    talks = " + ".join(f"(s >= {n}.start) * (s < {n}.end + 0.25)" for n, _, _ in lines_said(ep))
+    talks =" + ".join(f"(s >= {n}.start) * (s < {n}.end + 0.25)" for n, _, _ in lines_said(ep))
     L.append(f"  let talk(s) = {talks}")
     L.append("  let duck(s) = 1 - 0.5 * min(1, talk(s))")
     L.append("  let semi(s) = 1 - (s + 0.5) / 36")
+    demos = demo_lines(ep)
+    for _, line, *_ in demos:
+        L.append(line)
     L.append("")
     for ly in ep["layers"]:
+        if ly.get("riff"):
+            continue
         body = " ".join(x.strip() for x in ly["synth"])
         L.append(f"  let {ly['name']} = synth {{ {body} }}")
+    stages = ep.get("stages", [])
+    for j, st in enumerate(stages):
+        body = "; ".join(x.strip() for x in st["synth"]) if len(st["synth"]) > 1 else st["synth"][0]
+        if len(st["synth"]) > 1:
+            L.append(f"  let lead{j} = synth {{")
+            for x in st["synth"]:
+                L.append(f"    {x}")
+            L.append("  }")
+        else:
+            L.append(f"  let lead{j} = synth {{ {body} }}")
     L.append("  let tone = synth { (sine() + sine(note.freq * 1.5) * 0.3) * adsr(attack: 0.4, decay: 0.6, sustain: 0.6, release: 2.5) * 0.5 }")
     L.append("")
     layers = []
+    if hm:
+        # pad, arpeggio and bass: on the written progression, except for the
+        # drawn bars; each layer turned down by how little of the track it plays
+        d0, d1 = hm["drawn_bars"]
+        L.append(f"  let bass = synth {{ {hm['bass']['synth']} }}")
+        L.append("  let on(s, a, b) = clamp((s - a) / 0.08, 0, 1) * clamp((b - s) / 0.08, 0, 1)")
+
+        def spans(enter):
+            return {"prog": [(enter, d0), (d1, nb)], "drawn": [(d0, d1)]}
+
+        def g(base, wins):
+            return round(base * (sum(b - a for a, b in wins) / nb) ** 0.5, 3)
+
+        pad = hm["pad"]
+        for which, wins in spans(pad["enter"]).items():
+            gate = " + ".join(f"on(t * total, {a * bar:.3f}, {b * bar:.3f})" for a, b in wins)
+            layers.append(f'drone(({gate}) * duck(t * total), voices: {pad["voices"]}, instrument: "{pad["instrument"]}", harmony: {which}, gain: {g(pad["gain"], wins):g})')
+        for part in ("arp", "bass"):
+            p = hm[part]
+            h = hits_of({"euclid": p["euclid"]})
+            pos = [k for k, v in enumerate(h) if v > 0]
+            vel = [h[k] for k in pos]
+            n = len(pos)
+            L.append(f"  let {part}_at = [{', '.join(map(str, pos))}]")
+            L.append(f"  let {part}_vel = [{', '.join(f'{v:g}' for v in vel)}]")
+            for which, wins in spans(p["enter"]).items():
+                w = " + ".join(f"(floor(i / {n}) >= {a}) * (floor(i / {n}) < {b})" for a, b in wins)
+                st = f"(16 * floor(i / {n}) + {part}_at[i % {n}])"
+                y = "1" if part == "bass" else "0.5"
+                L.append(f"  pattern p_{part}_{which} = repeat {n * nb} event(t: {st} / {steps_total}, x: 0.5, y: {y}, size: 0.012,")
+                L.append(f"      intensity: {part}_vel[i % {n}] * ({w}) * duck({st} * SIX))")
+                if part == "arp":
+                    layers.append(f'arp({which}, p_arp_{which}, mode: "{p["mode"]}", octaves: {p["octaves"]}, gate: {p["gate"]}, instrument: "{p["instrument"]}", gain: {g(p["gain"], wins):g})')
+                else:
+                    layers.append(f"notes(p_bass_{which}, instrument: bass, harmony: {which}, key: {which}.key / 2, gain: {g(p['gain'], wins):g})")
+        L.append("")
+    dr = ep.get("drone")
+    if dr:
+        # the drone: one layer per stage, the field held to its bars; the
+        # texture from its bar on; each turned down by how little it plays
+        L.append(f"  let waves = {dr['field']}")
+        L.append("  let won(s, a, b) = clamp((s - a) / 0.5, 0, 1) * clamp((b - s) / 0.5, 0, 1)")
+        ends = [st["bar"] for st in dr["stages"][1:]] + [nb]
+        for st, b in zip(dr["stages"], ends):
+            a = st["bar"]
+            gain = round(st["gain"] * ((b - a) / nb) ** 0.5, 3)
+            layers.append(f'drone(waves * won(t * total, {a * bar:.3f}, {b * bar + 0.5:.3f}) * duck(t * total), voices: {st["voices"]}, instrument: "{st["instrument"]}", key: {ep["key"]}, gain: {gain:g})')
+        tx = dr.get("texture")
+        if tx:
+            gain = round(tx["gain"] * ((nb - tx["bar"]) / nb) ** 0.5, 3)
+            layers.append(f'texture(waves * won(t * total, {tx["bar"] * bar:.3f}, {total + 1:.3f}) * duck(t * total), kind: "{tx["kind"]}", gain: {gain:g})')
+        L.append("")
+    tu = ep.get("tune")
+    if tu:
+        # the tune: the same dots, played by each stage's settings in turn
+        L.append("  let lead = synth {")
+        for x in tu["synth"]:
+            L.append(f"    {x}")
+        L.append("  }")
+        L.append(f"  let when = [{', '.join(str(v) for v in tu['when'])}]")
+        L.append(f"  let high = [{', '.join(str(v) for v in tu['high'])}]")
+        L.append(f"  let loose = [{', '.join(f'{v:g}' for v in tu['loose'])}]")
+        m = len(tu["when"])
+        bounds = [st["bar"] * 16 for st in tu["stages"]] + [steps_total]
+        for j, st in enumerate(tu["stages"]):
+            a, b = bounds[j], bounds[j + 1]
+            count = m * math.ceil((b - a) / 32)
+            pos = f"(32 * floor(i / {m}) + when[i % {m}]{' + loose[i % ' + str(m) + ']' if st['loose'] else ''})"
+            L.append(f"  pattern p_tune{j} = repeat {count} event(t: ({a} + {pos}) / {steps_total}, x: 0.5,")
+            L.append(f"      y: 1 - (high[i % {m}] + 0.5) / 15, size: {tu.get('size', 0.02)},")
+            L.append(f"      intensity: ({pos} < {b - a}) * duck(({a} + {pos}) * SIX))")
+            # the mixer levels a layer over the whole track: a longer stage is turned up to match
+            gain = round(tu["gain"] * ((b - a) / 128) ** 0.5, 3)
+            extra = f', scale: "{st["scale"]}", key: "{st["key"]}"'
+            if st["tempo"]:
+                extra += f", tempo: {st['tempo']}"
+            if st["swing"] != 0.5:
+                extra += f", swing: {st['swing']}"
+            layers.append(f"notes(p_tune{j}, instrument: lead, gain: {gain:g}{extra})")
+        L.append("")
     for ly in ep["layers"]:
         h = hits_of(ly["hits"])
         lst = "[" + ", ".join(f"{v:g}" for v in h) + "]"
@@ -103,16 +238,31 @@ def track(ep):
         x = "0.5"
         e0 = ly["enter"] * 16
         sw = ly.get("swing")
-        spans = [(ly["name"], e0, sw["from"] * 16 if sw else steps_total, None)]
-        if sw:
-            spans.append((ly["name"] + "_sw", sw["from"] * 16, steps_total, sw["amount"]))
-        for pname, a, b, swing in spans:
-            L.append(f"  pattern p_{pname} = repeat {steps_total} event(t: i / {steps_total}, x: {x}, y: 0.5, size: 0.02,")
+        if ly.get("riff"):
+            # the lead: the same pattern, played by each stage's synth in turn
+            bounds = [st["bar"] * 16 for st in stages] + [steps_total]
+            # the mixer brings each layer to one level over the whole track:
+            # a stage that plays longer is turned up by as much, to sound the same
+            spans = [(f"{ly['name']}{j}", max(e0, bounds[j]), bounds[j + 1], None, f"lead{j}",
+                      round(st.get("gain", 1) * ly["gain"] * ((bounds[j + 1] - max(e0, bounds[j])) / 128) ** 0.5, 3))
+                     for j, st in enumerate(stages)]
+        else:
+            spans = [(ly["name"], e0, sw["from"] * 16 if sw else steps_total, None, ly["name"], ly["gain"])]
+            if sw:
+                spans.append((ly["name"] + "_sw", sw["from"] * 16, steps_total, sw["amount"], ly["name"], ly["gain"]))
+        ey, es = ly.get("y", 0.5), ly.get("size", 0.02)
+        for pname, a, b, swing, inst, gain in spans:
+            L.append(f"  pattern p_{pname} = repeat {steps_total} event(t: i / {steps_total}, x: {x}, y: {ey}, size: {es},")
             L.append(f"      intensity: {lst}[i % 16] * {vel} * (i >= {a}) * (i < {b}) * duck(i * SIX))")
             extra = f", tempo: {ep['tempo']}, swing: {swing}" if swing else ""
-            layers.append(f"notes(p_{pname}, instrument: {ly['name']}, gain: {ly['gain']}{extra})")
-    L.append(f"  pattern p_tone = repeat 2 event(t: [0.3, 2.4][i] / total, y: semi([0, 7][i]), size: 0.15, intensity: [0.5, 0.3][i])")
-    layers.append(f'notes(p_tone, instrument: tone, scale: "chromatic", key: {ep["key"]}, gain: 0.2)')
+            if "key" in ly:
+                extra += f", key: {ly['key']}"
+            layers.append(f"notes(p_{pname}, instrument: {inst}, gain: {gain:g}{extra})")
+    if not (ep.get("music") or ep.get("voice_only")):
+        # the opening's tone (an episode on someone's music opens on that music)
+        L.append(f"  pattern p_tone = repeat 2 event(t: [0.3, 2.4][i] / total, y: semi([0, 7][i]), size: 0.15, intensity: [0.5, 0.3][i])")
+        layers.append(f'notes(p_tone, instrument: tone, scale: "chromatic", key: {ep["key"]}, gain: 0.2)')
+    layers += [n for n, *_ in demos]
     L.append("")
     L.append("  let music = [")
     L.append("    " + ", ".join(n for n, _, _ in lines_said(ep)) + ",")
@@ -132,12 +282,510 @@ def program(ep):
 
 # ── pass 2: the Reel ──────────────────────────────────────────────────────
 
-def hit_expr(h):
-    """a field of `col`: the step's value in the pattern, as a sum of tests."""
-    terms = [f"(col == {k}) * {v:g}" for k, v in enumerate(h) if v > 0]
+def hit_expr(h, var="col"):
+    """a field of `var`: the step's value in the pattern, as a sum of tests."""
+    terms = [f"({var} == {k}) * {v:g}" for k, v in enumerate(h) if v > 0]
     if len(terms) == 16 and len(set(h)) == 1:
         return f"{h[0]:g}"
     return " + ".join(terms) if terms else "0"
+
+
+SCALES = {"pentatonic": [0, 2, 4, 7, 9]}
+
+
+def riff_steps(ep):
+    """For each sixteenth of the bar: how many steps back the last note of the
+    riff started, how hard it was struck, and its frequency."""
+    notes = [None] * 16
+    for ly in ep["layers"]:
+        if not ly.get("riff"):
+            continue
+        sc = SCALES[ly.get("scale", "pentatonic")]
+        d = min(int((1 - ly.get("y", 0.5)) * 3 * len(sc)), 3 * len(sc) - 1)
+        f = ly["key"] * 2 ** ((sc[d % len(sc)] + 12 * (d // len(sc))) / 12)
+        for k, v in enumerate(hits_of(ly["hits"])):
+            if v > 0:
+                notes[k] = (v, f)
+    back, acc, f0 = [], [], []
+    for k in range(16):
+        j = next(j for j in range(16) if notes[(k - j) % 16])
+        v, f = notes[(k - j) % 16]
+        back.append(j); acc.append(v); f0.append(round(f, 2))
+    return back, acc, f0
+
+
+def synth_view(ep, bar, six):
+    """The lead, drawn from the same numbers that make it: the wave as the sum
+    of its first harmonics (each through the filter), scaled by the envelope
+    and bent by the drive; below, the harmonics as bars and the filter's curve.
+    Each part appears with the unit that brings it."""
+    sc = ep["scope"]
+    at = {st["unit"]: st["bar"] * bar for st in ep["stages"]}
+    back, acc, f0 = riff_steps(ep)
+    N = 10
+    SX0, SW = 0.07, 0.86
+    YC, AY = 0.965, 0.06
+    YB, HB = 1.24, 0.15
+    k = 2 - 1.95 * sc["resonance"]
+    G = 1 + 20 * sc["drive"]
+    L = ["  // ── the lead, drawn: the wave as its harmonics, and the filter ──",
+         f"  let back = {hit_expr(back, 'cur')}",
+         f"  let acc = {hit_expr(acc, 'cur')}",
+         f"  let f0 = {hit_expr(f0, 'cur')}",
+         "  let ts = (fract(T / SIX) + back) * SIX",
+         f"  let gate = ts < {sc['hold']}",
+         f"  let eu = min(1, max(0, ts - {sc['attack']}) / {sc['decay']})",
+         f"  let eh = (ts < {sc['attack']}) * ts / {sc['attack']} + (ts >= {sc['attack']}) * ({sc['sustain']} + {1 - sc['sustain']:g} * (1 - eu) * (1 - eu))",
+         f"  let ev = min(1, max(0, ts - {sc['hold']}) / {sc['release']})",
+         f"  let env = gate * eh + (1 - gate) * {sc['sustain']} * (1 - ev) * (1 - ev)",
+         f"  let on = T >= {at['sine']:.3f}",
+         f"  let isaw = T >= {at['saw']:.3f}",
+         f"  let A = on * acc * ((T < {at['adsr']:.3f}) * gate + (T >= {at['adsr']:.3f}) * env)",
+         f"  let fc = (T >= {at['lowpass']:.3f}) * ({sc['cutoff']} + {sc['sweep']} * env) + (T < {at['lowpass']:.3f}) * 1000000",
+         f"  let lpg(f) = 1 / sqrt((1 - (f / fc) * (f / fc)) * (1 - (f / fc) * (f / fc)) + ({k:g} * f / fc) * ({k:g} * f / fc))",
+         "  let th2(z) = 1 - 2 / (exp(2 * z) + 1)",
+         f"  let isd = T >= {at['drive']:.3f}",
+         f"  let isc = T >= {at['chorus']:.3f}",
+         f"  let inscope = (x >= {SX0}) * (x <= {SX0 + SW:.2f})",
+         f"  let th = (x - {SX0}) / {SW} * 2 * tau",
+         f"  let dthdx = 2 * tau / {SW}",
+         ]
+    two_pi = 2 / 3.141592653589793
+    for n in range(1, N + 1):
+        c = f"((1 - isaw) + isaw * {two_pi:.5f})" if n == 1 else f"isaw * {(two_pi * (-1) ** (n + 1) / n):.5f}"
+        L.append(f"  let a{n} = {c} * lpg({n} * f0)")
+    for tag, ph in [("", "th"), ("c", f"(th - 0.9 - 0.5 * sin(T * tau * 0.8))")]:
+        L.append(f"  let w{tag} = " + " + ".join(f"a{n} * sin({n} * {ph})" if n > 1 else f"a1 * sin({ph})" for n in range(1, N + 1)))
+        L.append(f"  let dw{tag} = " + " + ".join(f"a{n} * {n} * cos({n} * {ph})" if n > 1 else f"a1 * cos({ph})" for n in range(1, N + 1)))
+        L.append(f"  let v{tag} = A * w{tag}")
+        L.append(f"  let tv{tag} = th2({G:g} * v{tag})")
+        L.append(f"  let vo{tag} = v{tag} + isd * (tv{tag} / th2({G:g}) - v{tag})")
+        L.append(f"  let dvo{tag} = A * dw{tag} * (1 + isd * ({G:g} * (1 - tv{tag} * tv{tag}) / th2({G:g}) - 1))")
+        L.append(f"  let sl{tag} = {AY} * dvo{tag} * dthdx")
+        L.append(f"  let line{tag} = (abs(y - ({YC} - {AY} * vo{tag})) / sqrt(1 + sl{tag} * sl{tag}) < 0.0028) * inscope")
+    L += [
+        f"  let axis = (abs(y - {YC}) < 0.0012) * inscope",
+        f'  let lab_w = text("the wave", x: {SX0}, y: {YC - AY - 0.03:.3f}, size: 0.024, font: "mono", align: "left")',
+        f"  let scope = max(axis * RULE, max(linec * isc * FN, max(line * INK, lab_w * GREY))) * on",
+        "",
+        f"  let F = 40 * exp({math.log(256):.5f} * (x - {SX0}) / {SW})",
+        "  let hn = floor(F / f0 + 0.5)",
+        "  let fn = max(1, hn) * f0",
+        f"  let xn = {SX0} + {SW} * ln(fn / 40) / {math.log(256):.5f}",
+        "  let hh = ((hn == 1) + isaw * (hn > 1) / max(1, hn)) * lpg(fn) * A",
+        f"  let bars = (abs(x - xn) < 0.0032) * (hn >= 1) * (hn <= 48) * (y < {YB}) * (y > {YB} - {HB} * hh) * inscope",
+        f"  let isf = T >= {at['lowpass']:.3f}",
+        f"  let fcurve = (abs(y - ({YB} - {HB} * min(1.25, lpg(F)))) < 0.003) * inscope * isf",
+        f"  let xfc = {SX0} + {SW} * ln(clamp(fc, 40, 10240) / 40) / {math.log(256):.5f}",
+        f"  let fmark = (abs(x - xfc) < 0.0025) * (abs(y - ({YB - HB - 0.03:.3f})) < 0.009) * isf",
+        f"  let base = (abs(y - {YB}) < 0.0012) * inscope",
+        f'  let lab_s = text("harmonics  ·  filter", x: {SX0}, y: {YB - HB - 0.03:.3f}, size: 0.024, font: "mono", align: "left")',
+    ]
+    hz = []
+    for f, name in [(100, "100 Hz"), (1000, "1 kHz"), (10000, "10 kHz")]:
+        xx = SX0 + SW * math.log(f / 40) / math.log(256)
+        hz.append(f'text("{name}", x: {min(xx, 0.9):.3f}, y: {YB + 0.022:.3f}, size: 0.02, font: "mono")')
+    L.append(f"  let lab_hz = merge({', '.join(hz)})")
+    L.append("  let spectrum = max(base * RULE, max(bars * NUM, max(fcurve * RED, max(fmark * RED, max(lab_s, lab_hz) * GREY)))) * on")
+    L.append("  let scopes = max(scope, spectrum)")
+    return L
+
+
+SCALE_STEPS = {
+    "pentatonic": [0, 2, 4, 7, 9],
+    "minor": [0, 2, 3, 5, 7, 8, 10],
+    "hirajoshi": [0, 2, 3, 7, 8],
+}
+NOTE_PC = {"C": -9, "D": -7, "E": -5, "F": -4, "G": -2, "A": 0, "B": 2}
+
+
+def semis_from_a3(name):
+    """A note name ("E3", "C#4") as semitones from A3 (220 Hz)."""
+    pc = NOTE_PC[name[0]] + name.count("#") - name.count("b")
+    return pc + 12 * (int(name[-1]) - 3)
+
+
+def tune_notes(tu, st):
+    """Where each dot of the tune lands at this stage: (sixteenth, semitone from A3).
+    Mirrors alea's notes (src/sound.rs): y picks one of three octaves of the
+    scale; tempo snaps to sixteenths; swing delays the odd ones."""
+    sc = SCALE_STEPS[st["scale"]]
+    n = 3 * len(sc)
+    out = []
+    for w, h, lo in zip(tu["when"], tu["high"], tu["loose"]):
+        d = min(int((h + 0.5) / 15 * n), n - 1)
+        semi = semis_from_a3(st["key"]) + sc[d % len(sc)] + 12 * (d // len(sc))
+        pos = w + (lo if st["loose"] else 0)
+        if st["tempo"]:
+            pos = round(pos)
+            if pos % 2 == 1:
+                pos += (st["swing"] - 0.5) * 2
+        out.append((pos, semi))
+    return out
+
+
+def roll_view(ep, bar, six):
+    """A piano roll of the tune: two bars across, semitones up, a keyboard at
+    the left. The rows of the stage's scale are lit, so each change of scale,
+    key, grid or swing moves the same dots."""
+    tu = ep["tune"]
+    stages = tu["stages"]
+    per = [tune_notes(tu, st) for st in stages]
+    semis = [s for p in per for _, s in p]
+    smin, smax = min(semis) - 2, max(semis) + 2
+    RX0, RW = 0.14, 0.80
+    CWs = RW / 32
+    RYB = 1.27
+    RS = round(min(0.02, 0.48 / (smax - smin + 1)), 4)
+    top = RYB - (smax - smin + 1) * RS
+    t0 = stages[0]["bar"] * bar
+
+    def by_stage(vals):
+        # a value per stage, as a sum of tests on the stage index
+        if len(set(vals)) == 1:
+            return f"{vals[0]:g}"
+        return " + ".join(f"(sj == {j}) * {v:g}" for j, v in enumerate(vals) if v != 0) or "0"
+
+    L = ["  // ── the piano roll: the tune's dots, on the stage's scale and grid ──",
+         "  let sj = " + " + ".join(f"(T >= {st['bar'] * bar:.3f})" for st in stages[1:]),
+         f"  let ph = fract((T - {t0:.3f}) / {32 * six:.6f}) * 32",
+         f"  let col = (x - {RX0}) / {CWs:.5f}",
+         f"  let rr = floor(({RYB} - y) / {RS}) + {smin}",
+         f"  let inroll = (x >= {RX0}) * (x < {RX0 + RW:.3f}) * (y > {top:.4f}) * (y < {RYB})",
+         f"  let koff = {by_stage([semis_from_a3(st['key']) for st in stages])}",
+         "  let pc = (rr - koff + 120) % 12"]
+    names = []
+    for name in dict.fromkeys(st["scale"] for st in stages):
+        L.append(f"  let in_{name} = " + " + ".join(f"(pc == {v})" for v in SCALE_STEPS[name]))
+        names.append(name)
+    L.append("  let insc = " + " + ".join(f"(sj == {j}) * in_{st['scale']}" for j, st in enumerate(stages)))
+    L += [f"  let lane = inroll * insc * (fract(({RYB} - y) / {RS}) > 0.12) * (fract(({RYB} - y) / {RS}) < 0.88)",
+          "  let root = lane * (pc == 0)",
+          f"  let beatl = inroll * (abs(fract(col / 4 + 0.5) - 0.5) * 4 * {CWs:.5f} < 0.0011)",
+          f"  let barl = inroll * (abs(fract(col / 16 + 0.5) - 0.5) * 16 * {CWs:.5f} < 0.0016)"]
+    dots, lits, play, halos = [], [], [], []
+    for k in range(len(tu["when"])):
+        L.append(f"  let nx{k} = {by_stage([round(p[k][0], 3) for p in per])}")
+        L.append(f"  let ns{k} = {by_stage([p[k][1] for p in per])}")
+        L.append(f"  let ddx{k} = x - ({RX0} + (nx{k} + 0.5) * {CWs:.5f})")
+        L.append(f"  let ddy{k} = y - ({RYB} - (ns{k} - {smin} + 0.5) * {RS})")
+        L.append(f"  let dd{k} = ddx{k} * ddx{k} + ddy{k} * ddy{k}")
+        L.append(f"  let dot{k} = dd{k} < {(RS * 0.62) ** 2:.7f}")
+        L.append(f"  let halo{k} = dd{k} < {(RS * 0.95) ** 2:.7f}")
+        L.append(f"  let on{k} = (ph >= nx{k}) * (ph < nx{k} + 1)")
+        dots.append(f"dot{k}")
+        halos.append(f"halo{k}")
+        lits.append(f"dot{k} * on{k}")
+        play.append(f"on{k} * (ns{k} + 100)")
+
+    def maxes(xs):
+        return xs[0] if len(xs) == 1 else f"max({xs[0]}, {maxes(xs[1:])})"
+
+    L += [f"  let dots = {maxes(dots)}",
+          f"  let halo = {maxes(halos)}",
+          f"  let lit = {maxes(lits)}",
+          f"  let playing = {' + '.join(play)}",
+          f"  let inkb = (x >= 0.07) * (x < 0.125) * (y > {top:.4f}) * (y < {RYB}) * (fract(({RYB} - y) / {RS}) > 0.1)",
+          "  let pca = (rr + 120) % 12",
+          "  let black = (pca == 1) + (pca == 4) + (pca == 6) + (pca == 9) + (pca == 11)",
+          "  let keyon = inkb * ((rr + 100) == playing)",
+          "  let keys = max(inkb * ((1 - black) * GREY + black * RULE), keyon * RED)",
+          f"  let ph_x = {RX0} + ph * {CWs:.5f}",
+          f"  let head = (abs(x - ph_x) < 0.0012) * (y > {top:.4f}) * (y < {RYB})"]
+    labs = []
+    for j, st in enumerate(stages):
+        L.append(f'  let rl{j} = text("{st["left"]}", x: {RX0}, y: {top - 0.035:.3f}, size: 0.026, font: "mono", align: "left") * (sj == {j})')
+        L.append(f'  let rr{j} = text("{st["right"]}", x: 0.6, y: {top - 0.035:.3f}, size: 0.026, font: "mono", align: "left") * (sj == {j})')
+        labs += [f"rl{j}", f"rr{j}"]
+    L.append(f"  let rlabs = merge({', '.join(labs)})")
+    L.append("  let back = max(lane * RULE, max(root * GREY, max(barl * GREY, max(beatl * RULE, head * FN)))) * (1 - halo)")
+    L.append("  let grid = max(back, max(keys, max(dots * INK, max(lit * RED, rlabs * GREY))))")
+    L.append("")
+    return L
+
+
+ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"]
+
+
+def chord_of(name, scale):
+    """A roman numeral as alea names it (src/harmony.rs), back to its notes:
+    (root, intervals) in semitones above the key. The scale's own chord on
+    that degree, with its seventh for a `7`; an upper-case name over a minor
+    triad is the dominant made major."""
+    steps = SCALE_STEPS[scale]
+    body = name.rstrip("7°+")
+    d = [r.lower() for r in ROMAN].index(body.lower())
+    at = lambda k: steps[k % 7] + 12 * (k // 7)
+    iv = [0, at(d + 2) - at(d), at(d + 4) - at(d)]
+    if name.endswith("7"):
+        iv.append(at(d + 6) - at(d))
+    if body.isupper() and iv[1] == 3:
+        iv[1] = 4
+    return at(d), iv
+
+
+def keys_view(ep, bar, six):
+    """The chords as names in an eight-bar strip, the one playing in red, and a
+    keyboard: the chord's tones lit, the arpeggio's note in red, the bass's in
+    yellow. Every note is worked out the way alea plays it: the arpeggio's
+    r-th note walks the chord's ladder (src/harmony.rs, ArpMode::index)."""
+    hm = ep["harmony"]
+    wr = [chord_of(n, hm["scale"]) for n in hm["written"]]
+    dr = [chord_of(n, hm["scale"]) for n in hm["drawn"]]
+    d0, d1 = hm["drawn_bars"]
+    base = semis_from_a3(hm["key"])
+    allc = wr + dr
+    kmin = base - 12
+    kmax = max(base + r + 12 + max(iv) for r, iv in allc)
+    nk = kmax - kmin + 1
+    KX0, KW = 0.07, 0.86
+    kw = KW / nk
+    KT, KH = 1.0, 0.22
+    arp, bas = hm["arp"], hm["bass"]
+    pa = [k for k, v in enumerate(hits_of({"euclid": arp["euclid"]})) if v > 0]
+    pb = [k for k, v in enumerate(hits_of({"euclid": bas["euclid"]})) if v > 0]
+
+    def sel(var, vals):
+        terms = [f"({var} == {k}) * {v:g}" for k, v in enumerate(vals) if v != 0]
+        return " + ".join(terms) or "0"
+
+    def chordsel(f):
+        return f"(1 - isd) * ({sel('wc', [f(c) for c in wr])}) + isd * ({sel('dc', [f(c) for c in dr])})"
+
+    def last_index(pos):
+        return [max(j for j, p in enumerate(pos) if p <= s) for s in range(16)]
+
+    def last_pos(pos):
+        return [max(p for p in pos if p <= s) for s in range(16)]
+
+    L = ["  // ── the chords: names in turn, and a keyboard with the notes lit ──",
+         f"  let BAR = {bar:.6f}",
+         "  let B = floor(T / BAR)",
+         "  let sb = floor(T / SIX) % 16",
+         f"  let isd = (B >= {d0}) * (B < {d1})",
+         f"  let wc = B % {len(wr)}",
+         f"  let dc = B - {d0}",
+         f"  let root = {base} + {chordsel(lambda c: c[0])}"]
+    for q in (1, 2, 3):
+        L.append(f"  let iv{q} = {chordsel(lambda c, q=q: c[1][q] if q < len(c[1]) else 0)}")
+    L.append(f"  let nt = 3 + ({chordsel(lambda c: len(c[1]) - 3)})")
+    L.append("  let ivq(q) = (q == 1) * iv1 + (q == 2) * iv2 + (q == 3) * iv3")
+    # the arpeggio: the r-th note of the rhythm, up and down the chord's ladder
+    L += [f"  let aj = {sel('sb', last_index(pa))}",
+          f"  let r = {len(pa)} * B + aj",
+          f"  let lad = {arp['octaves']} * nt",
+          "  let pp = r % (2 * lad - 2)",
+          "  let idx = (pp < lad) * pp + (pp >= lad) * (2 * lad - 2 - pp)",
+          "  let a_semi = root + 12 * floor(idx / nt) + ivq(idx % nt)",
+          f"  let a_on = T >= {arp['enter'] * bar:.3f}",
+          f"  let bp = {sel('sb', last_pos(pb))}",
+          f"  let b_on = (T >= {bas['enter'] * bar:.3f}) * ((T - B * BAR - bp * SIX) < {bas['release']})",
+          "  let b_semi = root - 12",
+          f"  let p_on = T >= {hm['pad']['enter'] * bar:.3f}",
+          # the keyboard: a key per semitone
+          f"  let ks = floor((x - {KX0}) / {kw:.6f}) + {kmin}",
+          f"  let kf = fract((x - {KX0}) / {kw:.6f})",
+          f"  let inkey = (x >= {KX0}) * (x < {KX0 + KW:.3f}) * (kf > 0.1) * (kf < 0.9) * (y > {KT}) * (y < {KT + KH:.3f})",
+          "  let kpc = (ks + 120) % 12",
+          "  let black = (kpc == 1) + (kpc == 4) + (kpc == 6) + (kpc == 9) + (kpc == 11)",
+          f"  let kshape = inkey * ((1 - black) + black * (y < {KT + 0.62 * KH:.3f}))",
+          "  let dk = ks - root",
+          "  let dm = (dk + 120) % 12",
+          "  let tone = (dk >= 0) * (dk < 24) * ((dm == 0) + (dm == iv1) + (dm == iv2) + (nt == 4) * (dm == iv3))",
+          "  let k_chord = kshape * min(1, tone) * p_on",
+          "  let k_arp = kshape * (ks == a_semi) * a_on",
+          "  let k_bass = kshape * (ks == b_semi) * b_on",
+          "  let keyb = max(kshape * ((1 - black) * GREY + black * RULE), max(k_chord * FN, max(k_bass * NUM, k_arp * RED)))",
+          f'  let lg1 = text("chord", x: {KX0}, y: {KT + KH + 0.03:.3f}, size: 0.024, font: "mono", align: "left") * p_on',
+          f'  let lg2 = text("arpeggio", x: 0.24, y: {KT + KH + 0.03:.3f}, size: 0.024, font: "mono", align: "left") * a_on',
+          f'  let lg3 = text("bass", x: 0.45, y: {KT + KH + 0.03:.3f}, size: 0.024, font: "mono", align: "left") * (T >= {bas["enter"] * bar:.3f})',
+          "  let legend = max(lg1 * FN, max(lg2 * RED, lg3 * NUM))"]
+    # the strip: the eight bars of the current section, the bar playing in red
+    first = ep["beats"][0]["bar"]
+    L += [f"  let wv = floor((B - {first}) / 8)",
+          f"  let cell = B - {first} - 8 * wv",
+          f"  let isdw = (wv == {(d0 - first) // 8})"]
+    CX0, CWd, CY = 0.07, 0.86 / 8, 0.79
+    cells = []
+    for c in range(8):
+        cx = CX0 + (c + 0.5) * CWd
+        nm_w = hm["written"][c % len(hm["written"])]
+        nm_d = hm["drawn"][c]
+        L.append(f'  let cw{c} = text("{nm_w}", x: {cx:.4f}, y: {CY}, size: 0.04, font: "mono") * (1 - isdw)')
+        L.append(f'  let cd{c} = text("{nm_d}", x: {cx:.4f}, y: {CY}, size: 0.04, font: "mono") * isdw')
+        L.append(f"  let cl{c} = max(cw{c}, cd{c})")
+        cells.append((c, f"cl{c}"))
+    L.append("  let strip_now = " + " + ".join(f"cl{c} * (cell == {c})" for c, _ in cells))
+    L.append("  let strip_all = " + maxes_expr([n for _, n in cells]))
+    L.append(f"  let tick = (abs(y - {CY + 0.045:.3f}) < 0.003) * (x > {CX0} + (cell + 0.2) * {CWd:.5f}) * (x < {CX0} + (cell + 0.8) * {CWd:.5f})")
+    # the chord playing, large
+    bigs = []
+    for k, nm in enumerate(hm["written"]):
+        L.append(f'  let bw{k} = text("{nm}", x: 0.5, y: 0.905, size: 0.09, font: "mono") * (1 - isd) * (wc == {k})')
+        bigs.append(f"bw{k}")
+    for k, nm in enumerate(hm["drawn"]):
+        L.append(f'  let bd{k} = text("{nm}", x: 0.5, y: 0.905, size: 0.09, font: "mono") * isd * (dc == {k})')
+        bigs.append(f"bd{k}")
+    L.append(f"  let big = merge({', '.join(bigs)})")
+    L.append("  let grid = max(max(keyb, legend), max(max(strip_all * GREY, max(strip_now * RED, tick * RED)), big * INK))")
+    L.append("")
+    return L
+
+
+def field_view(ep, bar, six):
+    """The picture the drone plays, as it plays it: the field on a square (its
+    x and y from 0 to 1, its t the work's), the stage's listening lines across
+    it, each line's two ears (x = 0.3 and 0.7) swelling with what they hear,
+    and a bar per voice for its loudness."""
+    dr = ep["drone"]
+    total = ep["bars"] * bar
+    S = 0.62
+    SX0, SY0 = 0.07, 0.68
+    BX0, BW = SX0 + S + 0.03, 0.93 - (SX0 + S + 0.03)
+    stages = dr["stages"]
+    f = re.sub(r"\bx\b", "u", dr["field"])
+    f = re.sub(r"\by\b", "v", f)
+    f = re.sub(r"\bt\b", "w", f)
+    L = ["  // ── the picture played: the field, its listening lines, its voices ──",
+         f"  let fwave(u, v, w) = {f}",
+         f"  let ft = T / {total:.4f}",
+         f"  let fx = (x - {SX0}) / {S}",
+         f"  let fy = (y - {SY0}) / {S}",
+         "  let insq = (fx >= 0) * (fx < 1) * (fy >= 0) * (fy < 1)",
+         "  let pic = insq * fwave(fx, fy, ft)",
+         "  let sj = " + " + ".join(f"(T >= {st['bar'] * bar:.3f})" for st in stages[1:]),
+         "  let nv = " + " + ".join(f"(sj == {j}) * {st['voices']}" for j, st in enumerate(stages)),
+         "  let lk = floor(fy * nv)",
+         "  let lc = (lk + 0.5) / nv",
+         f"  let line = insq * (abs(fy - lc) * {S} < 0.0015)",
+         "  let hl = fwave(0.3, lc, ft)",
+         "  let hr = fwave(0.7, lc, ft)",
+         f"  let ear(cx, h) = ((x - ({SX0} + cx * {S})) * (x - ({SX0} + cx * {S})) + (y - ({SY0} + lc * {S})) * (y - ({SY0} + lc * {S}))) < (0.004 + 0.012 * h) * (0.004 + 0.012 * h)",
+         "  let ears = insq * max(ear(0.3, hl), ear(0.7, hr))",
+         f"  let bl = (x >= {BX0:.3f}) * (x < {BX0:.3f} + {BW:.3f} * (hl + hr) / 2) * (fy >= 0) * (fy < 1) * (abs(fy - lc) * {S} < 0.18 * {S} / nv)"]
+    labs = []
+    for j, st in enumerate(stages):
+        L.append(f'  let sl{j} = text("{st["label"]}", x: {SX0}, y: {SY0 - 0.03:.3f}, size: 0.026, font: "mono", align: "left") * (sj == {j})')
+        labs.append(f"sl{j}")
+    tx = dr.get("texture")
+    if tx:
+        L.append(f'  let txl = text("{tx["label"]}", x: 0.62, y: {SY0 - 0.03:.3f}, size: 0.026, font: "mono", align: "left") * (T >= {tx["bar"] * bar:.3f})')
+    else:
+        L.append("  let txl = 0")
+    L.append(f"  let slab = merge({', '.join(labs)})")
+    L.append("  let grid = max(max(pic * GREY, line * FN), max(max(ears * RED, bl * FN), max(slab * GREY, txl * NUM)))")
+    L.append("")
+    return L
+
+
+def voice_view(ep, bar, six):
+    """alea's own voice, as it speaks: its words typed as each one starts (the
+    word being said in red), what it is told (pitch, size, melody) above, and
+    the track's level scrolling past below, the last three seconds."""
+    total = ep["bars"] * bar
+    WX0, WY0, WS, WDY = 0.07, 0.82, 0.055, 0.078
+    cw = 0.5172 * WS
+    per_line = int(0.86 / cw)
+    VX0, VW, VY, VH = 0.07, 0.86, 1.13, 0.11
+    L = ["  // ── the voice: its words as said, and its sound going by ──"]
+    typed, saying, labs = [], [], []
+    for i, (n, _, a, b, e) in enumerate(demo_lines(ep)):
+        L.append(f"  let vis{i} = (T >= {a}) * (T < {b})")
+        line, col = 0, 0
+        for j, w in enumerate(e["text"].split()):
+            if col and col + 1 + len(w) > per_line:
+                line, col = line + 1, 0
+            x = WX0 + (col + (1 if col else 0)) * cw
+            col += (1 if col else 0) + len(w)
+            L.append(f'  let w{i}_{j} = text("{w}", x: {x:.4f}, y: {WY0 + line * WDY:.3f}, size: {WS}, font: "mono", align: "left") * vis{i} * (T >= {n}.words[{j}])')
+            typed.append(f"w{i}_{j}")
+            saying.append(f"w{i}_{j} * (T < {n}.ends[{j}])")
+        L.append(f'  let vl{i} = text("{e["label"]}", x: {WX0}, y: {WY0 - 0.07:.3f}, size: 0.026, font: "mono", align: "left") * vis{i}')
+        labs.append(f"vl{i}")
+    L += [f"  let typed = merge({', '.join(typed)})",
+          f"  let saying = merge({', '.join(saying)})",
+          f"  let vlabs = merge({', '.join(labs)})",
+          f"  let wx = (x - {VX0}) / {VW}",
+          f"  let hist = at(song.level, clamp((T - (1 - wx) * 3) / {total:.4f}, 0, 1))",
+          f"  let inwave = (wx >= 0) * (wx < 1)",
+          f"  let wavef = inwave * (abs(y - {VY}) < 0.002 + {VH} * clamp(hist, 0, 1))",
+          f"  let nowl = (abs(x - {VX0 + VW:.3f}) < 0.0015) * (abs(y - {VY}) < {VH + 0.01})",
+          "  let grid = max(max(typed * INK, saying * RED), max(max(wavef * FN, nowl * RED), vlabs * GREY))",
+          ""]
+    return L
+
+
+def listen_view(ep, bar, six):
+    """The picture listening to the music (not the voice: it opens the music
+    alone), built up a beat at a time with the very lines on screen, and the
+    music's credit under it."""
+    mu = ep["music"]
+    v = mu["var"]
+    starts = [b["bar"] * bar for b in ep["beats"]]
+    L = ["  // ── the picture listening: the lines on screen, on the music alone ──",
+         f'  let {v} = open("{mu["file"]}")',
+         f"  let core = circle(0.5, 1, 0.04 + 0.13 * {v}.level) * (T >= {starts[0]:.3f})",
+         f"  let low = ring(0.5, 1, 0.21, 0.004 + 0.04 * {v}.bass) * (T >= {starts[1]:.3f})",
+         "  let a = atan2(y - 1, x - 0.5)",
+         f"  let rays = (abs(fract(a / tau * 32) - 0.5) < 0.1) * ring(0.5, 1, 0.265, 0.01 + 0.05 * {v}.mid) * (T >= {starts[2]:.3f})",
+         f"  let sparks = (abs(fract(a / tau * 96) - 0.5) < 0.2) * ring(0.5, 1, 0.315, 0.002 + 0.02 * {v}.treble) * (T >= {starts[2]:.3f})",
+         f"  let hit = ring(0.5, 1, 0.1 + 0.2 * {v}.pulse, 0.006) * (T >= {starts[3]:.3f})",
+         f'  let credit = text("{mu["credit"]}", x: 0.5, y: 1.375, size: 0.022, font: "mono")',
+         "  let grid = max(max(core * GREY, low * FN), max(max(rays * STR, sparks * NUM), max(hit * RED, credit * GREY)))",
+         ""]
+    return L
+
+
+def editions_view(ep, bar, six):
+    """Three editions side by side: what each seed drew (read from a render of
+    the program with that seed: alea draws the same values every time), and
+    a wheel of its rhythm (kick inside, rim outside) whose hand turns at that
+    edition's own tempo while its music plays, the column in red."""
+    ed = ep["editions"]
+    vals = ed["values"]
+    cxs = [0.215, 0.5, 0.785]
+    CY, RO, RI, RD = 1.08, 0.12, 0.078, 0.011
+    first = ep["beats"][0]["bar"] * bar
+    L = ["  // ── the editions: what each seed drew, and its rhythm going round ──"]
+    fields = []
+    for k, (v, cx) in enumerate(zip(vals, cxs)):
+        shown = ep["beats"][k + 1]["bar"] * bar
+        plays = [p for p in ed["plays"] if p[2] == k]
+        L.append(f"  let on{k} = " + " + ".join(f"(T >= {a * bar:.3f}) * (T < {b * bar:.3f})" for a, b, _, _ in plays))
+        L.append(f"  let cur{k} = " + " + ".join(
+            f"(T >= {a * bar:.3f}) * (T < {b * bar:.3f}) * (((T - {a * bar:.3f} + {off}) * {v['tempo'] / 15:.5f}) % 16)"
+            for a, b, _, off in plays))
+        L.append(f"  let dx{k} = x - {cx}")
+        L.append(f"  let dy{k} = y - {CY}")
+        L.append(f"  let wr{k} = sqrt(dx{k} * dx{k} + dy{k} * dy{k})")
+        L.append(f"  let wa{k} = fract(atan2(dx{k}, -dy{k}) / tau)")
+        L.append(f"  let wk{k} = floor(wa{k} * 16 + 0.5) % 16")
+        L.append(f"  let arc{k} = (abs(fract(wa{k} * 16 + 0.5) - 0.5) / 16) * tau")
+        for name, R, h in (("rim", RO, euclid16(v["hits"], 16, v["turn"])), ("kick", RI, euclid16(4, 16, 0))):
+            L.append(f"  let {name}dot{k} = ((wr{k} - {R}) * (wr{k} - {R}) + (arc{k} * {R}) * (arc{k} * {R})) < {RD * RD:.6f}")
+            L.append(f"  let {name}hit{k} = {hit_expr(h, var=f'wk{k}')}")
+        L.append(f"  let hand{k} = on{k} * (abs(fract(wa{k} - cur{k} / 16 + 0.5) - 0.5) * tau * wr{k} < 0.0022) * (wr{k} > 0.02) * (wr{k} < {RO + 0.025})")
+        L.append(f"  let now{k} = on{k} * (wk{k} == floor(cur{k} + 0.5) % 16)")
+        L.append(f"  let wheel{k} = (T >= {shown:.3f}) * max(max(rimdot{k} * (1 - rimhit{k}) * RULE, kickdot{k} * (1 - kickhit{k}) * RULE),"
+                 f" max(max(rimdot{k} * rimhit{k} * FN, kickdot{k} * kickhit{k} * GREY), max(hand{k} * RED, (rimdot{k} * rimhit{k} + kickdot{k} * kickhit{k}) * now{k} * RED)))")
+        x0 = cx - 0.125
+        lines = [f"{v['tempo']} BPM", f"{v['key']}  {v['scale']}", f"rim {v['hits']}/16 +{v['turn']}", f"cutoff {v['cutoff']}"]
+        L.append(f'  let head{k} = text("seed {ed["seeds"][k]}", x: {x0:.3f}, y: 0.70, size: 0.038, font: "mono", align: "left") * (T >= {first:.3f})')
+        txt = []
+        for j, s in enumerate(lines):
+            L.append(f'  let v{k}_{j} = text("{s}", x: {x0:.3f}, y: {0.76 + 0.04 * j:.3f}, size: 0.028, font: "mono", align: "left") * (T >= {shown:.3f})')
+            txt.append(f"v{k}_{j}")
+        L.append(f'  let q{k} = text("~", x: {x0:.3f}, y: 0.755, size: 0.034, font: "mono", align: "left") * (T >= {first:.3f}) * (T < {shown:.3f})')
+        L.append(f"  let vals{k} = merge({', '.join(txt)})")
+        L.append(f"  let col{k} = max(max(head{k} * ((1 - on{k}) * GREY + on{k} * RED), vals{k} * INK), max(q{k} * NUM, wheel{k}))")
+        fields.append(f"col{k}")
+    L.append(f"  let grid = {maxes_expr(fields)}")
+    L.append("")
+    return L
+
+
+def maxes_expr(xs):
+    return xs[0] if len(xs) == 1 else f"max({xs[0]}, {maxes_expr(xs[1:])})"
 
 
 def reel(ep):
@@ -167,12 +815,13 @@ def reel(ep):
     L.append("")
     L.append("  // ── the voice (in the track; here for the captions' timings) ──")
     L += say_lines(ep)
+    L += [line for _, line, *_ in demo_lines(ep)]
     L.append("")
     # labels and captions
     labels = [("h_hook", f"sound  ·  {ep['number'].lower()}", starts[1], starts[2])]
     for k, b in enumerate(beats):
         labels.append((f"h_{k}", b["label"], starts[2 + k], starts[3 + k]))
-    labels.append(("h_drop", "the beat, whole", starts[-3], starts[-2]))
+    labels.append(("h_drop", ep["drop"].get("label", "the beat, whole"), starts[-3], starts[-2]))
     for n, s, a, b in labels:
         L.append(f'  let {n} = text("{s}", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win({a:.3f}, {b:.3f})')
     L.append(f"  let header = merge({', '.join(n for n, *_ in labels)})")
@@ -205,42 +854,95 @@ def reel(ep):
         "",
     ]
     # the step grid
-    L.append("  // ── the step grid: a row per layer, lit on the meter's clock ──")
-    L.append("  let step16 = floor(T / SIX)")
-    L.append("  let cur = step16 % 16")
-    L.append("  let flash = clamp(1 - fract(T / SIX) * 0.6, 0, 1)")
-    L.append(f"  let col = floor((x - {GX0}) / {CW})")
-    L.append(f"  let incol = (x >= {GX0}) * (x < {GX0 + 16 * CW:.3f}) * (fract((x - {GX0}) / {CW}) > 0.12) * (fract((x - {GX0}) / {CW}) < 0.88)")
-    rows = []
-    for r, ly in enumerate(ep["layers"]):
-        ry = GY0 + r * RH
-        h = hits_of(ly["hits"])
-        enter = ly["enter"] * bar
-        shown = [b["bar"] for b in beats if ly["name"] in b.get("rows", [])]
-        shown_at = (min(shown) * bar + 0.3) if shown else enter
-        L.append(f"  let in{r} = incol * ((y - {ry:.3f}) / {RH} > 0.15) * ((y - {ry:.3f}) / {RH} < 0.85)")
-        L.append(f"  let hit{r} = {hit_expr(h)}")
-        L.append(f"  let lit{r} = hit{r} * (col == cur) * flash * (T >= {enter:.3f})")
-        L.append(f'  let lab{r} = text("{ly["label"]}", x: 0.07, y: {ry + RH / 2:.3f}, size: 0.03, font: "mono", align: "left")')
-        L.append(f"  let row{r} = max(in{r} * max(RULE, max((hit{r} > 0) * GREY, max((hit{r} > 0.5) * INK, max((hit{r} > 0.9) * KEY, (lit{r} > 0.3) * RED)))), lab{r} * GREY) * (T >= {shown_at:.3f})")
-        rows.append(f"row{r}")
-    L.append(f"  let playhead = (abs(x - ({GX0} + (cur + 0.5) * {CW})) < {CW * 0.35:.4f}) * (abs(y - {GY0 - 0.025:.3f}) < 0.005)")
-    L.append(f"  let grid = max(merge({', '.join(rows)}), playhead * RED)")
-    L.append("")
+    view = ep.get("view", "grid")
+    if view == "roll":
+        L += roll_view(ep, bar, six)
+    elif view == "keys":
+        L += keys_view(ep, bar, six)
+    elif view == "field":
+        L += field_view(ep, bar, six)
+    elif view == "voice":
+        L += voice_view(ep, bar, six)
+    elif view == "listen":
+        L += listen_view(ep, bar, six)
+    elif view == "editions":
+        L += editions_view(ep, bar, six)
+    elif view == "wheel":
+        CX, CY, R0, DR = 0.5, 0.93, 0.12, 0.05
+        rmax = R0 + DR * (len(ep["layers"]) - 1)
+        L.append("  // ── the wheel: a ring of sixteen steps per layer, lit on the meter's clock ──")
+        L.append("  let step16 = floor(T / SIX)")
+        L.append("  let cur = step16 % 16")
+        L.append("  let flash = clamp(1 - fract(T / SIX) * 0.6, 0, 1)")
+        L.append(f"  let wdx = x - {CX}")
+        L.append(f"  let wdy = y - {CY}")
+        L.append("  let wr = sqrt(wdx * wdx + wdy * wdy)")
+        L.append("  let wa = fract(atan2(wdx, -wdy) / tau)")
+        L.append("  let wk = floor(wa * 16 + 0.5) % 16")
+        L.append("  let wak = wk / 16 * tau")
+        rows, shown_ats = [], []
+        for r, ly in enumerate(ep["layers"]):
+            R = R0 + r * DR
+            h = hits_of(ly["hits"])
+            enter = ly["enter"] * bar
+            shown = [b["bar"] for b in beats if ly["name"] in b.get("rows", [])]
+            shown_at = (min(shown) * bar + 0.3) if shown else enter
+            shown_ats.append(shown_at)
+            L.append(f"  let dx{r} = x - ({CX} + {R:.3f} * sin(wak))")
+            L.append(f"  let dy{r} = y - ({CY} - {R:.3f} * cos(wak))")
+            L.append(f"  let in{r} = (dx{r} * dx{r} + dy{r} * dy{r}) < 0.000169")
+            L.append(f"  let hit{r} = {hit_expr(h, 'wk')}")
+            L.append(f"  let lit{r} = hit{r} * (wk == cur) * flash * (T >= {enter:.3f})")
+            L.append(f'  let lab{r} = text("{ly["label"]}", x: 0.06, y: {CY - R:.3f}, size: 0.028, font: "mono", align: "left")')
+            L.append(f"  let row{r} = max(in{r} * max(RULE, max((hit{r} > 0) * GREY, max((hit{r} > 0.5) * INK, max((hit{r} > 0.9) * KEY, (lit{r} > 0.3) * RED)))), lab{r} * GREY) * (T >= {shown_at:.3f})")
+            rows.append(f"row{r}")
+        reach = " + ".join(f"{DR} * (T >= {t:.3f})" for t in shown_ats[1:]) or "0"
+        L.append(f"  let reach = {R0 + 0.03} + {reach}")
+        L.append(f"  let hand = (abs(fract(wa - cur / 16 + 0.5) - 0.5) * tau * wr < 0.0025) * (wr > 0.06) * (wr < reach)")
+        L.append(f"  let grid = max(merge({', '.join(rows)}), hand * GREY)")
+        L.append("")
+    else:
+        L.append("  // ── the step grid: a row per layer, lit on the meter's clock ──")
+        L.append("  let step16 = floor(T / SIX)")
+        L.append("  let cur = step16 % 16")
+        L.append("  let flash = clamp(1 - fract(T / SIX) * 0.6, 0, 1)")
+        L.append(f"  let col = floor((x - {GX0}) / {CW})")
+        L.append(f"  let incol = (x >= {GX0}) * (x < {GX0 + 16 * CW:.3f}) * (fract((x - {GX0}) / {CW}) > 0.12) * (fract((x - {GX0}) / {CW}) < 0.88)")
+        rows = []
+        for r, ly in enumerate(l for l in ep["layers"] if not l.get("hidden")):
+            ry = GY0 + r * RH
+            h = hits_of(ly["hits"])
+            enter = ly["enter"] * bar
+            shown = [b["bar"] for b in beats if ly["name"] in b.get("rows", [])]
+            shown_at = (min(shown) * bar + 0.3) if shown else enter
+            L.append(f"  let in{r} = incol * ((y - {ry:.3f}) / {RH} > 0.15) * ((y - {ry:.3f}) / {RH} < 0.85)")
+            L.append(f"  let hit{r} = {hit_expr(h)}")
+            L.append(f"  let lit{r} = hit{r} * (col == cur) * flash * (T >= {enter:.3f})")
+            L.append(f'  let lab{r} = text("{ly["label"]}", x: 0.07, y: {ry + RH / 2:.3f}, size: 0.03, font: "mono", align: "left")')
+            L.append(f"  let row{r} = max(in{r} * max(RULE, max((hit{r} > 0) * GREY, max((hit{r} > 0.5) * INK, max((hit{r} > 0.9) * KEY, (lit{r} > 0.3) * RED)))), lab{r} * GREY) * (T >= {shown_at:.3f})")
+            rows.append(f"row{r}")
+        L.append(f"  let playhead = (abs(x - ({GX0} + (cur + 0.5) * {CW})) < {CW * 0.35:.4f}) * (abs(y - {GY0 - 0.025:.3f}) < 0.005)")
+        L.append(f"  let {'grid0' if view == 'synth' else 'grid'} = max(merge({', '.join(rows)}), playhead * RED)")
+        L.append("")
+        if view == "synth":
+            L += synth_view(ep, bar, six)
+            L.append("  let grid = max(grid0, scopes)")
+            L.append("")
     # the beats
     fields = ["openf * win(0, {:.3f})".format(starts[1]), "hookf * win({:.3f}, {:.3f})".format(starts[1], starts[2])]
+    lay = {**LAY, **ep.get("code", {})}
     for k, b in enumerate(beats):
         a = starts[2 + k]
         L.append(f"  // ── {b['label']} ──")
-        L.extend(S.code_block(f"k{k}", b["code"], a + 0.3, **LAY))
+        L.extend(S.code_block(f"k{k}", b["code"], a + 0.3, **lay))
         fields.append(f"max(k{k}_code, grid) * win({a:.3f}, {starts[3 + k]:.3f})")
     # the drop
     a = starts[-3]
     L.append("  // ── the drop: the beat whole, the meters listening to the track ──")
-    L.extend(S.code_block("kd", ep["drop"]["code"], a + 0.3, **LAY))
-    my = 1.16
+    L.extend(S.code_block("kd", ep["drop"]["code"], a + 0.3, **lay))
+    my = ep.get("meters_y", 1.16)
     for j, (band, lv) in enumerate([("bass", "NUM"), ("mid", "FN"), ("treble", "STR")]):
-        yy = my + j * 0.05
+        yy = my + j * ep.get("meters_dy", 0.05)
         L.append(f'  let ml{j} = text("{band}", x: 0.07, y: {yy:.3f}, size: 0.026, font: "mono", align: "left")')
         L.append(f"  let mb{j} = (x >= {GX0}) * (x < {GX0} + 0.72 * clamp(song.{band}, 0, 1)) * (abs(y - {yy:.3f}) < 0.012)")
     L.append("  let meters = max(max(ml0, max(ml1, ml2)) * GREY, max(mb0 * NUM, max(mb1 * FN, mb2 * STR)))")

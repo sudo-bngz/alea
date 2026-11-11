@@ -34,3 +34,11 @@ Reel to about −14 LUFS when encoding (`loudnorm=I=-14:TP=-1`).
 | # | Episode | Feature | Length |
 |---|---|---|---|
 | S01 | The beat | `meter`, `steps("X...x...")`, a synth per drum, chance on the hats, `swing` | 2:00 |
+| S02 | Euclid | `euclid(hits, steps, rotate)`, five layers on one wheel, rotation as a second voice | 2:06 |
+| S03 | A synth | `synth { … }` built unit by unit: `sine`, `saw`, `adsr`, `lowpass` opened by the envelope, `drive`, `chorus` | 2:32 |
+| S04 | Notes | `notes(pattern)` as a melody: `tempo`, `scale` (`"minor"`, `"hirajoshi"`), `key`, `swing`, on a piano roll | 1:56 |
+| S05 | Harmony | `chords("i VI III VII")`, a pad (`drone` with `harmony:`), `arp`, a bass on the roots, `chords("functional")` drawn by chance; a keyboard | 1:44 |
+| S06 | Drones | `drone(field)` playing the waves of picture episode 02, `voices`, `instrument: "strings"`, `texture(kind: "rain")`; the field with its listening lines | 1:44 |
+| S07 | Voice | `say` with alea's own voice, `.words` typed as said, `pitch` and `size`, `melody` sung on the bar; a scrolling waveform | 1:44 |
+| S08 | Listening | `open` a track (JL, Momo's Basement) and draw it: `.level`, `.bass`, `.mid`, `.treble`, `.pulse`; the music is mixed under the voice by `s08-mix.sh` | 1:49 |
+| S09 | Editions | one program with `~` in tempo, key, scale, rhythm and sound, rendered with `--seed 1, 2, 3`; the three side by side, then one after another (`s09-mix.py`) | 1:46 |

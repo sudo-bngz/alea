@@ -1,0 +1,11 @@
+// Moon: a crescent, as a component (episode 12). Its output is what callers get;
+// every call is a new draw, so every crescent is cut its own way.
+work Moon(cx = 0.5, cy = 0.5, size = 0.3) {
+  let moon = circle(x: cx, y: cy, size: size)
+  let dx = size * ~between(0.2, 0.6)
+  let dy = size * ~between(-0.15, 0.15)
+  output cut(moon, move(moon, x: dx, y: dy))
+
+  // used only when this file runs on its own
+  render image(output, palette: "ink")
+}

@@ -1,0 +1,13 @@
+// alea, one sound at a time · S06 — Drones: the program on screen, whole.
+// The waves of picture episode 02, set moving by t, and played: twelve voices
+// each listen along one line of the picture, and the rain to all of it.
+// Run it: alea s06-drones-program.alea
+
+work Drones {
+  let waves = 0.5 + 0.5 * sin(x * 12
+    + sin(y * 9) * 2 - t * 60)
+  let pad = drone(waves, voices: 12,
+    instrument: "strings")
+  let rain = texture(waves, kind: "rain")
+  render sound(pad, rain, duration: 104)
+}
