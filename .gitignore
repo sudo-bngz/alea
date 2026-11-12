@@ -40,12 +40,6 @@ Thumbs.db
 # the files the tour opens (28 · Files)
 !examples/tour/files/**
 fm1/test/vm_main
-# Brut: made from a phone clip by exhibition/brut/make-inputs.py
-exhibition/brut/sheets/
-exhibition/brut/chop.wav
-!exhibition/brut/globe.png
-!exhibition/brut/word.png
-exhibition/flammes/
 exhibition/series/photo.jpg
 exhibition/sound/*.wav
 __pycache__/
