@@ -4,21 +4,18 @@
     cargo build --release && python3 docs/images/build.py
 
 Needs Pillow and ffmpeg. Writes, next to this file:
-  banner.jpg               editions from the exhibition, side by side
+  banner.jpg               one edition of each of eight examples, side by side
   rosace-editions.jpg      examples/rosace.alea, four editions with their seeds
-  isohypses-editions.jpg   the six posted editions of Isohypses, with their seeds
+  isohypses-editions.jpg   examples/isohypses.alea, six editions with their seeds
   breathing-0x3.webp, breathing-0x7.webp   examples/breathing.alea, two looping editions
-  culture.webp             the Culture Reel: colonies growing in a petri dish
-  kikai.webp, kairo.webp, atardecer.webp   four seconds of each of their Reels
 """
-import glob, pathlib, subprocess, tempfile
+import glob, io, pathlib, re, subprocess, tempfile
 
 from PIL import Image, ImageDraw, ImageFont
 
 here = pathlib.Path(__file__).resolve().parent
 root = here.parent.parent
 alea = root / "target" / "release" / "alea"
-posts = root / "exhibition" / "instagram"
 mono = ImageFont.truetype(str(root / "fonts" / "mono.ttf"), 22)
 INK, PAPER, MUTED = (24, 27, 48), (237, 239, 243), (86, 91, 122)
 
@@ -26,6 +23,33 @@ INK, PAPER, MUTED = (24, 27, 48), (237, 239, 243), (86, 91, 122)
 def render(work, seed, out):
     subprocess.run([str(alea), str(root / work), "--seed", seed, "-o", str(out)], check=True,
                    stdout=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
+
+
+def still(work, seed):
+    """The work's image only: a copy of it without its other renders (a video,
+    a sculpture, a sound), which would take minutes and aren't shown here."""
+    src = (root / work).read_text()
+    out, i = [], 0
+    for m in re.finditer(r"\brender\s+(\w+)\s*\(", src):
+        if m.group(1) == "image" or m.start() < i:
+            continue
+        depth, j = 0, m.end() - 1
+        while True:
+            depth += {"(": 1, ")": -1}.get(src[j], 0)
+            j += 1
+            if depth == 0:
+                break
+        out.append(src[i:m.start()])
+        i = j
+    out.append(src[i:])
+    copy = root / work.replace(".alea", ".still.alea")
+    copy.write_text("".join(out))
+    try:
+        png = subprocess.run([str(alea), str(copy), "--seed", seed, "-o", "-"], check=True,
+                             capture_output=True, stdin=subprocess.DEVNULL).stdout
+    finally:
+        copy.unlink()
+    return Image.open(io.BytesIO(png))
 
 
 def labelled_row(images, labels, tile_w, gap=14, pad=18, label_h=40):
@@ -49,11 +73,16 @@ def anim(frames_glob, dest, ms):
 def main():
     tmp = pathlib.Path(tempfile.mkdtemp())
 
-    # the banner: one edition of each work of the exhibition
-    picks = ["1-isohypses-1-0xa1ea03", "3-rosace-2-0xa1ea05", "2-nocturne-3-0xa1ea09",
-             "7-correspondances-2-0xa1ea01", "9-culture-3-0xc06", "12-kikai-1-0xa1ea05",
-             "13-atardecer-1-0xa1ea01", "14-kairo-1-0xa1ea01"]
-    tiles = [Image.open(posts / f"{p}.jpg").convert("RGB").resize((240, 300), Image.LANCZOS) for p in picks]
+    # the banner: one edition of each of eight examples, cropped to the same frame
+    picks = [("isohypses", "0xa1ea03"), ("rosace", "0x5"), ("moon", "0x3"), ("eclipse", "0x2"),
+             ("constellation", "0x4"), ("bauhaus", "0x6"), ("tide", "0x1"), ("phosphor", "0x7")]
+    tiles = []
+    for work, seed in picks:
+        im = still(f"examples/{work}.alea", seed).convert("RGB")
+        w, h = im.size
+        side = min(w, h * 240 // 300)
+        im = im.crop(((w - side) // 2, (h - side * 300 // 240) // 2, (w + side) // 2, (h + side * 300 // 240) // 2))
+        tiles.append(im.resize((240, 300), Image.LANCZOS))
     gap = 8
     banner = Image.new("RGB", (len(tiles) * 240 + (len(tiles) - 1) * gap, 300), INK)
     for i, t in enumerate(tiles):
@@ -62,15 +91,13 @@ def main():
 
     # Rosace: the same 13 lines, four editions
     seeds = ["0x6", "0x5", "0xb", "0x2"]
-    for s in seeds:
-        render("examples/rosace.alea", s, tmp / "rosace")
-    ims = [Image.open(next((tmp / "rosace").glob(f"rosace-{int(s, 16):016x}.png"))) for s in seeds]
+    ims = [still("examples/rosace.alea", s) for s in seeds]
     labelled_row(ims, [f"--seed {s}" for s in seeds], 300).save(here / "rosace-editions.jpg", quality=86, optimize=True)
 
-    # Isohypses: the six posted editions
-    posted = sorted(posts.glob("1-isohypses-*-0x*.jpg"), key=lambda p: int(p.name.split("-")[2]))
-    labelled_row([Image.open(p) for p in posted], [p.stem.split("-")[-1] for p in posted], 220).save(
-        here / "isohypses-editions.jpg", quality=84, optimize=True)
+    # Isohypses: six editions
+    seeds = ["0xa1ea03", "0xa1ea0a", "0xa1ea01", "0xa1ea06", "0xa1ea0d", "0xa1ea07"]
+    ims = [still("examples/isohypses.alea", s) for s in seeds]
+    labelled_row(ims, seeds, 220).save(here / "isohypses-editions.jpg", quality=84, optimize=True)
 
     # Breathing: two editions of a looping video
     for s in ["0x3", "0x7"]:
@@ -81,21 +108,6 @@ def main():
         subprocess.run(["ffmpeg", "-v", "error", "-i", str(mp4), "-vf", "fps=15,scale=300:-1:flags=lanczos",
                         str(frames / "%03d.png")], check=True)
         anim(str(frames / "*.png"), here / f"breathing-{s}.webp", 67)
-
-    # Culture: the Reel, cropped to the dish
-    frames = tmp / "culture"
-    frames.mkdir()
-    subprocess.run(["ffmpeg", "-v", "error", "-i", str(posts / "10-culture-reel.mp4"), "-vf",
-                    "fps=10,crop=1080:1080:0:420,scale=300:300:flags=lanczos", str(frames / "%03d.png")], check=True)
-    anim(str(frames / "*.png"), here / "culture.webp", 100)
-
-    # Kikai, Kairo, Atardecer: four seconds of each Reel
-    for stem, start in [("12-kikai-reel", 1.0), ("14-kairo-reel", 14.0), ("13-atardecer-reel", 4.0)]:
-        frames = tmp / stem
-        frames.mkdir()
-        subprocess.run(["ffmpeg", "-v", "error", "-ss", str(start), "-t", "4", "-i", str(posts / f"{stem}.mp4"), "-vf",
-                        "fps=12,scale=270:-1:flags=lanczos", str(frames / "%03d.png")], check=True)
-        anim(str(frames / "*.png"), here / f"{stem.split('-')[1]}.webp", 83)
 
     for f in sorted(here.glob("*.*")):
         if f.suffix != ".py":

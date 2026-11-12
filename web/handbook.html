@@ -5,7 +5,9 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Silkscreen&display=swap">
 <style>
 /* Layout: a manual for a machine. Black, monospace, thin grey rules; an index on the left, one column on the right,
-   numbered sections with a white tag, controls and table heads in capitals. Grey code, chance in red. */
+   numbered sections with a tag, controls and table heads in capitals. The code in the colours of a terminal
+   (keywords violet, functions blue, strings olive, numbers amber, named arguments orange, x y t cyan),
+   chance in red; the titles take the same colours. */
 :root {
   --paper: #000;
   --page: #000;
@@ -17,8 +19,11 @@
   --frame: #5a5a5a;
   --accent: #ff4b2b;          /* the red of chance: ~ in the code */
   --code: #0b0b0b;
-  --syn-kw: #ffffff; --syn-prim: #c4c4c4; --syn-str: #a8a8a8; --syn-num: #ffffff;
-  --syn-com: #666666; --syn-call: #e6e6e6; --syn-param: #8f8f8f;
+  --syn-kw: #c397d8; --syn-prim: #7fb3d5; --syn-str: #b5bd68; --syn-num: #f0c674;
+  --syn-com: #6f7480; --syn-call: #ffffff; --syn-param: #de935f; --syn-var: #8abeb7;
+  --title: #f0c674;           /* the page's name and chapter tags: amber */
+  --tag-ref: #7fb3d5;         /* the reference's tags: blue */
+  --sub: #b5bd68;             /* sub-headings: olive, after a // */
   --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --f-key: "Silkscreen", "IBM Plex Mono", ui-monospace, monospace;
   color-scheme: dark;
@@ -26,8 +31,8 @@
 
 * { box-sizing: border-box; }
 body { background: var(--paper); color: var(--ink); font: 15px/1.85 var(--f-mono); letter-spacing: 0.02em; }
-a { color: var(--bright); text-decoration: underline dotted var(--dim); text-underline-offset: 3px; }
-a:hover { background: var(--bright); color: var(--paper); text-decoration: none; }
+a { color: var(--syn-prim); text-decoration: underline dotted var(--syn-prim); text-underline-offset: 3px; }
+a:hover { background: var(--syn-prim); color: var(--paper); text-decoration: none; }
 :focus-visible { outline: 2px solid var(--bright); outline-offset: 2px; }
 ::selection { background: var(--bright); color: var(--paper); }
 
@@ -46,10 +51,10 @@ a:hover { background: var(--bright); color: var(--paper); text-decoration: none;
 .sub { color: var(--muted); font-size: 12.5px; line-height: 1.6; margin: 0 0 26px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
 .side ul { list-style: none; margin: 0 0 22px; padding: 0; }
 .side li a { display: block; color: var(--ink); text-decoration: none; font-size: 12.5px; line-height: 1.45; padding: 4px 8px; border-left: 2px solid transparent; }
-.side li a:hover { background: none; color: var(--bright); border-left-color: var(--frame); }
-.side li a.here { color: var(--paper); background: var(--bright); border-left-color: var(--bright); }
+.side li a:hover { background: none; color: var(--bright); border-left-color: var(--syn-prim); }
+.side li a.here { color: var(--paper); background: var(--title); border-left-color: var(--title); }
 .nav-head { margin: 0 0 8px; font: 400 11px/1 var(--f-key); letter-spacing: .16em; text-transform: uppercase; }
-.nav-head a { color: var(--muted); text-decoration: none; }
+.nav-head a { color: var(--syn-prim); text-decoration: none; }
 .nav-head a:hover { background: none; color: var(--bright); }
 details.mobile-nav { display: none; }
 
@@ -60,25 +65,28 @@ main { min-width: 0; }
 .doc > * { max-width: 76ch; }
 .doc > pre, .doc > table, .doc > .table-wrap, .doc > figure { max-width: none; }
 h1, h2, h3 { font-weight: 400; color: var(--bright); text-transform: uppercase; text-wrap: balance; line-height: 1.3; scroll-margin-top: 16px; }
-h1 { font: 400 clamp(24px, 3.2vw, 34px)/1.2 var(--f-key); letter-spacing: .12em; margin: 40px 0 18px; }
+h1 { font: 400 clamp(24px, 3.2vw, 34px)/1.2 var(--f-key); letter-spacing: .12em; margin: 40px 0 18px; color: var(--title); }
+h1::before { content: "> "; color: var(--accent); }
 h2 { display: flex; align-items: center; gap: 18px; font-size: clamp(16px, 1.6vw, 19px); letter-spacing: .1em; margin: 56px 0 18px; padding-top: 28px; border-top: 2px solid var(--line); counter-increment: sec; }
 /* the tag: the guide's chapters carry their own number, the reference's sections are counted */
 #reference h2::before { content: counter(sec, decimal-leading-zero); }
-#reference h2::before, h2 .num { flex: none; display: grid; place-items: center; min-width: 42px; height: 42px; padding: 0 6px; background: var(--bright); color: var(--paper); font: 400 15px/1 var(--f-mono); letter-spacing: .04em; }
-h3 { font-size: 14px; letter-spacing: .12em; margin: 34px 0 10px; }
-h3::before { content: "// "; color: var(--dim); }
+#reference h2::before, h2 .num { flex: none; display: grid; place-items: center; min-width: 42px; height: 42px; padding: 0 6px; background: var(--title); color: var(--paper); font: 600 15px/1 var(--f-mono); letter-spacing: .04em; }
+#reference h2::before { background: var(--tag-ref); }
+h3 { font-size: 14px; letter-spacing: .12em; margin: 34px 0 10px; color: var(--sub); }
+h3::before { content: "// "; color: var(--syn-com); }
 hr { display: none; }
 p, li { text-wrap: pretty; }
 strong { color: var(--bright); font-weight: 600; }
 blockquote { margin: 0 0 12px; padding: 10px 14px; color: var(--muted); font-size: 13px; border: 2px solid var(--frame); }
 blockquote p { margin: 0; }
 blockquote code { color: var(--bright); }
-code { font: 0.9em var(--f-mono); color: var(--bright); background: none; padding: 0.05em 0.35em; border: 1px solid var(--line); }
-pre { background: var(--code); border: 1px solid var(--line); border-left: 2px solid var(--frame); padding: 14px 18px; overflow-x: auto; font: 13px/1.7 var(--f-mono); letter-spacing: 0; tab-size: 2; }
+code { font: 0.9em var(--f-mono); color: var(--syn-num); background: #12110d; padding: 0.05em 0.35em; border: 1px solid #2e2a1e; }
+pre { background: var(--code); border: 1px solid var(--line); border-left: 3px solid var(--syn-prim); padding: 14px 18px; overflow-x: auto; font: 13px/1.7 var(--f-mono); letter-spacing: 0; tab-size: 2; }
 pre code { background: none; padding: 0; border: 0; font: inherit; color: var(--ink); }
+td code, th code { white-space: nowrap; }
 table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 16px 0; display: block; overflow-x: auto; }
 th, td { text-align: left; vertical-align: top; padding: 10px 14px 10px 0; border-bottom: 1px solid var(--line); }
-th { font: 400 10.5px/1.4 var(--f-key); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); border-bottom: 2px solid var(--line); }
+th { font: 400 10.5px/1.4 var(--f-key); letter-spacing: .14em; text-transform: uppercase; color: var(--syn-param); border-bottom: 2px solid var(--line); }
 td code { white-space: nowrap; }
 figure.strip { margin: 8px 0 20px; display: flex; flex-wrap: wrap; gap: 10px; }
 figure.strip img { width: 150px; height: 150px; max-width: calc(50% - 5px); height: auto; aspect-ratio: 1; padding: 4px; border: 1px solid var(--frame); background: var(--paper); }
@@ -86,7 +94,7 @@ figure.strip figcaption { flex-basis: 100%; font-size: 11.5px; color: var(--dim)
 
 .k { color: var(--syn-kw); font-weight: 600; } .p { color: var(--syn-prim); } .d { color: var(--accent); font-weight: 600; }
 .s { color: var(--syn-str); } .n { color: var(--syn-num); } .c { color: var(--syn-com); font-style: italic; }
-.w { color: var(--syn-call); text-decoration: underline 1px var(--dim); text-underline-offset: 3px; } .a { color: var(--syn-param); font-style: italic; } .v { color: var(--syn-kw); }
+.w { color: var(--syn-call); text-decoration: underline 1px var(--dim); text-underline-offset: 3px; } .a { color: var(--syn-param); font-style: italic; } .v { color: var(--syn-var); }
 
 @media (max-width: 900px) {
   .shell { grid-template-columns: minmax(0, 1fr); gap: 18px; }

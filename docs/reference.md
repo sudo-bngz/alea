@@ -335,7 +335,7 @@ These two default to readable: level text, a picture filling the width.
 
 - `words` and `file` are required texts. Text is a single line.
 - `font`: `"sans"`, `"bold"`, `"serif"`, `"mono"` (built in), or the path to
-  a `.ttf` / `.otf` file (Japanese, say: see `exhibition/fonts/`).
+  a `.ttf` / `.otf` file of your own (one with Japanese glyphs, say, to write in Japanese).
 - `align`: where x, y is on the line: `"center"` (the middle), `"left"` (its
   start: lines of a paragraph, one under the other) or `"right"` (its end).
 - `picture` reads PNG, JPEG and WebP; larger than 4096 pixels, it is
