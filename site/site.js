@@ -58,7 +58,7 @@
       seedEl.textContent = res.json.seed;
       say(`drawn in your browser in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
     } catch (e) {
-      say('your browser could not draw an edition; this one is from the exhibition');
+      say('your browser could not draw an edition; this one was drawn by alea beforehand');
     }
     drawing = false;
     again.disabled = false;
@@ -78,7 +78,7 @@
       again.addEventListener('click', draw);
       await draw();
     } catch (e) {
-      say('an edition from the exhibition');
+      say('an edition drawn by alea');
       if (source === null) $('code').textContent = 'The program could not be loaded.';
     }
   }

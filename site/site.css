@@ -1,6 +1,7 @@
 /* alea.bngz.io — a manual for a machine: black, monospace, thin grey rules,
-   numbered sections, controls drawn as key caps. One colour besides grey:
-   the red of chance, in the code. */
+   numbered sections, controls drawn as key caps. The code in the colours of
+   a terminal (keywords violet, functions blue, strings olive, numbers amber),
+   the red of chance on ~; the titles take the same colours. */
 :root {
   --bg: #000;
   --panel: #0b0b0b;      /* behind code */
@@ -10,7 +11,8 @@
   --dim: #5e5e5e;
   --rule: #2c2c2c;       /* thin rules between rows */
   --frame: #5a5a5a;      /* outlined panels and keys */
-  --chance: #ff4b2b;     /* ~ and choose: the only colour */
+  --chance: #ff4b2b;     /* ~ and choose */
+  --kw: #c397d8; --fn: #7fb3d5; --str: #b5bd68; --num: #f0c674; --com: #6f7480;
   --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --f-key: "Silkscreen", "IBM Plex Mono", ui-monospace, monospace;
   --measure: 40rem;
@@ -26,12 +28,12 @@ body {
   font-variant-numeric: tabular-nums;
 }
 img, canvas, video { display: block; max-width: 100%; height: auto; }
-a { color: var(--bright); text-decoration: underline dotted var(--dim); text-decoration-thickness: 1px; text-underline-offset: 0.25em; }
-a:hover { background: var(--bright); color: var(--bg); text-decoration: none; }
+a { color: var(--fn); text-decoration: underline dotted var(--fn); text-decoration-thickness: 1px; text-underline-offset: 0.25em; }
+a:hover { background: var(--fn); color: var(--bg); text-decoration: none; }
 :focus-visible { outline: 2px solid var(--bright); outline-offset: 3px; }
 ::selection { background: var(--bright); color: var(--bg); }
 code, pre { font-family: var(--f-mono); }
-code { font-size: 0.92em; color: var(--bright); }
+code { font-size: 0.92em; color: var(--num); }
 h1, h2, h3 { font-weight: 400; margin: 0; }
 p { margin: 0 0 1.1em; }
 .nowrap { white-space: nowrap; }
@@ -54,7 +56,7 @@ button.quiet:disabled { opacity: 0.4; cursor: default; }
 /* a number tag: white, black figures */
 .num {
   display: inline-grid; place-items: center; min-width: 2.6em; height: 2.6em; padding: 0 0.4em;
-  background: var(--bright); color: var(--bg); font: 400 0.9rem/1 var(--f-mono); letter-spacing: 0.04em; margin-right: 1.1em;
+  background: var(--num); color: var(--bg); font: 600 0.9rem/1 var(--f-mono); letter-spacing: 0.04em; margin-right: 1.1em;
 }
 
 /* ── top ── */
@@ -92,9 +94,9 @@ main > section { max-width: 82rem; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 1.2rem; margin-top: 1.4rem;
   border: 2px solid var(--frame); padding: 1rem 1.25rem; font-size: 0.85rem; color: var(--muted);
 }
-.label-work { color: var(--bright); text-transform: uppercase; letter-spacing: 0.1em; }
+.label-work { color: var(--num); text-transform: uppercase; letter-spacing: 0.1em; }
 .label-status { flex-basis: 100%; order: 3; }
-.label-status::before { content: "> "; color: var(--dim); }
+.label-status::before { content: "> "; color: var(--chance); }
 .label button { order: 4; }
 
 .pitch { grid-area: pitch; }
@@ -103,22 +105,22 @@ main > section { max-width: 82rem; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2
   font-size: clamp(1.45rem, 1rem + 1.5vw, 2.15rem); line-height: 1.4; letter-spacing: 0;
   color: var(--bright); max-width: 26ch; margin-bottom: 1.6rem; text-wrap: balance;
 }
-.pitch h1::after { content: ""; display: inline-block; width: 0.55em; height: 1.05em; margin-left: 0.3em; vertical-align: -0.15em; background: var(--bright); animation: blink 1.1s steps(1) infinite; }
+.pitch h1::after { content: ""; display: inline-block; width: 0.55em; height: 1.05em; margin-left: 0.3em; vertical-align: -0.15em; background: var(--chance); animation: blink 1.1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 .lede { max-width: var(--measure); }
 .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 2rem 0 2.6rem; }
 
 .source summary { cursor: pointer; color: var(--muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 0.8rem; }
-.source summary span { text-transform: none; letter-spacing: 0.02em; color: var(--bright); }
+.source summary span { text-transform: none; letter-spacing: 0.02em; color: var(--num); }
 .source pre { max-height: 28rem; }
 pre {
-  margin: 0; background: var(--panel); border: 1px solid var(--rule); border-left: 2px solid var(--frame); padding: 1rem 1.2rem;
+  margin: 0; background: var(--panel); border: 1px solid var(--rule); border-left: 3px solid var(--fn); padding: 1rem 1.2rem;
   font-size: 0.78rem; line-height: 1.7; overflow: auto; tab-size: 2; letter-spacing: 0;
 }
 pre code { font-size: inherit; color: var(--ink); }
-/* the code, in greys; chance in red */
-.c { color: var(--dim); font-style: italic; } .s { color: #b8b8b8; } .t { color: var(--chance); font-weight: 600; }
-.n { color: var(--bright); } .k { color: var(--bright); font-weight: 600; } .f { color: #a9a9a9; }
+/* the code: a terminal's colours; chance in red */
+.c { color: var(--com); font-style: italic; } .s { color: var(--str); } .t { color: var(--chance); font-weight: 600; }
+.n { color: var(--num); } .k { color: var(--kw); font-weight: 600; } .f { color: var(--fn); }
 
 /* ── sections: a rule, a number tag, the title in capitals ── */
 main > section + section { padding-top: 0; padding-bottom: clamp(3rem, 6vw, 5rem); }
@@ -127,37 +129,14 @@ h2 {
   display: flex; align-items: center; font-size: clamp(1rem, 0.9rem + 0.4vw, 1.2rem); line-height: 1.3;
   text-transform: uppercase; letter-spacing: 0.1em; color: var(--bright); margin-bottom: 2rem;
 }
-h3 { font-size: 0.85rem; line-height: 1.4; text-transform: uppercase; letter-spacing: 0.12em; color: var(--bright); margin-bottom: 0.8rem; }
+h3 { font-size: 0.85rem; line-height: 1.4; text-transform: uppercase; letter-spacing: 0.12em; color: var(--str); margin-bottom: 0.8rem; }
+h3::before { content: "// "; color: var(--com); }
 .section-head { max-width: var(--measure); margin-bottom: 2.4rem; }
 .section-head p { color: var(--muted); }
 
 .language .cols { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(1.5rem, 4vw, 4rem); align-items: start; }
 .prose { max-width: var(--measure); }
 .example { font-size: 0.8rem; }
-
-/* ── the exhibition: a list, a rule between rows, as in a manual ── */
-.work { display: grid; grid-template-columns: minmax(13rem, 19rem) minmax(0, 1fr); gap: clamp(1.25rem, 3vw, 2.75rem); padding: 1.8rem 0; }
-.work + .work { border-top: 1px solid var(--rule); }
-.work-head p { font-size: 0.85rem; color: var(--muted); }
-.work-links { display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.8rem !important; }
-.work-links code { color: var(--ink); border: 1px solid var(--rule); padding: 0.2rem 0.45rem; width: fit-content; font-size: 0.72rem; }
-.editions {
-  list-style: none; margin: 0; padding: 0;
-  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.75rem;
-}
-.ed { display: block; text-decoration: none; }
-.ed:hover { background: none; }
-.ed img { padding: 0.3rem; border: 1px solid var(--frame); background: var(--bg); transition: border-color 120ms; }
-.ed:hover img { border-color: var(--bright); }
-.seed { display: block; font-size: 0.68rem; color: var(--dim); margin-top: 0.4rem; }
-.ed:hover .seed { color: var(--bright); }
-
-/* ── reels ── */
-.reel-row { display: flex; flex-wrap: wrap; gap: clamp(1.25rem, 3vw, 2.5rem); }
-.reel { margin: 0; width: min(100%, 17rem); }
-.reel video { width: 100%; aspect-ratio: 9 / 16; background: #000; border: 2px solid var(--frame); border-radius: 14px; }
-.reel figcaption { font-size: 0.8rem; color: var(--muted); margin-top: 0.8rem; }
-.reel strong { font-weight: 400; color: var(--bright); display: block; text-transform: uppercase; letter-spacing: 0.1em; }
 
 /* ── install ── */
 .ways { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.5rem clamp(1.25rem, 3vw, 2.25rem); margin-bottom: 2.4rem; }
@@ -172,9 +151,6 @@ h3 { font-size: 0.85rem; line-height: 1.4; text-transform: uppercase; letter-spa
 /* ── narrower screens ── */
 @media (max-width: 64rem) {
   .ways { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .work { grid-template-columns: minmax(0, 1fr); }
-  .editions { grid-template-columns: repeat(6, minmax(7.5rem, 1fr)); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 0.5rem; }
-  .editions li { scroll-snap-align: start; }
 }
 @media (max-width: 52rem) {
   .hero { grid-template-columns: minmax(0, 1fr); grid-template-areas: "pitch" "live" "source"; }
@@ -189,5 +165,4 @@ h3 { font-size: 0.85rem; line-height: 1.4; text-transform: uppercase; letter-spa
 }
 @media (prefers-reduced-motion: reduce) {
   .sheet canvas, .pitch h1::after { animation: none; }
-  .ed img { transition: none; }
 }

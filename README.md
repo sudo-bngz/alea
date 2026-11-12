@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://alea.bngz.io"><img src="docs/images/banner.jpg" alt="Seven editions of works written in alea: a contour map, a rose window, the moon over the sea, a metro plan, a petri dish" width="100%"></a>
+  <a href="https://alea.bngz.io"><img src="docs/images/banner.jpg" alt="Editions of works written in alea: a contour map, a rose window, the moon, an eclipse, a constellation, Bauhaus shapes, a tide, a phosphor screen" width="100%"></a>
 </p>
 
 <h1 align="center">alea</h1>
@@ -14,8 +14,7 @@
   <a href="https://alea.bngz.io/playground.html"><strong>Try it in your browser</strong></a> ·
   <a href="https://alea.bngz.io">Website</a> ·
   <a href="https://alea.bngz.io/handbook.html">Handbook</a> ·
-  <a href="#install">Install</a> ·
-  <a href="https://www.instagram.com/sudo.mp3/">Instagram</a>
+  <a href="#install">Install</a>
 </p>
 
 <p align="center">
@@ -61,11 +60,9 @@ alea rosace.alea --seed 0x5     # the purple star above, again
 
 <p align="center"><img src="docs/images/isohypses-editions.jpg" alt="Six editions of Isohypses: contour maps of countries that don't exist, each with its seed" width="100%"></p>
 
-[Isohypses](exhibition/isohypses.alea) draws maps of places that don't
+[Isohypses](examples/isohypses.alea) draws maps of places that don't
 exist: contour lines over an imaginary relief, a hatched sea, towns, and
-the cartouche of a survey sheet. Six seeds, six countries. It is part of
-the [exhibition](exhibition/), posted on
-[Instagram @sudo.mp3](https://www.instagram.com/sudo.mp3/).
+the cartouche of a survey sheet. Six seeds, six countries.
 
 ## It moves, and it sounds
 
@@ -108,34 +105,13 @@ is a bass that snaps shut, and a `~` inside gives each edition its own
 timbre. See [examples/synths.alea](examples/synths.alea) and
 [the built-in instruments, written as synths](examples/instruments/).
 
-<table>
-<tr>
-<td width="30%"><img src="docs/images/culture.webp" alt="Culture: colonies growing in a petri dish by reaction-diffusion"></td>
-<td>
-<strong>Fields with a memory.</strong> <a href="exhibition/culture.alea">Culture</a> seeds colonies
-at random in a petri dish and lets them grow by reaction–diffusion: each
-generation computed from the last, in a <code>grow</code> block. Seventy-two hours of
-incubation in twenty seconds.
-</td>
-</tr>
-</table>
-
-<table>
-<tr>
-<td width="25%"><img src="docs/images/kikai.webp" alt="Kikai: a rhythm machine drawn like a service manual, its steps lighting up"></td>
-<td width="25%"><img src="docs/images/kairo.webp" alt="Kairo: a modular synthesizer, its cables swaying, the melody written on a staff"></td>
-<td width="25%"><img src="docs/images/atardecer.webp" alt="Atardecer: a record setting into the sea as the sun"></td>
-<td>
-<strong>The picture and the music, one program.</strong>
-<a href="exhibition/kikai.alea">Kikai</a> draws a machine that never existed and
-plays Detroit techno on it; <a href="exhibition/kairo.alea">Kairo</a> racks a
-modular synthesizer that plays a slow piano waltz;
-<a href="exhibition/atardecer.alea">Atardecer</a> sets a record into the sea over
-lofi house. Every instrument is a <code>synth</code>, and the notes you hear are
-the ones drawn.
-</td>
-</tr>
-</table>
+**Fields with a memory.** A `grow` block computes each generation of a field
+from the last: reaction–diffusion, sand piles, cellular life (guide,
+chapter *Growing*). **The picture and the music, one program:** every
+instrument is a `synth`, the notes you hear can be the ones drawn, and
+`notes`, `chords`, `arp` and `euclid` write the score
+([examples/track.alea](examples/track.alea),
+[examples/soundsystem.alea](examples/soundsystem.alea)).
 
 ## What you can make
 
@@ -203,8 +179,8 @@ On macOS, the first time: `xattr -d com.apple.quarantine alea`.
 | **[The handbook](https://alea.bngz.io/handbook.html)** | the guide and the reference as one illustrated page |
 | **[The reference](docs/reference.md)** | every statement, function, render option and limit |
 | **[The instruments](examples/instruments/)** | alea's instruments written as synths, to open, change and `use` |
-| **[The examples](examples/)** | finished works: `rosace`, `moon`, `tide`, `poster`, `constellation`… |
-| **[The exhibition](exhibition/)** | larger works: `isohypses`, `nocturne`, `correspondances`, `culture`, `kikai`, `kairo`… |
+| **[The examples](examples/)** | finished works: `isohypses`, `rosace`, `moon`, `tide`, `poster`, `constellation`… |
+| **[The presentation](exhibition/)** | the videos that present the language, each made by an alea program: the introduction and two series, one feature and one sound at a time |
 
 ## The language in one screen
 

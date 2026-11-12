@@ -1170,9 +1170,6 @@ render video(film, sound: [notes(film.cues, instrument: blip, key: 440),
                            drone(0.3 + 0.1 * film.index, instrument: "wind")])
 ```
 
-The exhibition's *Parasite* is a timeline of five works in `parasite/`,
-crossed with glitches, a morph and a fade, in a loop.
-
 ## How values become media
 
 Every medium receives the same thing, a field, and translates it:

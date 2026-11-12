@@ -241,11 +241,11 @@ work Intro {
   let base = paint(max(drawn, over), palette: ["#000000", "#8f8f8f", "#d6d6d6", "#ff4b2b"], range: [0, 1])
 
   // ── the pictures: editions of the five works in intro/works/, and of Isohypses ──
-  let p0 = open("instagram/1-isohypses-1-0xa1ea03.jpg").painting
-  let p1 = open("instagram/1-isohypses-2-0xa1ea0a.jpg").painting
-  let p2 = open("instagram/1-isohypses-3-0xa1ea01.jpg").painting
-  let p3 = open("instagram/1-isohypses-4-0xa1ea06.jpg").painting
-  let p4 = open("instagram/1-isohypses-5-0xa1ea0d.jpg").painting
+  let p0 = open("intro/stills/isohypses-0xa1ea03.jpg").painting
+  let p1 = open("intro/stills/isohypses-0xa1ea0a.jpg").painting
+  let p2 = open("intro/stills/isohypses-0xa1ea01.jpg").painting
+  let p3 = open("intro/stills/isohypses-0xa1ea06.jpg").painting
+  let p4 = open("intro/stills/isohypses-0xa1ea0d.jpg").painting
   let p5 = open("intro/stills/blocs-0xa1ea01.jpg").painting
   let p6 = open("intro/stills/blocs-0xa1ea03.jpg").painting
   let p7 = open("intro/stills/blocs-0xa1ea05.jpg").painting
