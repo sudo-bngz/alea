@@ -1,8 +1,11 @@
 // 01 · Hello
-// The smallest work: one draw, one field, one render.
+// The smallest work: one line of text, one render.
 // Run it twice: each run is a new edition of the same work.
 
 work Hello {
-  field waves = sin(x * ~between(5, 40))   // `~` draws one number for this edition
-  render image(waves)                      // the field becomes a picture
+  render image(text("hello, world", x: 0.5))   // how high, and how big: alea decides
+
+  // Just after: a first field, a number at every point of the canvas.
+  field waves = sin(x * ~between(5, 40))       // `~` draws one number for this edition
+  render image(waves)                          // the field becomes a picture
 }

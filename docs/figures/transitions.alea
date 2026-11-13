@@ -1,0 +1,24 @@
+// Figure for the guide, chapter 29: each transition, between the same two
+// scenes and back, with its name underneath.
+
+work Transitions {
+  let a = stripes(count: 7, angle: 30 + 40 * t)
+  let b = ripples(count: 6)
+  let frame = (y < 0.84)
+  let shown(film, name) = film * frame + text(name, x: 0.5, y: 0.92, size: 0.065, font: "mono")
+
+  render video(shown(timeline([scene(a, 1.5), jump(), scene(b, 1.5), jump()], loop: 1), "jump()"),
+               fps: 20, width: 240, audio: "off")
+  render video(shown(timeline([scene(a, 1.5), fade(0.8), scene(b, 1.5), fade(0.8)], loop: 1), "fade"),
+               fps: 20, width: 240, audio: "off")
+  render video(shown(timeline([scene(a, 1.5), wipe(0.8, angle: 30), scene(b, 1.5), wipe(0.8, angle: 210)], loop: 1), "wipe"),
+               fps: 20, width: 240, audio: "off")
+  render video(shown(timeline([scene(a, 1.5), slide(0.6), scene(b, 1.5), slide(0.6, angle: 90)], loop: 1), "slide"),
+               fps: 20, width: 240, audio: "off")
+  render video(shown(timeline([scene(a, 1.5), glitch(0.8), scene(b, 1.5), glitch(0.8)], loop: 1), "glitch"),
+               fps: 20, width: 240, audio: "off")
+  render video(shown(timeline([scene(a, 1.5), morph(1.2), scene(b, 1.5), morph(1.2)], loop: 1), "morph"),
+               fps: 20, width: 240, audio: "off")
+  render video(shown(timeline([scene(a, 1.5), pixels(0.8), scene(b, 1.5), pixels(0.8)], loop: 1), "pixels"),
+               fps: 20, width: 240, audio: "off")
+}

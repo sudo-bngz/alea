@@ -4,11 +4,12 @@ engine and the work drawn live on the home page (examples/isohypses.alea, with
 a still shown until it is drawn), the fonts, the playground and the handbook.
 
     web/build.sh && python3 web/handbook.py   # the engine, playground, handbook
+    cargo build --release                     # alea, to render the network example
     python3 site/build.py                     # → _site/
     python3 -m http.server -d _site           # to look at it
 
-Needs Pillow."""
-import pathlib, shutil
+Needs Pillow, and alea built (target/release/alea)."""
+import pathlib, shutil, subprocess, tempfile
 
 from PIL import Image
 
@@ -18,6 +19,8 @@ web, dist = root / "web", root / "web" / "dist"
 # the work on the home page, and the still shown until the browser has drawn it
 WORK = root / "examples" / "isohypses.alea"
 STILL = root / "exhibition" / "intro" / "stills" / "isohypses-0xa1ea03.jpg"
+# the example beside "Chance is part of the language": one edition per structure `choose` can pick
+NETWORK, NETWORK_SEEDS = root / "examples" / "network.alea", ["0x1", "0x2", "0x3"]
 
 def resized(src, dest, width, quality=82):
     im = Image.open(src).convert("RGB")
@@ -50,6 +53,14 @@ def main():
     # the still shown before the live edition is ready, and the card for links
     resized(STILL, out / "img" / "hero.webp", 1080, 86)
     shutil.copy(site / "og.jpg", out / "og.jpg")
+
+    # the network example's editions, rendered by alea (cargo build --release first)
+    alea = root / "target" / "release" / "alea"
+    with tempfile.TemporaryDirectory() as tmp:
+        for seed in NETWORK_SEEDS:
+            subprocess.run([str(alea), str(NETWORK), "--seed", seed, "-o", f"{tmp}/{seed}"], check=True,
+                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+            resized(next(pathlib.Path(tmp, seed).glob("*.png")), out / "img" / f"network-{seed}.webp", 480)
 
     # the playground and the handbook, if built
     for page in ["playground.html", "handbook.html"]:
