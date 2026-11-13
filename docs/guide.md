@@ -20,18 +20,25 @@ example menu. For the exact rules (every parameter, default and limit) see the
 
 ```alea
 work Hello {
-  field waves = sin(x * ~between(5, 40))
-  render image(waves)
+  render image(text("hello, world", x: 0.5))
 }
 ```
 
-A program in alea is a **work**. A work doesn't describe one picture; it
-describes a whole family of possible pictures. Each time you run it, alea
-draws one member of that family, called an **edition**, and renders it.
+A program in alea is a **work**: `work`, a name, and between braces a list of
+statements. This one has a single statement: `render` makes a picture, here
+of one line of text.
 
-`~between(5, 40)` is the only uncertain part of this work: each run draws a
-number between 5 and 40, so each edition has a different number of stripes.
-Everything else is fixed.
+Run it:
+
+```sh
+alea examples/tour/01-hello.alea
+```
+
+and run it again. The words are the same, but they are not in the same
+place, nor the same size. You placed the line in the middle (`x: 0.5`) and
+said nothing about its height or its size, so **alea decided**. A work
+doesn't describe one picture; it describes a whole family of possible
+pictures. Each run draws one member of that family, called an **edition**.
 
 Every edition has a **seed**, printed when it's made:
 
@@ -49,9 +56,24 @@ alea examples/tour/01-hello.alea --seed 0x6c76b826fc738291
 So a work is like a printing plate and a seed like a print number, except
 that every print is different, and any print can be made again.
 
-**The shape of a file.** A file holds one work: `work`, a name, and between
-braces a list of statements. Comments start with `//` (or `#`) and run to
-the end of the line.
+**A first field.** Text is one way to make a picture; maths is the other.
+The second half of the tour file draws stripes:
+
+```alea
+field waves = sin(x * ~between(5, 40))
+render image(waves)
+```
+
+`x` is the position across the canvas, from 0 on the left to 1 on the right.
+`sin(x * 20)` turns it into a wave, dark where the wave is low and light where
+it is high: a **field**, a number at every point of the canvas, and `image`
+paints it. `~between(5, 40)` is chance made explicit: the `~` draws a number
+between 5 and 40 for this edition, so each edition has a different number of
+stripes. Fields come back in chapter 9; everything alea draws is made of them.
+
+**The shape of a file.** A file holds one work, and a work can render as many
+pictures (or videos, or sounds) as it likes. Comments start with `//` (or
+`#`) and run to the end of the line.
 
 ---
 
@@ -708,6 +730,9 @@ functions say it directly:
   `"in"` (starts slowly), `"out"` (arrives slowly), `"in-out"` (the default),
   `"sine"`, `"back"` (overshoots, then settles), `"elastic"` (wobbles) or
   `"bounce"` (lands, bounces, lands).
+
+> Figure: `eases.alea`, the eight kinds, each there and back
+
 - **`keys([[time, value], …], ease)`**: a value that passes through key
   frames. The values can be numbers, fields or points:
   `keys([[0, [0.2, 0.7]], [0.5, [0.5, 0.2]], [1, [0.2, 0.7]]], ease: "in-out")`
@@ -739,6 +764,9 @@ repeats four times, `progress(…, time: other)` follows anything.
   turn, fading). `from` and `to` set the range, and `phase` shifts it, in
   turns: `[lfo(phase: k / 9) for k in range(9)]` is nine values each a ninth
   out of step. `cc(lfo(8), 74)` sweeps a synth's filter.
+
+> Figure: `lfo.alea`, the five shapes, twice round
+
 - **`orbit(radius, times, phase, x, y)`**: a point `[x, y]` going round
   (0.5, 0.5) by default. `times: [2, 3]` turns twice across and three times
   down: a Lissajous figure. `radius: [0.4, 0.2]` makes an ellipse.
@@ -1093,6 +1121,8 @@ and their settings is in the reference, under *Synths*.
 
 ## 28. Files: opening what the work needs
 
+> Tour: `28-files.alea`
+
 A work can open the files it needs, from its own folder: a photo, a sound,
 a poem, a MIDI file. `open` reads one and recognises it by its contents;
 what you get is the same as an [input](#23-input-works-in-a-pipe), with the
@@ -1138,6 +1168,8 @@ a web page made with `--web` carries them.
 
 ## 29. Timeline: scenes, and how they cross
 
+> Tour: `29-timeline.alea`
+
 Everything so far moves inside one scene. A timeline puts scenes one after
 another, each with its own time, and crosses from each to the next:
 
@@ -1158,6 +1190,9 @@ work plays one loop. A transition straddles the cut, half on each side.
 into slices and static before it flips; `morph` melts one scene into the
 next; `pixels` breaks it into blocks. With `loop: 1` the last transition
 leads back to the first scene, so the video loops without a seam.
+
+> Figure: `transitions.alea`, each transition there and back
+
 
 A scene can show one moment of a work (`scene(turn, 2, from: 0.5, to: 0.5)`
 holds a still), and a timeline is a value like any other: film it, paint it,

@@ -89,7 +89,17 @@ th, td { text-align: left; vertical-align: top; padding: 10px 14px 10px 0; borde
 th { font: 400 10.5px/1.4 var(--f-key); letter-spacing: .14em; text-transform: uppercase; color: var(--syn-param); border-bottom: 2px solid var(--line); }
 td code { white-space: nowrap; }
 figure.strip { margin: 8px 0 20px; display: flex; flex-wrap: wrap; gap: 10px; }
-figure.strip img { width: 150px; height: 150px; max-width: calc(50% - 5px); height: auto; aspect-ratio: 1; padding: 4px; border: 1px solid var(--frame); background: var(--paper); }
+figure.strip img { height: auto; width: auto; max-width: 100%; object-fit: contain; padding: 4px; border: 1px solid var(--frame); background: var(--paper); }
+/* a sound: its picture (or its video), a play button over it, a bar for where it is */
+.player { position: relative; width: calc(var(--w) + 10px); max-width: 100%; padding: 4px; border: 1px solid var(--frame); }
+figure.strip .player img, .player video { display: block; width: 100%; height: auto; padding: 0; border: 0; max-width: none; }
+.player .play { position: absolute; left: 12px; bottom: 16px; width: 44px; height: 44px; border: 0; border-radius: 0; padding: 12px;
+  background: var(--accent); color: var(--paper); cursor: pointer; }
+.player .play svg { display: block; width: 100%; height: 100%; fill: currentColor; }
+.player .play:hover { background: var(--bright); }
+.player .i-pause, .player.on .i-play { display: none; } .player.on .i-pause { display: inline; }
+.player .bar { position: absolute; left: 4px; right: 4px; bottom: 4px; height: 3px; background: var(--line); }
+.player .bar i { display: block; height: 100%; width: 0; background: var(--accent); }
 figure.strip figcaption { flex-basis: 100%; font-size: 11.5px; color: var(--dim); }
 
 .k { color: var(--syn-kw); font-weight: 600; } .p { color: var(--syn-prim); } .d { color: var(--accent); font-weight: 600; }
@@ -125,8 +135,9 @@ figure.strip figcaption { flex-basis: 100%; font-size: 11.5px; color: var(--dim)
 <script>
 (() => {
   // alea syntax highlighting, the same rules as the playground's editor.
-  const KW = new Set(['use','work','let','field','pattern','constraint','render','output','repeat','event','choose','and','or','grow','then','for','in']);
-  const PRIM = new Set(['meter','euclid','steps','chords','arp','lfo','orbit','cc','input','colours','colors','band','at','ease','keys','progress','sequence','blur','pixelate','edges','relief','posterize','film','vignette','bloom','chroma','paint','mosaic','place','overlay','drone','notes','texture','range','join','slice','reverse','sum','path','along','length','neighbours','neighbors','spread','nearby','circle','ring','rect','square','line','blob','stripes','waves','ripples','dots','checker','gradient','glow','clouds','grain','scatter','move','rotate','zoom','tile','mirror','kaleidoscope','warp','merge','overlap','cut','invert','threshold','text','picture','sin','cos','tan','abs','sqrt','exp','ln','floor','fract','sign','min','max','atan2','step','clamp','mix','smoothstep','distance','noise','mean','stddev','minimum','maximum','count','image','sound','video','sculpture','midi']);
+  const KW = new Set(['use','work','let','field','pattern','constraint','render','output','repeat','event','choose','synth','and','or','grow','then','for','in']);
+  const PRIM = new Set(['meter','euclid','steps','chords','arp','lfo','orbit','cc','input','open','files','timeline','scene','jump','fade','wipe','slide','glitch','morph','pixels','colours','colors','band','at','ease','keys','progress','sequence','blur','pixelate','edges','relief','posterize','film','vignette','bloom','chroma','paint','mosaic','place','overlay','drone','notes','texture','say','range','join','slice','reverse','sum','path','along','length','neighbours','neighbors','spread','nearby','circle','ring','rect','square','line','blob','stripes','waves','ripples','dots','checker','gradient','glow','clouds','grain','scatter','move','rotate','zoom','tile','mirror','kaleidoscope','warp','merge','overlap','cut','invert','threshold','text','picture']);
+  const FN = new Set(['sin','cos','tan','abs','sqrt','exp','ln','floor','fract','sign','min','max','atan2','step','clamp','mix','smoothstep','distance','noise','mean','stddev','minimum','maximum','count','image','sound','video','sculpture','midi']);
   const DIST = new Set(['uniform','normal','beta','poisson','exponential','between','around']);
   const VARS = new Set(['x','y','t','i','n','pi','tau']);
   const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -141,7 +152,7 @@ figure.strip figcaption { flex-basis: 100%; font-size: 11.5px; color: var(--dim)
         const rest = l.slice(m.index + tok.length);
         if (/^\s*:/.test(rest) && !KW.has(id)) cls = 'a';
         else if (KW.has(id)) cls = 'k';
-        else if (/^\s*\(/.test(rest)) cls = DIST.has(id) ? 'd' : PRIM.has(id) ? 'p' : /^\p{Lu}/u.test(id) ? 'w' : '';
+        else if (/^\s*\(/.test(rest)) cls = DIST.has(id) ? 'd' : PRIM.has(id) || FN.has(id) ? 'p' : /^\p{Lu}/u.test(id) ? 'w' : '';
         else if (VARS.has(id)) cls = 'v';
       }
       out += cls ? `<span class="${cls}">${esc(tok)}</span>` : esc(tok);
@@ -151,6 +162,21 @@ figure.strip figcaption { flex-basis: 100%; font-size: 11.5px; color: var(--dim)
   };
   for (const code of document.querySelectorAll('code.language-alea')) {
     code.innerHTML = code.textContent.split('\n').map(line).join('\n');
+  }
+
+  // Sounds: one at a time, over their picture.
+  for (const fig of document.querySelectorAll('.player')) {
+    const media = fig.querySelector('video, audio'), bar = fig.querySelector('.bar i');
+    fig.querySelector('.play').addEventListener('click', () => {
+      if (media.paused) {
+        document.querySelectorAll('.player video, .player audio').forEach((m) => m !== media && m.pause());
+        media.play();
+      } else media.pause();
+    });
+    media.addEventListener('play', () => fig.classList.add('on'));
+    media.addEventListener('pause', () => fig.classList.remove('on'));
+    media.addEventListener('ended', () => { media.currentTime = 0; bar.style.width = '0'; });
+    media.addEventListener('timeupdate', () => { bar.style.width = `${100 * media.currentTime / (media.duration || 1)}%`; });
   }
 
   // The same index, folded, on phones.

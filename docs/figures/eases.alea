@@ -1,0 +1,14 @@
+// Figure for the guide, chapter 21: the eight kinds of ease(), side by side.
+// Each ball goes across in the first half and comes back in the second.
+
+work Eases {
+  let kinds = ["linear", "in", "out", "in-out", "sine", "back", "elastic", "bounce"]
+  let rows = [
+      merge(
+          text(kinds[k], x: 0.05, y: 0.08 + 0.12 * k, size: 0.05, font: "mono", align: "left"),
+          line(x1: 0.36, y1: 0.08 + 0.12 * k, x2: 0.92, y2: 0.08 + 0.12 * k, width: 0.002) * 0.3,
+          circle(0.36 + 0.56 * (ease(progress(0.05, 0.4), kinds[k]) - ease(progress(0.55, 0.9), kinds[k])),
+                 0.08 + 0.12 * k, 0.03, 0.004))
+      for k in range(8)]
+  render video(merge(rows), duration: 4, fps: 20, width: 360, audio: "off")
+}

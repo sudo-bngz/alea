@@ -136,7 +136,11 @@ h3::before { content: "// "; color: var(--com); }
 
 .language .cols { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(1.5rem, 4vw, 4rem); align-items: start; }
 .prose { max-width: var(--measure); }
-.example { font-size: 0.8rem; }
+.example { font-size: 0.8rem; min-width: 0; }
+.example pre { overflow-x: auto; }
+.editions { margin: 1rem 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+.editions img { display: block; width: 100%; height: auto; }
+.editions figcaption { grid-column: 1 / -1; font-size: 0.75rem; opacity: 0.7; }
 
 /* ── install ── */
 .ways { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.5rem clamp(1.25rem, 3vw, 2.25rem); margin-bottom: 2.4rem; }

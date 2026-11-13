@@ -66,11 +66,29 @@
       <p>Then you say what to make of it. The same work can render an image, a looping video, a sound, a sculpture to print in 3D, or a MIDI score that plays in your DAW. Works can use other works as parts, open their own files (photos, sounds, texts, MIDI files), take an input, read from a pipe, and go on a timeline, scene after scene, with glitches, morphs and fades between them.</p>
       <p>It is written for artists first: no setup to try it, plain words for its functions, and error messages that say how to fix the problem.</p>
     </div>
-<pre class="example"><code class="alea">work Moon {
-  let moon  = circle(size: ~between(0.25, 0.4))  // alea decides
-  let shade = move(moon, x: 0.08)                 // nudged right
-  render image(merge(clouds() * 0.25, cut(moon, shade)), palette: "night")
+<div class="example">
+<pre><code class="alea">work Network {
+  let nodes = [[~between(0.08, 0.92), ~between(0.08, 0.92)] for k in range(30)]
+  let hub   = [~between(0.35, 0.65), ~between(0.35, 0.65)]
+
+  let links = choose {
+      [line(p.x, p.y, q.x, q.y, 0.002) * max(0, 1 - distance(p, q) / 0.3)
+         for p in nodes for q in nodes]                             // a mesh
+    | [line(p.x, p.y, hub.x, hub.y, 0.002) * 0.7 for p in nodes]   // a star
+    | [path(join(nodes, [nodes[0]]), 0.002) * 0.7]                 // a loop
+  }
+  let dots  = [circle(p.x, p.y, ~between(0.008, 0.02), 0.002)
+               for p in join(nodes, [hub])]
+
+  render image(merge(join(links, dots)), palette: "night")
 }</code></pre>
+<figure class="editions">
+  <img src="img/network-0x1.webp" width="480" height="480" alt="Edition 0x1 of Network: a star, every node linked to one hub" loading="lazy">
+  <img src="img/network-0x2.webp" width="480" height="480" alt="Edition 0x2 of Network: a mesh of near neighbours" loading="lazy">
+  <img src="img/network-0x3.webp" width="480" height="480" alt="Edition 0x3 of Network: one loop through every node" loading="lazy">
+  <figcaption>Three editions, three structures: <span class="nowrap">0x1 a star</span> · <span class="nowrap">0x2 a mesh</span> · <span class="nowrap">0x3 a loop</span></figcaption>
+</figure>
+</div>
   </div>
 </section>
 

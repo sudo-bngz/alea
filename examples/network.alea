@@ -1,0 +1,19 @@
+// Network: thirty nodes, and how they connect is a choice.
+// `choose` doesn't nudge a number, it picks the structure: a mesh of near
+// neighbours, a star around a hub, or a single loop through every node.
+
+work Network {
+  let nodes = [[~between(0.08, 0.92), ~between(0.08, 0.92)] for k in range(30)]
+  let hub   = [~between(0.35, 0.65), ~between(0.35, 0.65)]
+
+  let links = choose {
+      [line(p.x, p.y, q.x, q.y, 0.002) * max(0, 1 - distance(p, q) / 0.3)
+         for p in nodes for q in nodes]                             // a mesh
+    | [line(p.x, p.y, hub.x, hub.y, 0.002) * 0.7 for p in nodes]   // a star
+    | [path(join(nodes, [nodes[0]]), 0.002) * 0.7]                 // a loop
+  }
+  let dots  = [circle(p.x, p.y, ~between(0.008, 0.02), 0.002)
+               for p in join(nodes, [hub])]
+
+  render image(merge(join(links, dots)), palette: "night")
+}
