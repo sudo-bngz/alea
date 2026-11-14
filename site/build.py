@@ -68,6 +68,9 @@ def main():
             shutil.copy(dist / page, out / page)
         else:
             print(f"note: web/dist/{page} is missing (web/build.sh, web/handbook.py)")
+    # the handbook's pictures, animations and sounds, beside it
+    if (dist / "handbook-media").exists():
+        shutil.copytree(dist / "handbook-media", out / "handbook-media", dirs_exist_ok=True)
     size = sum(p.stat().st_size for p in out.rglob("*") if p.is_file())
     print(f"_site/: {sum(1 for p in out.rglob('*') if p.is_file())} files, {size / 1e6:.1f} MB")
 
