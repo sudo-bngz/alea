@@ -584,7 +584,7 @@ const ALEA_ASSETS = /*ASSETS*/;
           if (png.bytes && !(await aleaSave(`${slug()}-${seedTag()}.png`, new Uint8Array(png.bytes)))) setStatus('Saving files is not available here');
         });
       } else if (r.kind === 'sculpture') {
-        const { canvas, cap } = card('sculpture', `${r.resolution} × ${r.resolution} relief, shaded preview`);
+        const { canvas, cap } = card('sculpture', `${r.resolution} × ${r.resolution} relief, shaded preview (flat: the STL has the shape)`);
         const px = await engine.request({ type: 'pixels', index: i, w: 0, h: 0, t: 0 });
         if (my !== gen) return;
         if (px.bytes) { putPixels(canvas, px.bytes, r.resolution, r.resolution); canvas.style.width = Math.min(r.resolution * 3, 640) + 'px'; }

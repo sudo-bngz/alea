@@ -467,6 +467,35 @@ the width, `base` the thickness of the base, `relief` the height of the
 tallest point as a fraction of the side, and `resolution` how fine the
 surface is.
 
+**Other shapes.** A square tile is only the default. `shape:` says what the
+field is wrapped around:
+
+```alea
+render sculpture(relief, shape: "disc")       // a medallion
+render sculpture(relief, shape: "sphere")     // a small planet
+render sculpture(weave, shape: "cylinder", height: 140,
+                 profile: [0.6, 1, 0.9, 0.45, 0.6], hollow: 2.4)   // a vase
+```
+
+On a cylinder, x goes round and y goes from the top down. `profile` is the
+outline, as radii from the foot to the lip, and alea draws a smooth curve
+through them. `hollow` is the thickness of the wall: without it the cylinder
+is solid, with it you get a vase, open at the top. `examples/vase.alea` draws
+the outline and the weave by chance: every edition is another vase.
+
+**Lithophanes.** `mode: "lithophane"` makes a thin plate to print in white
+and hold to the light: thin where the field is high, so the light comes
+through, thick where it is low. With a photo, the picture appears:
+
+```alea
+let photo = open("assets/astronaut.png")
+render sculpture(photo.luma, mode: "lithophane", side: 90, resolution: 300)
+```
+
+`thin` and `thick` set the two thicknesses (0.8 and 3 mm unless you say
+otherwise). Add `shape: "cylinder"` and the plate becomes a tube to stand
+over a lamp: `examples/lithophane.alea` makes both.
+
 ---
 
 ## 15. Works made of works

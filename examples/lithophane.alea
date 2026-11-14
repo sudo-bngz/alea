@@ -1,0 +1,14 @@
+// Lithophane: a photo as a thin plate to print in white, and hold to the light.
+// Where the picture is bright the plate is thin, and the light comes through;
+// where it is dark the plate is thick. Print it standing up, 0.1 mm layers.
+
+work Lithophane {
+  let photo = open("assets/astronaut.png")
+
+  // a flat plate, 90 mm wide, from 0.8 mm (white) to 3 mm (black)
+  render sculpture(photo.luma, mode: "lithophane", resolution: 300, side: 90)
+
+  // the same picture round a tube, to stand over a small lamp
+  render sculpture(photo.luma, mode: "lithophane", shape: "cylinder",
+                   resolution: 300, side: 70, height: 90)
+}

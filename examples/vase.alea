@@ -1,0 +1,21 @@
+// Vase: a field wrapped round a cylinder, hollow, with a turned profile.
+// Each edition is another vase: its outline, its weave, and how deep it is cut.
+
+work Vase {
+  // radii from the foot to the lip, as multiples of side / 2
+  let outline = [~between(0.5, 0.8), ~between(0.9, 1.2), ~between(0.7, 1),
+                 ~between(0.35, 0.55), ~between(0.5, 0.75)]
+
+  // a weave that closes on itself: whole numbers of waves round the vase
+  let turns = floor(~between(6, 15))
+  let twist = floor(~between(-4, 5))
+  let weave = choose {
+      sin((x * turns + y * twist) * tau)                 // a spiral of ribs
+    | sin(x * turns * tau) * sin(y * turns * 0.7 * tau)  // a basket
+    | clouds(scale: 5)                                   // rough stone
+  }
+
+  render sculpture(weave, shape: "cylinder", side: 80, height: 140,
+                   profile: outline, hollow: 2.4, base: 3,
+                   relief: ~between(0.015, 0.04), resolution: 240)
+}
