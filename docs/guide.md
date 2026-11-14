@@ -57,11 +57,13 @@ So a work is like a printing plate and a seed like a print number, except
 that every print is different, and any print can be made again.
 
 **A first field.** Text is one way to make a picture; maths is the other.
-The second half of the tour file draws stripes:
+Here are stripes:
 
 ```alea
-field waves = sin(x * ~between(5, 40))
-render image(waves)
+work Waves {
+  field waves = sin(x * ~between(5, 40))
+  render image(waves)
+}
 ```
 
 `x` is the position across the canvas, from 0 on the left to 1 on the right.
@@ -70,6 +72,8 @@ it is high: a **field**, a number at every point of the canvas, and `image`
 paints it. `~between(5, 40)` is chance made explicit: the `~` draws a number
 between 5 and 40 for this edition, so each edition has a different number of
 stripes. Fields come back in chapter 9; everything alea draws is made of them.
+
+> Figure: `waves.alea`, a field, edition 0x2a
 
 **The shape of a file.** A file holds one work, and a work can render as many
 pictures (or videos, or sounds) as it likes. Comments start with `//` (or

@@ -1,0 +1,6 @@
+// Figure for the guide, chapter 1: a first field, a number at every point.
+
+work Waves {
+  field waves = sin(x * ~between(5, 40))
+  render image(waves)
+}

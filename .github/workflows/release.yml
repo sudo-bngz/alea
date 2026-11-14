@@ -52,6 +52,7 @@ jobs:
             web/dist/alea.wasm
             web/dist/playground.html
             web/dist/handbook.html
+            web/dist/handbook-media/
 
   cli:
     name: Command line (${{ matrix.name }})
@@ -194,7 +195,8 @@ jobs:
           # only the files meant for the release, whatever else came along
           find artifacts -maxdepth 2 -type f \( -name 'alea-*.tar.gz' -o -name 'alea-*.zip' \) -exec mv {} release/ \;
           mv artifacts/playground.html "release/alea-$TAG-playground.html"
-          mv artifacts/handbook.html "release/alea-$TAG-handbook.html"
+          # the handbook and its media (pictures, animations, sounds), in one zip
+          (cd artifacts && zip -qr "../release/alea-$TAG-handbook.zip" handbook.html handbook-media)
           cd release
           sha256sum -- * > SHA256SUMS.txt
           cat SHA256SUMS.txt

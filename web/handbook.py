@@ -9,10 +9,11 @@ docs/figures/name.alea the same way.
     python3 web/handbook.py            # renders the tour with target/release/alea
     ALEA_RENDERS=dir python3 web/handbook.py   # reuses renders already in dir/<name>/
 
-Writes web/dist/handbook.html (a full page) and web/dist/handbook.body.html
+Writes web/dist/handbook.html (a full page), web/dist/handbook.body.html, and
+the pictures, animations and sounds they show in web/dist/handbook-media/
 (the same content without the document skeleton, for hosts that add their own).
 Needs the `markdown` and `Pillow` Python packages, and ffmpeg."""
-import base64, io, os, pathlib, re, subprocess, tempfile
+import os, pathlib, re, shutil, subprocess, tempfile
 
 import markdown
 from markdown.extensions.toc import slugify as md_slugify
@@ -37,35 +38,50 @@ render_all(figures_dir, renders / "_figures")
 def ordered(folder, pattern):
     return sorted(folder.glob(pattern), key=lambda p: (len(p.name), p.name))
 
-def data(path, mime):
-    return f"data:{mime};base64," + base64.b64encode(path.read_bytes()).decode()
+# The media sit beside the page, in web/dist/handbook-media/, and load as the
+# reader scrolls to them: at full quality they are too heavy to inline.
+MEDIA = web / "dist" / "handbook-media"
+shutil.rmtree(MEDIA, ignore_errors=True)
+MEDIA.mkdir(parents=True)
 
 def ffmpeg(*args):
     subprocess.run(["ffmpeg", "-v", "error", "-y", *map(str, args)], check=True, stdin=subprocess.DEVNULL)
 
-def still(p, high=150):
-    """A picture as a JPEG thumbnail, with its width and height when shown `high` pixels high."""
-    im = Image.open(p).convert("RGB")
-    im.thumbnail((high * 4, high * 2))
-    buf = io.BytesIO()
-    im.save(buf, "JPEG", quality=82)
-    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode(), round(high * im.width / im.height), high
+def shipped(made, name):
+    """Copy a made file into the media folder; its URL from the page."""
+    shutil.copy(made, MEDIA / name)
+    return f"handbook-media/{name}"
 
-def loop(mp4, width=220, high=150):
-    """A video as a silent looping WebP, made from alea's own render (cached next to it).
-    A busy one is made again smaller and slower, to keep the page light."""
-    out = mp4.with_suffix(".hb.webp")
+def label(p):
+    """A stable name for one render: tour or figure stem, then its index among the work's renders."""
+    return f"{p.parent.name}{p.stem.split('-000000000000002a')[-1] or ''}"
+
+def still(p, high=240):
+    """A picture, sharp on a high-density screen; its URL, and its width and height shown `high` pixels high."""
+    out = p.with_suffix(f".hb{high}.jpg")
     if not out.exists():
-        for fps, w, q in [(10, width, 32), (8, 180, 26), (6, 160, 20)]:
-            ffmpeg("-i", mp4, "-t", 12, "-vf", f"fps={fps},scale={w}:-2:flags=lanczos", "-an",
+        im = Image.open(p).convert("RGB")
+        im.thumbnail((high * 8, high * 2), Image.LANCZOS)
+        im.save(out, "JPEG", quality=90)
+    w, h = Image.open(out).size
+    return shipped(out, f"{label(p)}.jpg"), round(high * w / h), high
+
+def loop(mp4, high=240):
+    """A video as a silent looping animated WebP, from alea's own render (cached next to it):
+    twice the size it is shown, 20 frames a second. A very busy one is made a little
+    lighter, never blurry."""
+    out = mp4.with_suffix(f".hb{high}.webp")
+    if not out.exists():
+        for fps, q in [(20, 70), (20, 55), (15, 50)]:
+            ffmpeg("-i", mp4, "-t", 10, "-vf", f"fps={fps},scale=-2:{high * 2}:flags=lanczos", "-an",
                    "-c:v", "libwebp_anim", "-lossless", 0, "-q:v", q, "-compression_level", 6, "-loop", 0, out)
-            if out.stat().st_size < 240_000:
+            if out.stat().st_size < 2_500_000:
                 break
     w, h = Image.open(out).size
-    return data(out, "image/webp"), round(high * w / h), high
+    return shipped(out, f"{label(mp4)}.webp"), round(high * w / h), high
 
 def clip(src, video):
-    """A sound (or a video with its sound) small enough to live in the page: at most 15 seconds, fading out."""
+    """A sound, or a video with its sound: at most 15 seconds, fading out."""
     out = src.with_suffix(".hb.mp4" if video else ".hb.m4a")
     if not out.exists():
         dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(src)],
@@ -73,11 +89,11 @@ def clip(src, video):
         cut = min(dur, 15)
         fade = f"afade=t=out:st={max(cut - 1, 0):.2f}:d=1"
         if video:
-            ffmpeg("-i", src, "-t", cut, "-vf", "scale=300:-2", "-c:v", "libx264", "-crf", 34, "-preset", "slow",
-                   "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-af", fade, "-c:a", "aac", "-b:a", "64k", out)
+            ffmpeg("-i", src, "-t", cut, "-vf", "scale=-2:720:flags=lanczos", "-c:v", "libx264", "-crf", 22, "-preset", "slow",
+                   "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-af", fade, "-c:a", "aac", "-b:a", "160k", out)
         else:
-            ffmpeg("-i", src, "-t", cut, "-af", fade, "-c:a", "aac", "-b:a", "64k", "-movflags", "+faststart", out)
-    return data(out, "video/mp4" if video else "audio/mp4")
+            ffmpeg("-i", src, "-t", cut, "-af", fade, "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", out)
+    return shipped(out, f"{label(src)}{out.suffix}")
 
 # ── markdown ──
 def convert(path, prefix):
@@ -119,8 +135,8 @@ def has_sound(mp4):
 
 def player(stem, folder):
     pngs, mp4s, wavs = ordered(folder, "*.png"), ordered(folder, "*.mp4"), ordered(folder, "*.wav")
-    mp4s = [p for p in mp4s if ".hb." not in p.name]
-    poster, w, h = still(pngs[0], high=260)
+    mp4s = [p for p in mp4s if ".hb" not in p.name]
+    poster, w, h = still(pngs[0], high=360)
     if mp4s and has_sound(mp4s[0]):
         media = f'<video src="{clip(mp4s[0], True)}" poster="{poster}" preload="none" playsinline width="{w}" height="{h}"></video>'
     elif wavs:
@@ -135,11 +151,12 @@ def player(stem, folder):
             f'<figcaption>{stem}.alea, edition 0x2a · press play to listen</figcaption></figure>')
 
 def strip(stem, folder, caption, limit=4, big=False):
-    pngs = [p for p in ordered(folder, "*.png") if ".hb." not in p.name]
-    mp4s = [p for p in ordered(folder, "*.mp4") if ".hb." not in p.name]
-    figs = [img(*(loop(p, 360, 300) if big else loop(p)), alt="") for p in mp4s]
+    high = 360 if big else 240
+    pngs = [p for p in ordered(folder, "*.png") if ".hb" not in p.name]
+    mp4s = [p for p in ordered(folder, "*.mp4") if ".hb" not in p.name]
+    figs = [img(*loop(p, high)) for p in mp4s]
     # a video's own still is usually the work's first picture: show the others
-    figs += [img(*still(p)) for p in (pngs[1:] if figs else pngs)][: max(limit - len(figs), 0)]
+    figs += [img(*still(p, high)) for p in (pngs[1:] if figs else pngs)[: max(limit - len(figs), 0)]]
     if not figs:
         return ""
     return f'<figure class="strip">{"".join(figs)}<figcaption>{caption}</figcaption></figure>'
@@ -156,7 +173,8 @@ def figure(m):
     stem, about = m.group(1).removesuffix(".alea"), m.group(2).strip(" ,")
     caption = f"{about} · docs/figures/{stem}.alea" if about else f"docs/figures/{stem}.alea"
     folder = renders / "_figures" / stem
-    return strip(stem, folder, caption, limit=12, big=len(list(folder.glob("*.mp4"))) == 1)
+    shown = [p for p in folder.glob("*") if p.suffix in (".png", ".mp4") and ".hb" not in p.name]
+    return strip(stem, folder, caption, limit=12, big=len(shown) == 1)
 
 guide_html = re.sub(r"<blockquote>\s*<p>Tour: <code>([^<]+)</code>.*?</blockquote>", illustrate, guide_html, flags=re.S)
 guide_html = re.sub(r"<blockquote>\s*<p>Figure: <code>([^<]+)</code>(.*?)</p>\s*</blockquote>", figure, guide_html, flags=re.S)
