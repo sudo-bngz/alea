@@ -965,15 +965,52 @@ otherwise the original drone and bells of the field and pattern.
 
 ### sculpture
 
-`render sculpture(field, …)` → STL (binary), a closed solid, in millimetres
+`render sculpture(field, …)` → STL (binary), a closed solid, in millimetres,
+z up. Seen from above (or from outside, for the round shapes) it reads like
+the picture: text is not mirrored.
 
 | Option | Default | Range |
 |---|---|---|
+| `shape` | `"tile"` | what the field is wrapped around: see below |
 | `resolution` | 160 | 8–1024 points per side |
-| `side` | 100 | width and depth, in mm |
+| `side` | 100 | width and depth (the diameter, for the round shapes), in mm, 1–2000 |
 | `relief` | 0.25 | height of the tallest point, as a fraction of `side` |
-| `base` | 4 | thickness of the base, in mm (at least 0.5) |
+| `base` | 4 | thickness of the base, or of a hollow cylinder's floor, in mm (at least 0.5) |
 | `at` | 0 | the moment `t` to sculpt |
+| `mode` | `"relief"` | `"lithophane"`: a thin plate to hold to the light, see below |
+
+| Shape | What it makes |
+|---|---|
+| `"tile"` | a square relief on a base |
+| `"disc"` | the same, round: a medallion. The field's corners are left out |
+| `"cylinder"` | the field goes round a tube: x is the way round, y goes from the top down. Solid, or a vase with `hollow:` |
+| `"sphere"` | the field displaces a ball, like a map on a globe: x is the longitude, y goes from the north pole to the south |
+
+Going round a cylinder or a sphere, the field's right edge meets its left
+edge. alea blends the first tenth of the turn with what lies beyond the right
+edge, so most fields close without a step; a field that repeats a whole number
+of times across the canvas (`sin(x * 8 * tau)`) closes exactly.
+
+Options for the cylinder only:
+
+| Option | Default | |
+|---|---|---|
+| `height` | `side` | in mm, 1–2000 |
+| `profile` | straight | a list of 2 to 64 radii from the bottom to the top, as multiples of `side / 2` (0.05–20): `[0.6, 1, 0.5, 0.7]` is a vase with a belly and a neck. A smooth curve goes through them |
+| `hollow` | solid | the wall's thickness in mm (at least 0.4): the cylinder is open at the top, smooth inside, with a floor `base` thick |
+
+**Lithophanes.** `mode: "lithophane"` makes a plate whose thickness follows
+the field the other way: thin where it is high, so light shines through, and
+thick where it is low. Give it a picture's `.luma`. It works on the shapes
+`"tile"`, `"disc"` and `"cylinder"` (a tube open at both ends, smooth inside,
+`side` being its inner diameter).
+
+| Option | Default | |
+|---|---|---|
+| `thin` | 0.8 | thickness in mm where the field is highest (at least 0.2) |
+| `thick` | 3 | thickness in mm where it is lowest (at most 20) |
+
+`relief`, `base` and `hollow` don't apply to a lithophane.
 
 ### Palettes
 

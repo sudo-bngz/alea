@@ -11,4 +11,11 @@ work Sculpture {
   // relief: the tallest point, as a fraction of the side (0.15 × 120 mm = 18 mm)
   render sculpture(relief, resolution: 200, relief: 0.15, side: 120, base: 3)
   render image(relief, width: 512, palette: "lichen")
+
+  // other shapes: the same relief as a medallion, and a hollow vase.
+  // On a cylinder, x goes round, and `profile` is the outline from foot to lip.
+  render sculpture(relief, shape: "disc", resolution: 200, relief: 0.15, side: 120, base: 3)
+  let weave = sin((x * 9 + y * 3) * tau)
+  render sculpture(weave, shape: "cylinder", side: 80, height: 140, resolution: 200,
+                   profile: [0.6, 1, 0.9, 0.45, 0.6], hollow: 2.4, relief: 0.03)
 }

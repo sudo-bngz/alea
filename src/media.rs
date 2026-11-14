@@ -194,12 +194,35 @@ pub struct VideoSpec {
     pub sound: SoundSpec,
 }
 
+/// What the field is wrapped around.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum Shape {
+    /// A square relief on a base.
+    Tile,
+    /// The same, round: a medallion.
+    Disc,
+    /// The field goes round a tube: a column, or with `hollow:` a vase.
+    Cylinder,
+    /// The field displaces a ball.
+    Sphere,
+}
+
 pub struct SculptureSpec {
     pub n: usize,
+    /// Height of the tallest point, as a fraction of `side`.
     pub relief: f64,
     pub side: f64,
     pub base: f64,
     pub at: f64,
+    pub shape: Shape,
+    /// A cylinder's height, in mm.
+    pub height: f64,
+    /// A cylinder's radius from bottom to top, as multiples of `side / 2`.
+    pub profile: Vec<f64>,
+    /// A hollow cylinder's wall, in mm; 0: solid.
+    pub hollow: f64,
+    /// Thin where the field is high, so light shines through: heights are inverted.
+    pub lithophane: bool,
 }
 
 pub fn image_spec(r: &Render) -> Res<ImageSpec> {
@@ -436,14 +459,96 @@ pub fn video_spec(r: &Render) -> Res<VideoSpec> {
 }
 
 pub fn sculpture_spec(r: &Render) -> Res<SculptureSpec> {
-    r.check(1, &["resolution", "relief", "side", "base", "at"])?;
+    r.check(1, &["resolution", "relief", "side", "base", "at", "shape", "height", "profile", "hollow", "mode", "thin", "thick"])?;
     r.required_field(0, "the field to sculpt")?;
+    let err = |msg: &str, name: &str| Err(Error::new(msg, r.span_of(name)));
+    let given = |name: &str| r.named.contains_key(name);
+
+    let shape = match r.string("shape", "tile")?.as_str() {
+        "tile" => Shape::Tile,
+        "disc" => Shape::Disc,
+        "cylinder" => Shape::Cylinder,
+        "sphere" => Shape::Sphere,
+        _ => return err("`shape` must be \"tile\", \"disc\", \"cylinder\" or \"sphere\"", "shape"),
+    };
+    let lithophane = match r.string("mode", "relief")?.as_str() {
+        "relief" => false,
+        "lithophane" => true,
+        _ => return err("`mode` must be \"relief\" or \"lithophane\"", "mode"),
+    };
+    let side = r.number("side", 100.0)?;
+    if !(side >= 1.0 && side <= 2000.0) {
+        return err("`side` is in millimetres, from 1 to 2000", "side");
+    }
+
+    // a lithophane is a thin plate: its thickness goes from `thin` (light) to `thick` (dark)
+    let (relief, base) = if lithophane {
+        if shape == Shape::Sphere {
+            return err("a lithophane is a plate or a tube: use the shape \"tile\", \"disc\" or \"cylinder\"", "mode");
+        }
+        for name in ["relief", "base", "hollow"] {
+            if given(name) {
+                return err(&format!("a lithophane's thickness is set with `thin:` and `thick:`, not `{name}:`"), name);
+            }
+        }
+        let (thin, thick) = (r.number("thin", 0.8)?, r.number("thick", 3.0)?);
+        if !(thin >= 0.2 && thick > thin && thick <= 20.0) {
+            return err("`thin` and `thick` are in millimetres: `thin` at least 0.2, `thick` more than `thin` and at most 20", if given("thick") { "thick" } else { "thin" });
+        }
+        ((thick - thin) / side, thin)
+    } else {
+        for name in ["thin", "thick"] {
+            if given(name) {
+                return err(&format!("`{name}:` is for lithophanes: add `mode: \"lithophane\"`"), name);
+            }
+        }
+        (r.number("relief", 0.25)?, r.number("base", 4.0)?.max(0.5))
+    };
+
+    for name in ["height", "profile", "hollow"] {
+        if given(name) && shape != Shape::Cylinder {
+            return err(&format!("`{name}:` is for the shape \"cylinder\""), name);
+        }
+    }
+    let height = r.number("height", side)?;
+    if !(height >= 1.0 && height <= 2000.0) {
+        return err("`height` is in millimetres, from 1 to 2000", "height");
+    }
+    let profile = match r.named.get("profile") {
+        None => vec![1.0, 1.0],
+        Some((Val::List(items), span)) => {
+            let nums: Option<Vec<f64>> = items.iter().map(|v| match v { Val::Field(f) => f.constant(), _ => None }).collect();
+            match nums {
+                Some(v) if v.len() >= 2 && v.len() <= 64 && v.iter().all(|x| *x >= 0.05 && *x <= 20.0) => v,
+                _ => return Err(Error::new("`profile` is a list of 2 to 64 radii from bottom to top, each from 0.05 to 20 (1 is `side / 2`)", *span)),
+            }
+        }
+        Some((_, span)) => return Err(Error::new("`profile` is a list of radii from bottom to top, like [0.6, 1, 0.8]", *span)),
+    };
+    let hollow = r.number("hollow", 0.0)?;
+    if hollow != 0.0 {
+        let narrowest = profile.iter().cloned().fold(f64::INFINITY, f64::min) * side / 2.0;
+        if hollow < 0.4 {
+            return err("`hollow` is the wall's thickness in millimetres, at least 0.4", "hollow");
+        }
+        if narrowest - hollow - relief.min(0.0).abs() * side < 1.0 {
+            return err("the wall is thicker than the narrowest part of the cylinder: lower `hollow`, or widen `side` or `profile`", "hollow");
+        }
+        if base >= height {
+            return err("the floor (`base`) is thicker than the cylinder is high", "base");
+        }
+    }
     Ok(SculptureSpec {
         n: r.integer("resolution", 160.0, 8, 1024)?,
-        relief: r.number("relief", 0.25)?,
-        side: r.number("side", 100.0)?,
-        base: r.number("base", 4.0)?.max(0.5),
+        relief,
+        side,
+        base,
         at: r.number("at", 0.0)?,
+        shape,
+        height,
+        profile,
+        hollow,
+        lithophane,
     })
 }
 
@@ -761,55 +866,192 @@ pub fn master(buf: &[f64]) -> Vec<f64> {
 
 pub type Tri = [[f32; 3]; 3];
 
-/// Heights of the relief, normalized to [0, 1], on an n×n grid.
+/// Heights of the relief, normalized to [0, 1], on an n×n grid (inverted for a
+/// lithophane: bright is thin).
 pub fn heights(f: &Field, spec: &SculptureSpec, seed: u64) -> Vec<f64> {
     let n = spec.n;
+    // Going round a cylinder or a sphere, the right edge meets the left one: over
+    // the first part of the turn, the field is blended with what lies beyond its
+    // right edge, so there is no step where they meet.
+    let round = matches!(spec.shape, Shape::Cylinder | Shape::Sphere);
+    const SEAM: f64 = 0.1;
     let raw = par_map(n * n, |k| {
-        let (i, j) = (k % n, k / n);
-        f.eval([i as f64 / (n - 1) as f64, j as f64 / (n - 1) as f64, spec.at], seed)
+        let (u, v) = ((k % n) as f64 / (n - 1) as f64, (k / n) as f64 / (n - 1) as f64);
+        let here = f.eval([u, v, spec.at], seed);
+        if round && u < SEAM {
+            let w = u / SEAM;
+            let w = w * w * (3.0 - 2.0 * w);
+            f.eval([u + 1.0, v, spec.at], seed) * (1.0 - w) + here * w
+        } else {
+            here
+        }
     });
     let b = bounds(&raw);
-    raw.into_iter().map(|v| normalize(v, b)).collect()
+    raw.into_iter().map(|v| if spec.lithophane { 1.0 - normalize(v, b) } else { normalize(v, b) }).collect()
 }
 
-/// The relief sitting on a base: a closed solid, ready for a 3D-printing slicer (mm).
-pub fn sculpture_mesh(hts: &[f64], spec: &SculptureSpec) -> Vec<Tri> {
-    let SculptureSpec { n, relief, side, base, .. } = *spec;
-    let step = side / (n - 1) as f64;
-    let top = |i: usize, j: usize| -> [f32; 3] {
-        let z = base + hts[j * n + i] * relief * side;
-        [(i as f64 * step) as f32, (j as f64 * step) as f32, z as f32]
-    };
-    let bottom = |i: usize, j: usize| -> [f32; 3] { [(i as f64 * step) as f32, (j as f64 * step) as f32, 0.0] };
+type P3 = [f64; 3];
 
-    let mut tris: Vec<Tri> = Vec::with_capacity(4 * n * n + 8 * n);
-    for j in 0..n - 1 {
-        for i in 0..n - 1 {
-            let (a, b, c, d) = (top(i, j), top(i + 1, j), top(i + 1, j + 1), top(i, j + 1));
-            tris.push([a, b, c]);
-            tris.push([a, c, d]);
-            let (a, b, c, d) = (bottom(i, j), bottom(i + 1, j), bottom(i + 1, j + 1), bottom(i, j + 1));
-            tris.push([a, c, b]);
-            tris.push([a, d, c]);
+struct Mesh(Vec<Tri>);
+
+impl Mesh {
+    fn tri(&mut self, a: P3, b: P3, c: P3, flip: bool) {
+        let f = |p: P3| p.map(|x| x as f32);
+        let (a, b, c) = (f(a), f(b), f(c));
+        // a pinched quad leaves a flat triangle: nothing to print
+        if a == b || b == c || a == c {
+            return;
+        }
+        self.0.push(if flip { [a, c, b] } else { [a, b, c] });
+    }
+
+    /// A sheet of `cols` × `rows` points; `wrap` joins the last column to the first.
+    fn sheet(&mut self, cols: usize, rows: usize, wrap: bool, flip: bool, p: impl Fn(usize, usize) -> P3) {
+        for j in 0..rows - 1 {
+            for i in 0..if wrap { cols } else { cols - 1 } {
+                let i1 = (i + 1) % cols;
+                let (a, b, c, d) = (p(i, j), p(i1, j), p(i1, j + 1), p(i, j + 1));
+                self.tri(a, b, c, flip);
+                self.tri(a, c, d, flip);
+            }
         }
     }
-    for k in 0..n - 1 {
-        // front (y = 0) and back (y = max)
-        let (a, b, a0, b0) = (top(k, 0), top(k + 1, 0), bottom(k, 0), bottom(k + 1, 0));
-        tris.push([a0, b0, b]);
-        tris.push([a0, b, a]);
-        let (a, b, a0, b0) = (top(k, n - 1), top(k + 1, n - 1), bottom(k, n - 1), bottom(k + 1, n - 1));
-        tris.push([a0, b, b0]);
-        tris.push([a0, a, b]);
-        // left (x = 0) and right (x = max)
-        let (p, q, p0, q0) = (top(0, k), top(0, k + 1), bottom(0, k), bottom(0, k + 1));
-        tris.push([p0, q, q0]);
-        tris.push([p0, p, q]);
-        let (p, q, p0, q0) = (top(n - 1, k), top(n - 1, k + 1), bottom(n - 1, k), bottom(n - 1, k + 1));
-        tris.push([p0, q0, q]);
-        tris.push([p0, q, p]);
+
+    /// A closed ring of `count` points, joined to a centre.
+    fn fan(&mut self, count: usize, flip: bool, centre: P3, ring: impl Fn(usize) -> P3) {
+        for i in 0..count {
+            self.tri(centre, ring(i), ring((i + 1) % count), flip);
+        }
     }
-    tris
+}
+
+/// The height at (u, v) in [0, 1]², between the grid's points.
+fn height_at(hts: &[f64], n: usize, u: f64, v: f64) -> f64 {
+    let (x, y) = (u.clamp(0.0, 1.0) * (n - 1) as f64, v.clamp(0.0, 1.0) * (n - 1) as f64);
+    let (i, j) = ((x as usize).min(n - 2), (y as usize).min(n - 2));
+    let (fx, fy) = (x - i as f64, y - j as f64);
+    let h = |i: usize, j: usize| hts[j * n + i];
+    (h(i, j) * (1.0 - fx) + h(i + 1, j) * fx) * (1.0 - fy) + (h(i, j + 1) * (1.0 - fx) + h(i + 1, j + 1) * fx) * fy
+}
+
+/// A cylinder's radius multiplier at `s` (0 at the bottom, 1 at the top): a smooth
+/// curve through the profile's points.
+fn profile_at(profile: &[f64], s: f64) -> f64 {
+    let last = profile.len() - 1;
+    let x = s.clamp(0.0, 1.0) * last as f64;
+    let k = (x as usize).min(last - 1);
+    let f = x - k as f64;
+    let p = |i: isize| profile[i.clamp(0, last as isize) as usize];
+    let (p0, p1, p2, p3) = (p(k as isize - 1), p(k as isize), p(k as isize + 1), p(k as isize + 2));
+    // Catmull-Rom
+    let v = 0.5 * (2.0 * p1 + (p2 - p0) * f + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * f * f + (3.0 * p1 - p0 - 3.0 * p2 + p3) * f * f * f);
+    v.max(0.02)
+}
+
+/// The sculpture: a closed solid, ready for a 3D-printing slicer (mm, z up).
+/// Seen from the front or from above, it reads like the picture: not mirrored.
+pub fn sculpture_mesh(hts: &[f64], spec: &SculptureSpec) -> Vec<Tri> {
+    let mut m = Mesh(Vec::with_capacity(4 * spec.n * spec.n + 8 * spec.n));
+    match spec.shape {
+        Shape::Tile => tile(&mut m, hts, spec),
+        Shape::Disc => disc(&mut m, hts, spec),
+        Shape::Cylinder => cylinder(&mut m, hts, spec),
+        Shape::Sphere => sphere(&mut m, hts, spec),
+    }
+    m.0
+}
+
+fn tile(m: &mut Mesh, hts: &[f64], spec: &SculptureSpec) {
+    let (n, side) = (spec.n, spec.side);
+    let step = side / (n - 1) as f64;
+    // the picture's top row is the far edge (y = side)
+    let at = |i: usize, j: usize, z: f64| -> P3 { [i as f64 * step, (n - 1 - j) as f64 * step, z] };
+    let top = |i: usize, j: usize| at(i, j, spec.base + hts[j * n + i] * spec.relief * side);
+    let bottom = |i: usize, j: usize| at(i, j, 0.0);
+    m.sheet(n, n, false, true, top);
+    m.sheet(n, n, false, false, bottom);
+    let side_of = |i: usize, j: usize, r: usize| if r == 0 { top(i, j) } else { bottom(i, j) };
+    m.sheet(n, 2, false, false, |k, r| side_of(k, 0, r));
+    m.sheet(n, 2, false, true, |k, r| side_of(k, n - 1, r));
+    m.sheet(n, 2, false, true, |k, r| side_of(0, k, r));
+    m.sheet(n, 2, false, false, |k, r| side_of(n - 1, k, r));
+}
+
+fn disc(m: &mut Mesh, hts: &[f64], spec: &SculptureSpec) {
+    let (n, r0) = (spec.n, spec.side / 2.0);
+    let (rings, around) = ((n / 2).max(2), 2 * (n - 1));
+    let at = |s: usize, k: usize, top: bool| -> P3 {
+        let (rho, th) = (k as f64 / rings as f64, std::f64::consts::TAU * s as f64 / around as f64);
+        let (c, sn) = (rho * th.cos(), rho * th.sin());
+        let z = if top { spec.base + height_at(hts, n, 0.5 + 0.5 * c, 0.5 - 0.5 * sn) * spec.relief * spec.side } else { 0.0 };
+        [r0 + r0 * c, r0 + r0 * sn, z]
+    };
+    // k = 0 is the centre: the innermost quads pinch into a fan
+    m.sheet(around, rings + 1, true, true, |s, k| at(s, k, true));
+    m.sheet(around, rings + 1, true, false, |s, k| at(s, k, false));
+    m.sheet(around, 2, true, true, |s, r| at(s, rings, r == 0));
+}
+
+fn cylinder(m: &mut Mesh, hts: &[f64], spec: &SculptureSpec) {
+    let (n, r0, h) = (spec.n, spec.side / 2.0, spec.height);
+    let (around, rows) = (n - 1, n);
+    let polar = |i: usize, r: f64, z: f64| -> P3 {
+        let th = std::f64::consts::TAU * i as f64 / around as f64;
+        [r.max(0.1) * th.cos(), r.max(0.1) * th.sin(), z]
+    };
+    let level = |j: usize, from: f64| from + (1.0 - j as f64 / (rows - 1) as f64) * (h - from);
+    // a lithophane grows outwards from a smooth inside
+    let skin = if spec.lithophane { spec.base } else { 0.0 };
+    let outer = |i: usize, j: usize| {
+        let z = level(j, 0.0);
+        polar(i, r0 * profile_at(&spec.profile, z / h) + skin + hts[j * n + i] * spec.relief * spec.side, z)
+    };
+    m.sheet(around, rows, true, true, outer);
+
+    let (wall, floor) = if spec.lithophane { (0.0, 0.0) } else { (spec.hollow, spec.base) };
+    if !spec.lithophane && spec.hollow == 0.0 {
+        m.fan(around, false, [0.0, 0.0, h], |i| outer(i, 0));
+        m.fan(around, true, [0.0, 0.0, 0.0], |i| outer(i, rows - 1));
+        return;
+    }
+    let inner = |i: usize, j: usize| {
+        let z = level(j, floor);
+        polar(i, r0 * profile_at(&spec.profile, z / h) - wall, z)
+    };
+    m.sheet(around, rows, true, false, inner);
+    m.sheet(around, 2, true, false, |i, r| if r == 0 { outer(i, 0) } else { inner(i, 0) });
+    if spec.lithophane {
+        // a tube, open at both ends
+        m.sheet(around, 2, true, true, |i, r| if r == 0 { outer(i, rows - 1) } else { inner(i, rows - 1) });
+    } else {
+        m.fan(around, false, [0.0, 0.0, floor], |i| inner(i, rows - 1));
+        m.fan(around, true, [0.0, 0.0, 0.0], |i| outer(i, rows - 1));
+    }
+}
+
+fn sphere(m: &mut Mesh, hts: &[f64], spec: &SculptureSpec) {
+    let (n, r0) = (spec.n, spec.side / 2.0);
+    let around = n - 1;
+    let lift = r0 + spec.relief.max(0.0) * spec.side; // sits on z = 0 at most
+    let at = |i: usize, j: usize, hgt: f64| -> P3 {
+        let (th, phi) = (std::f64::consts::TAU * i as f64 / around as f64, std::f64::consts::PI * j as f64 / (n - 1) as f64);
+        let r = (r0 + hgt * spec.relief * spec.side).max(0.1);
+        [r * phi.sin() * th.cos(), r * phi.sin() * th.sin(), lift + r * phi.cos()]
+    };
+    // a pole is one point, the mean of its row; the rows near it lean towards it,
+    // so the surface closes smoothly instead of pinching
+    let mean = |j: usize| hts[j * n..j * n + around].iter().sum::<f64>() / around as f64;
+    let (north, south) = (mean(0), mean(n - 1));
+    let ring = |i: usize, j: usize| {
+        let v = j as f64 / (n - 1) as f64;
+        let w = ((std::f64::consts::PI * v).sin() / 0.35).min(1.0);
+        let w = w * w * (3.0 - 2.0 * w);
+        at(i, j, (if v < 0.5 { north } else { south }) * (1.0 - w) + hts[j * n + i] * w)
+    };
+    let pole = |j: usize| at(0, j, if j == 0 { north } else { south });
+    m.sheet(around, n - 2, true, true, |i, j| ring(i, j + 1));
+    m.fan(around, false, pole(0), |i| ring(i, 1));
+    m.fan(around, true, pole(n - 1), |i| ring(i, n - 2));
 }
 
 /// Binary STL.
@@ -856,4 +1098,63 @@ pub fn relief_preview(hts: &[f64], spec: &SculptureSpec) -> Vec<u8> {
         }
     }
     rgb
+}
+
+#[cfg(test)]
+mod sculpture_tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn spec(shape: Shape) -> SculptureSpec {
+        SculptureSpec { n: 24, relief: 0.1, side: 100.0, base: 4.0, at: 0.0, shape, height: 120.0, profile: vec![0.6, 1.0, 0.5, 0.8], hollow: 0.0, lithophane: false }
+    }
+
+    fn bumps(n: usize) -> Vec<f64> {
+        (0..n * n).map(|k| 0.5 + 0.5 * ((k % n) as f64 * 0.9).sin() * ((k / n) as f64 * 0.7).cos()).collect()
+    }
+
+    /// Watertight and facing out: every edge is walked once each way, and the volume is positive.
+    fn check(s: &SculptureSpec, what: &str) -> f64 {
+        let tris = sculpture_mesh(&bumps(s.n), s);
+        let key = |p: [f32; 3]| p.map(f32::to_bits);
+        let mut edges: HashMap<([u32; 3], [u32; 3]), i32> = HashMap::new();
+        let mut volume = 0.0f64;
+        for t in &tris {
+            for k in 0..3 {
+                *edges.entry((key(t[k]), key(t[(k + 1) % 3]))).or_default() += 1;
+            }
+            let [a, b, c] = t.map(|p| p.map(f64::from));
+            volume += (a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6.0;
+        }
+        for ((a, b), count) in &edges {
+            assert_eq!(*count, 1, "{what}: an edge is walked {count} times the same way");
+            assert_eq!(edges.get(&(*b, *a)), Some(&1), "{what}: an edge has no neighbour (a hole)");
+        }
+        assert!(volume > 0.0, "{what}: the faces look inwards (volume {volume})");
+        volume
+    }
+
+    #[test]
+    fn every_shape_is_a_closed_solid() {
+        for shape in [Shape::Tile, Shape::Disc, Shape::Cylinder, Shape::Sphere] {
+            check(&spec(shape), &format!("{shape:?}"));
+        }
+        let solid = check(&spec(Shape::Cylinder), "cylinder");
+        let vase = check(&SculptureSpec { hollow: 2.0, ..spec(Shape::Cylinder) }, "vase");
+        assert!(vase < solid * 0.5, "a vase is mostly empty");
+        for shape in [Shape::Tile, Shape::Disc, Shape::Cylinder] {
+            let plate = SculptureSpec { lithophane: true, base: 0.8, relief: 2.2 / 100.0, ..spec(shape) };
+            check(&plate, &format!("lithophane {shape:?}"));
+        }
+    }
+
+    #[test]
+    fn a_tile_is_not_mirrored() {
+        // one bump near the picture's top left: it must sit at low x, high y
+        let s = SculptureSpec { n: 9, ..spec(Shape::Tile) };
+        let mut h = vec![0.0; 81];
+        h[9 + 1] = 1.0;
+        let peak = sculpture_mesh(&h, &s).into_iter().flatten().max_by(|a, b| a[2].total_cmp(&b[2])).unwrap();
+        assert!(peak[0] < 50.0 && peak[1] > 50.0, "the peak is at {peak:?}");
+    }
 }
