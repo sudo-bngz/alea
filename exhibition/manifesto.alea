@@ -1,0 +1,184 @@
+// Manifesto: what alea means, in a minute.
+//
+// A field is the stream of creation: a number at every point, before it is
+// anything. A render is its expression: the same field, unchanged, becomes an
+// image, a sound (a drone whose voices listen along its lines: the red lines),
+// an object (its relief), words. And between the idea and the real there is
+// always a glitch: chance, the tilde, which lets the idea become one thing and
+// not another. The editions near the end are the same field with its three
+// numbers drawn again, the numbers shown under each. The music is the field
+// too: from "a sound" on, the drone you hear is reading the stream on screen.
+// In the theme of alea.bngz.io (black, grey, white, the red of chance); a low
+// voice (voices/kokoro-misaki.py), its words typed as it speaks; 100 BPM.
+
+work Manifesto {
+  let total = 60.0
+  let T = t * total
+  let ENGINE = "../voices/kokoro-misaki.py"
+  let VOICE = "af_kore"
+  let win(a, b) = (T >= a) * (T < b)
+  let h(a, b) = fract(sin(a * 12.9898 + b * 78.233 + 0.5) * 43758.5453)
+
+  // ── the stream: one field, three numbers drawn for this edition, flowing with time ──
+  let A = ~between(7, 15)
+  let B = ~between(3, 8)
+  let C = ~between(5, 12)
+  let stream(a, b, c) = clamp(0.5 + 0.28 * sin(x * a + 2.2 * sin(y * b - T * 0.35))
+                              + 0.22 * sin(y * c + 1.6 * sin(x * b * 0.7 + T * 0.25)), 0, 1)
+  let F = stream(A, B, C)
+
+  // ── the voice ──
+  let l1 = say("Every idea has a shape, before it has a form.", at: 1.2, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.5)
+  let l2 = say("In alea, that shape is a field. A number, at every point.", at: 5.4, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.5)
+  let l3 = say("The field is the stream of creation.", at: 9.4, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.5)
+  let l4 = say("Render it, and it becomes an image.", at: 12.2, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.5)
+  let l5 = say("A sound.", at: 14.7, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.5)
+  let l6 = say("An object.", at: 17.1, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.5)
+  let l7 = say("Words.", at: 19.5, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.5)
+  let l8 = say("The stream stays the same. Only its expression changes.", at: 22.0, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.5)
+  let l9 = say("But between the idea and the real, there is always a glitch.", at: 26.7, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.5)
+  let l10 = say("Chance.", at: 30.7, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.5)
+  let l11 = say("Every seed lets the idea become one thing, and not another.", at: 32.0, engine: ENGINE, voice: VOICE, speed: 0.95, gain: 2.5)
+  let l12 = say("A field is the stream. A render is its expression. Chance is how it becomes real.", at: 41.4, engine: ENGINE, voice: VOICE, speed: 0.9, gain: 2.5)
+  let l13 = say("alea.", at: 53.6, engine: ENGINE, voice: VOICE, speed: 0.9, gain: 2.5)
+
+  // ── the panel: a square window onto the stream ──
+  let panel = (x > 0.05) * (x < 0.95) * (y > 0.05) * (y < 0.95)
+  let frame = cut(rect(0.5, 0.5, 0.906, 0.906, 0, 0.001), rect(0.5, 0.5, 0.9, 0.9, 0, 0.001))
+  let centre = sqrt((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5))
+
+  // the idea: the stream appearing from a point
+  let born = F * clamp((T * 0.16 - centre) / 0.04, 0, 1)
+  // a field: a number at every point, ever finer cells, then the stream itself
+  let cells = pixelate(F, size: 0.15) * win(4.8, 6.0) + pixelate(F, size: 0.075) * win(6.0, 7.2)
+            + pixelate(F, size: 0.0375) * win(7.2, 8.4) + pixelate(F, size: 0.015) * win(8.4, 9.4) + F * (T >= 9.4)
+  let raw = paint(born * (T < 4.8) + cells * (T >= 4.8), palette: ["#000000", "#d6d6d6"], range: [0, 1])
+  // an image: the stream, painted
+  let image = paint(F, palette: ["#141414", "#5a1a12", "#ff4b2b", "#efebe2"], range: [0, 1])
+  // a sound: the drone's six voices listen along six lines, y = (k + 0.5) / 6
+  let lines = merge([rect(0.5, (k + 0.5) / 6, 0.9, 0.004, 0, 0.001) for k in range(6)])
+  let heard = paint(F * 0.45, palette: ["#000000", "#d6d6d6"], range: [0, 1])
+  let sound = overlay(heard, paint(lines * (0.35 + 0.65 * F), palette: ["#ff4b2b", "#ff4b2b"], range: [0, 1], alpha: lines * (0.35 + 0.65 * F)))
+  // an object: its relief, as if carved
+  let object = paint(relief(F * 0.5 + floor(F * 7) / 7 * 0.5, angle: 135, depth: 12), palette: ["#000000", "#6a6a6a", "#efebe2"], range: [0, 1])
+  // words: the stream, inside the letters
+  let word = text("stream", x: 0.5, y: 0.5, size: 0.2, font: "mono")
+  let words = paint(word * (0.25 + 0.75 * F), palette: ["#000000", "#efebe2"], range: [0, 1])
+  let word4 = text("stream", x: 0.725, y: 0.725, size: 0.085, font: "mono")
+  let words4 = paint(word4 * (0.25 + 0.75 * F), palette: ["#000000", "#efebe2"], range: [0, 1])
+  // one stream, four windows: the same field, at the same place, four expressions
+  let q1 = (x < 0.497) * (y < 0.497)
+  let q2 = (x > 0.503) * (y < 0.497)
+  let q3 = (x < 0.497) * (y > 0.503)
+  let q4 = (x > 0.503) * (y > 0.503)
+  let quad = overlay(overlay(overlay(overlay(paint(0, palette: ["#000000", "#000000"]), image, mask: q1), sound, mask: q2), object, mask: q3), words4, mask: q4)
+
+  // editions: the same stream, its three numbers drawn again
+  let edf = stream(7.37, 4.47, 11.60) * win(31.2, 32.4) + stream(11.13, 5.25, 9.09) * win(32.4, 33.6) + stream(11.05, 4.44, 6.82) * win(33.6, 34.8) + stream(8.84, 4.51, 9.96) * win(34.8, 36.0) + stream(11.30, 6.29, 5.16) * win(36.0, 37.2) + stream(14.61, 4.46, 10.67) * win(37.2, 38.4) + stream(10.64, 4.33, 8.31) * win(38.4, 39.6) + stream(10.69, 7.92, 5.32) * win(39.6, 40.8)
+  let editions = paint(edf, palette: ["#141414", "#5a1a12", "#ff4b2b", "#efebe2"], range: [0, 1])
+  let quiet = paint(F * 0.16, palette: ["#000000", "#ffffff"], range: [0, 1])
+
+  let shown = overlay(overlay(overlay(overlay(overlay(overlay(overlay(overlay(paint(0, palette: ["#000000", "#000000"]),
+      raw, mask: panel * win(0, 12.0)),
+      image, mask: panel * win(12.0, 14.4)),
+      sound, mask: panel * win(14.4, 16.8)),
+      object, mask: panel * win(16.8, 19.2)),
+      words, mask: panel * win(19.2, 21.6)),
+      quad, mask: panel * win(21.6, 30.0)),
+      editions, mask: panel * win(31.2, 40.8)),
+      quiet, mask: win(40.8, 60))
+
+  let n_l1 = clamp((T - l1.words[0]) / max(l1.ends[0] - l1.words[0], 0.05), 0, 1) * 6 + clamp((T - l1.words[1]) / max(l1.ends[1] - l1.words[1], 0.05), 0, 1) * 5 + clamp((T - l1.words[2]) / max(l1.ends[2] - l1.words[2], 0.05), 0, 1) * 4 + clamp((T - l1.words[3]) / max(l1.ends[3] - l1.words[3], 0.05), 0, 1) * 2 + clamp((T - l1.words[4]) / max(l1.ends[4] - l1.words[4], 0.05), 0, 1) * 7 + clamp((T - l1.words[5]) / max(l1.ends[5] - l1.words[5], 0.05), 0, 1) * 7 + clamp((T - l1.words[6]) / max(l1.ends[6] - l1.words[6], 0.05), 0, 1) * 3 + clamp((T - l1.words[7]) / max(l1.ends[7] - l1.words[7], 0.05), 0, 1) * 4 + clamp((T - l1.words[8]) / max(l1.ends[8] - l1.words[8], 0.05), 0, 1) * 2 + clamp((T - l1.words[9]) / max(l1.ends[9] - l1.words[9], 0.05), 0, 1) * 6
+  let c_l1 = merge([text("Every idea has a shape,", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l1 - 0, 0, 23) * 0.02276) * 0.667, text("before it has a form.", x: 0.06, y: -0.059, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l1 - 24, 0, 21) * 0.02276) * 0.667]) * win(l1.start, 4.8)
+  let n_l2 = clamp((T - l2.words[0]) / max(l2.ends[0] - l2.words[0], 0.05), 0, 1) * 3 + clamp((T - l2.words[1]) / max(l2.ends[1] - l2.words[1], 0.05), 0, 1) * 6 + clamp((T - l2.words[2]) / max(l2.ends[2] - l2.words[2], 0.05), 0, 1) * 5 + clamp((T - l2.words[3]) / max(l2.ends[3] - l2.words[3], 0.05), 0, 1) * 6 + clamp((T - l2.words[4]) / max(l2.ends[4] - l2.words[4], 0.05), 0, 1) * 3 + clamp((T - l2.words[5]) / max(l2.ends[5] - l2.words[5], 0.05), 0, 1) * 2 + clamp((T - l2.words[6]) / max(l2.ends[6] - l2.words[6], 0.05), 0, 1) * 7 + clamp((T - l2.words[7]) / max(l2.ends[7] - l2.words[7], 0.05), 0, 1) * 2 + clamp((T - l2.words[8]) / max(l2.ends[8] - l2.words[8], 0.05), 0, 1) * 8 + clamp((T - l2.words[9]) / max(l2.ends[9] - l2.words[9], 0.05), 0, 1) * 3 + clamp((T - l2.words[10]) / max(l2.ends[10] - l2.words[10], 0.05), 0, 1) * 6 + clamp((T - l2.words[11]) / max(l2.ends[11] - l2.words[11], 0.05), 0, 1) * 7
+  let c_l2 = merge([text("In alea, that shape is a field.", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l2 - 0, 0, 31) * 0.02276) * 0.667, text("A number, at every point.", x: 0.06, y: -0.059, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l2 - 32, 0, 25) * 0.02276) * 0.667]) * win(l2.start, 9.2)
+  let n_l3 = clamp((T - l3.words[0]) / max(l3.ends[0] - l3.words[0], 0.05), 0, 1) * 4 + clamp((T - l3.words[1]) / max(l3.ends[1] - l3.words[1], 0.05), 0, 1) * 6 + clamp((T - l3.words[2]) / max(l3.ends[2] - l3.words[2], 0.05), 0, 1) * 3 + clamp((T - l3.words[3]) / max(l3.ends[3] - l3.words[3], 0.05), 0, 1) * 4 + clamp((T - l3.words[4]) / max(l3.ends[4] - l3.words[4], 0.05), 0, 1) * 7 + clamp((T - l3.words[5]) / max(l3.ends[5] - l3.words[5], 0.05), 0, 1) * 3 + clamp((T - l3.words[6]) / max(l3.ends[6] - l3.words[6], 0.05), 0, 1) * 10
+  let c_l3 = merge([text("The field is the stream", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l3 - 0, 0, 23) * 0.02276) * 0.667, text("of creation.", x: 0.06, y: -0.059, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l3 - 24, 0, 12) * 0.02276) * 0.667]) * win(l3.start, 12.0)
+  let n_l4 = clamp((T - l4.words[0]) / max(l4.ends[0] - l4.words[0], 0.05), 0, 1) * 7 + clamp((T - l4.words[1]) / max(l4.ends[1] - l4.words[1], 0.05), 0, 1) * 4 + clamp((T - l4.words[2]) / max(l4.ends[2] - l4.words[2], 0.05), 0, 1) * 4 + clamp((T - l4.words[3]) / max(l4.ends[3] - l4.words[3], 0.05), 0, 1) * 3 + clamp((T - l4.words[4]) / max(l4.ends[4] - l4.words[4], 0.05), 0, 1) * 8 + clamp((T - l4.words[5]) / max(l4.ends[5] - l4.words[5], 0.05), 0, 1) * 3 + clamp((T - l4.words[6]) / max(l4.ends[6] - l4.words[6], 0.05), 0, 1) * 7
+  let c_l4 = merge([text("Render it, and it becomes", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l4 - 0, 0, 25) * 0.02276) * 0.667, text("an image.", x: 0.06, y: -0.059, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l4 - 26, 0, 9) * 0.02276) * 0.667]) * win(l4.start, 14.4)
+  let n_l5 = clamp((T - l5.words[0]) / max(l5.ends[0] - l5.words[0], 0.05), 0, 1) * 2 + clamp((T - l5.words[1]) / max(l5.ends[1] - l5.words[1], 0.05), 0, 1) * 7
+  let c_l5 = merge([text("A sound.", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l5 - 0, 0, 8) * 0.02276) * 0.667]) * win(l5.start, 16.8)
+  let n_l6 = clamp((T - l6.words[0]) / max(l6.ends[0] - l6.words[0], 0.05), 0, 1) * 3 + clamp((T - l6.words[1]) / max(l6.ends[1] - l6.words[1], 0.05), 0, 1) * 8
+  let c_l6 = merge([text("An object.", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l6 - 0, 0, 10) * 0.02276) * 0.667]) * win(l6.start, 19.2)
+  let n_l7 = clamp((T - l7.words[0]) / max(l7.ends[0] - l7.words[0], 0.05), 0, 1) * 7
+  let c_l7 = merge([text("Words.", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l7 - 0, 0, 6) * 0.02276) * 0.667]) * win(l7.start, 21.6)
+  let n_l8 = clamp((T - l8.words[0]) / max(l8.ends[0] - l8.words[0], 0.05), 0, 1) * 4 + clamp((T - l8.words[1]) / max(l8.ends[1] - l8.words[1], 0.05), 0, 1) * 7 + clamp((T - l8.words[2]) / max(l8.ends[2] - l8.words[2], 0.05), 0, 1) * 6 + clamp((T - l8.words[3]) / max(l8.ends[3] - l8.words[3], 0.05), 0, 1) * 4 + clamp((T - l8.words[4]) / max(l8.ends[4] - l8.words[4], 0.05), 0, 1) * 6 + clamp((T - l8.words[5]) / max(l8.ends[5] - l8.words[5], 0.05), 0, 1) * 5 + clamp((T - l8.words[6]) / max(l8.ends[6] - l8.words[6], 0.05), 0, 1) * 4 + clamp((T - l8.words[7]) / max(l8.ends[7] - l8.words[7], 0.05), 0, 1) * 11 + clamp((T - l8.words[8]) / max(l8.ends[8] - l8.words[8], 0.05), 0, 1) * 9
+  let c_l8 = merge([text("The stream stays the same.", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l8 - 0, 0, 26) * 0.02276) * 0.667, text("Only its expression changes.", x: 0.06, y: -0.059, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l8 - 27, 0, 28) * 0.02276) * 0.667]) * win(l8.start, 26.4)
+  let n_l9 = clamp((T - l9.words[0]) / max(l9.ends[0] - l9.words[0], 0.05), 0, 1) * 4 + clamp((T - l9.words[1]) / max(l9.ends[1] - l9.words[1], 0.05), 0, 1) * 8 + clamp((T - l9.words[2]) / max(l9.ends[2] - l9.words[2], 0.05), 0, 1) * 4 + clamp((T - l9.words[3]) / max(l9.ends[3] - l9.words[3], 0.05), 0, 1) * 5 + clamp((T - l9.words[4]) / max(l9.ends[4] - l9.words[4], 0.05), 0, 1) * 4 + clamp((T - l9.words[5]) / max(l9.ends[5] - l9.words[5], 0.05), 0, 1) * 4 + clamp((T - l9.words[6]) / max(l9.ends[6] - l9.words[6], 0.05), 0, 1) * 6 + clamp((T - l9.words[7]) / max(l9.ends[7] - l9.words[7], 0.05), 0, 1) * 6 + clamp((T - l9.words[8]) / max(l9.ends[8] - l9.words[8], 0.05), 0, 1) * 3 + clamp((T - l9.words[9]) / max(l9.ends[9] - l9.words[9], 0.05), 0, 1) * 7 + clamp((T - l9.words[10]) / max(l9.ends[10] - l9.words[10], 0.05), 0, 1) * 2 + clamp((T - l9.words[11]) / max(l9.ends[11] - l9.words[11], 0.05), 0, 1) * 8
+  let c_l9 = merge([text("But between the idea and the", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l9 - 0, 0, 28) * 0.02276) * 0.667, text("real, there is always a glitch.", x: 0.06, y: -0.059, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l9 - 29, 0, 31) * 0.02276) * 0.667]) * win(l9.start, 30.0)
+  let n_l10 = clamp((T - l10.words[0]) / max(l10.ends[0] - l10.words[0], 0.05), 0, 1) * 8
+  let c_l10 = merge([text("Chance.", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l10 - 0, 0, 7) * 0.02276) * 0.667]) * win(l10.start, 31.2)
+  let n_l11 = clamp((T - l11.words[0]) / max(l11.ends[0] - l11.words[0], 0.05), 0, 1) * 6 + clamp((T - l11.words[1]) / max(l11.ends[1] - l11.words[1], 0.05), 0, 1) * 5 + clamp((T - l11.words[2]) / max(l11.ends[2] - l11.words[2], 0.05), 0, 1) * 5 + clamp((T - l11.words[3]) / max(l11.ends[3] - l11.words[3], 0.05), 0, 1) * 4 + clamp((T - l11.words[4]) / max(l11.ends[4] - l11.words[4], 0.05), 0, 1) * 5 + clamp((T - l11.words[5]) / max(l11.ends[5] - l11.words[5], 0.05), 0, 1) * 7 + clamp((T - l11.words[6]) / max(l11.ends[6] - l11.words[6], 0.05), 0, 1) * 4 + clamp((T - l11.words[7]) / max(l11.ends[7] - l11.words[7], 0.05), 0, 1) * 7 + clamp((T - l11.words[8]) / max(l11.ends[8] - l11.words[8], 0.05), 0, 1) * 4 + clamp((T - l11.words[9]) / max(l11.ends[9] - l11.words[9], 0.05), 0, 1) * 4 + clamp((T - l11.words[10]) / max(l11.ends[10] - l11.words[10], 0.05), 0, 1) * 9
+  let c_l11 = merge([text("Every seed lets the idea become", x: 0.06, y: -0.115, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l11 - 0, 0, 31) * 0.02276) * 0.667, text("one thing, and not another.", x: 0.06, y: -0.059, size: 0.044, font: "mono", align: "left") * (x < 0.06 + clamp(n_l11 - 32, 0, 27) * 0.02276) * 0.667]) * win(l11.start, 40.8)
+  let n_l12 = clamp((T - l12.words[0]) / max(l12.ends[0] - l12.words[0], 0.05), 0, 1) * 2 + clamp((T - l12.words[1]) / max(l12.ends[1] - l12.words[1], 0.05), 0, 1) * 6 + clamp((T - l12.words[2]) / max(l12.ends[2] - l12.words[2], 0.05), 0, 1) * 3 + clamp((T - l12.words[3]) / max(l12.ends[3] - l12.words[3], 0.05), 0, 1) * 4 + clamp((T - l12.words[4]) / max(l12.ends[4] - l12.words[4], 0.05), 0, 1) * 8 + clamp((T - l12.words[5]) / max(l12.ends[5] - l12.words[5], 0.05), 0, 1) * 2 + clamp((T - l12.words[6]) / max(l12.ends[6] - l12.words[6], 0.05), 0, 1) * 7 + clamp((T - l12.words[7]) / max(l12.ends[7] - l12.words[7], 0.05), 0, 1) * 3 + clamp((T - l12.words[8]) / max(l12.ends[8] - l12.words[8], 0.05), 0, 1) * 4 + clamp((T - l12.words[9]) / max(l12.ends[9] - l12.words[9], 0.05), 0, 1) * 12 + clamp((T - l12.words[10]) / max(l12.ends[10] - l12.words[10], 0.05), 0, 1) * 7 + clamp((T - l12.words[11]) / max(l12.ends[11] - l12.words[11], 0.05), 0, 1) * 3 + clamp((T - l12.words[12]) / max(l12.ends[12] - l12.words[12], 0.05), 0, 1) * 4 + clamp((T - l12.words[13]) / max(l12.ends[13] - l12.words[13], 0.05), 0, 1) * 3 + clamp((T - l12.words[14]) / max(l12.ends[14] - l12.words[14], 0.05), 0, 1) * 8 + clamp((T - l12.words[15]) / max(l12.ends[15] - l12.words[15], 0.05), 0, 1) * 6
+  let c_l12 = merge([text("A field is", x: 0.08, y: 0.120, size: 0.075, font: "mono", align: "left") * (x < 0.08 + clamp(n_l12 - 0, 0, 10) * 0.03879) * 0.667, text("the        ", x: 0.08, y: 0.215, size: 0.075, font: "mono", align: "left") * (x < 0.08 + clamp(n_l12 - 11, 0, 11) * 0.03879) * 0.667, text("    stream.", x: 0.08, y: 0.215, size: 0.075, font: "mono", align: "left") * (x < 0.08 + clamp(n_l12 - 11, 0, 11) * 0.03879) * 1.0, text("A render is", x: 0.08, y: 0.420, size: 0.075, font: "mono", align: "left") * (x < 0.08 + clamp(n_l12 - 23, 0, 11) * 0.03879) * 0.667, text("its            ", x: 0.08, y: 0.515, size: 0.075, font: "mono", align: "left") * (x < 0.08 + clamp(n_l12 - 35, 0, 15) * 0.03879) * 0.667, text("    expression.", x: 0.08, y: 0.515, size: 0.075, font: "mono", align: "left") * (x < 0.08 + clamp(n_l12 - 35, 0, 15) * 0.03879) * 1.0, text("Chance is how", x: 0.08, y: 0.720, size: 0.075, font: "mono", align: "left") * (x < 0.08 + clamp(n_l12 - 51, 0, 13) * 0.03879) * 0.667, text("it becomes      ", x: 0.08, y: 0.815, size: 0.075, font: "mono", align: "left") * (x < 0.08 + clamp(n_l12 - 65, 0, 16) * 0.03879) * 0.667, text("           real.", x: 0.08, y: 0.815, size: 0.075, font: "mono", align: "left") * (x < 0.08 + clamp(n_l12 - 65, 0, 16) * 0.03879) * 1.0]) * win(l12.start, 52.8)
+  let marks = merge([text("the idea", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(0, 4.8) * 1.0, text("a field", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(4.8, 12.0) * 1.0, text("an image", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(12.0, 14.4) * 1.0, text("a sound", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(14.4, 16.8) * 1.0, text("an object", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(16.8, 19.2) * 1.0, text("words", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(19.2, 21.6) * 1.0, text("one stream", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(21.6, 26.4) * 1.0, text("the glitch", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(26.4, 30.0) * 1.0, text("chance", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(30.0, 31.2) * 1.0, text("editions", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(31.2, 40.8) * 1.0, text("alea", x: 0.06, y: -0.19, size: 0.032, font: "mono", align: "left") * win(40.8, 52.8) * 1.0, c_l1, c_l2, c_l3, c_l4, c_l5, c_l6, c_l7, c_l8, c_l9, c_l10, c_l11, c_l12, text("~ 7.4   ~ 4.5   ~ 11.6", x: 0.06, y: 1.03, size: 0.036, font: "mono", align: "left") * win(31.2, 32.4) * 1.0, text("~ 11.1   ~ 5.3   ~ 9.1", x: 0.06, y: 1.03, size: 0.036, font: "mono", align: "left") * win(32.4, 33.6) * 1.0, text("~ 11.0   ~ 4.4   ~ 6.8", x: 0.06, y: 1.03, size: 0.036, font: "mono", align: "left") * win(33.6, 34.8) * 1.0, text("~ 8.8   ~ 4.5   ~ 10.0", x: 0.06, y: 1.03, size: 0.036, font: "mono", align: "left") * win(34.8, 36.0) * 1.0, text("~ 11.3   ~ 6.3   ~ 5.2", x: 0.06, y: 1.03, size: 0.036, font: "mono", align: "left") * win(36.0, 37.2) * 1.0, text("~ 14.6   ~ 4.5   ~ 10.7", x: 0.06, y: 1.03, size: 0.036, font: "mono", align: "left") * win(37.2, 38.4) * 1.0, text("~ 10.6   ~ 4.3   ~ 8.3", x: 0.06, y: 1.03, size: 0.036, font: "mono", align: "left") * win(38.4, 39.6) * 1.0, text("~ 10.7   ~ 7.9   ~ 5.3", x: 0.06, y: 1.03, size: 0.036, font: "mono", align: "left") * win(39.6, 40.8) * 1.0, text("stream(~, ~, ~)", x: 0.06, y: 1.09, size: 0.03, font: "mono", align: "left") * win(31.2, 40.8) * 0.333, text("~", x: 0.5, y: 0.5, size: 0.6, font: "mono") * win(30.0, 31.2) * 1.0, text("alea", x: 0.5, y: 0.46, size: 0.16, font: "mono") * win(52.8, 60) * 0.667, text("~", x: 0.5, y: 0.3, size: 0.12, font: "mono") * win(52.8, 60) * 1.0, text("alea.bngz.io", x: 0.5, y: 0.62, size: 0.045, font: "mono") * win(54.6, 60) * 0.333, frame * (win(0.6, 30.0) + win(31.2, 40.8)) * 0.333])
+  let wordp = paint(marks, palette: ["#000000", "#8f8f8f", "#d6d6d6", "#ff4b2b"], range: [0, 1], alpha: min(marks * 4, 1))
+  let look = film(overlay(shown, wordp), amount: 0.03)
+
+  let reel = timeline([
+      scene(look, 4.8, from: 0 / total, to: 4.8 / total), morph(0.6, amount: 0.12),
+      scene(look, 7.2, from: 4.8 / total, to: 12.0 / total), jump(),
+      scene(look, 2.4, from: 12.0 / total, to: 14.4 / total), morph(0.4, amount: 0.1),
+      scene(look, 2.4, from: 14.4 / total, to: 16.8 / total), morph(0.4, amount: 0.1),
+      scene(look, 2.4, from: 16.8 / total, to: 19.2 / total), morph(0.4, amount: 0.1),
+      scene(look, 2.4, from: 19.2 / total, to: 21.6 / total), jump(),
+      scene(look, 4.8, from: 21.6 / total, to: 26.4 / total), jump(),
+      scene(look, 3.6, from: 26.4 / total, to: 30.0 / total), glitch(0.5, amount: 0.9),
+      scene(look, 1.2, from: 30.0 / total, to: 31.2 / total), glitch(0.3, amount: 0.7),
+      scene(look, 9.6, from: 31.2 / total, to: 40.8 / total), pixels(0.4, size: 0.05),
+      scene(look, 12.0, from: 40.8 / total, to: 52.8 / total), fade(1.0),
+      scene(look, 7.2, from: 52.8 / total, to: 60.0 / total),
+  ])
+
+  // ── the music: 100 BPM, D minor. A pad from the first word; from "a sound" on, the
+  //    drone reading the stream on screen; a soft pulse under the expressions and the
+  //    editions; the glitch torn into the music; a boom on chance; bells at each edition ──
+  let s16 = 400
+  let semi(s) = 1 - (s + 0.5) / 36
+  let pad = synth {
+    let wob = 1 + 0.004 * sine(0.21) + 0.0015 * sine(5.3)
+    let f = note.freq * wob
+    let osc = saw(f) * 0.5 + saw(f * 1.006) * 0.5 + triangle(f * 2.003) * 0.3 + sine(f * 0.5) * 0.4
+    chorus(lowpass(osc, cutoff: 650 + 350 * sine(0.11), resonance: 0.2)
+           * adsr(attack: 0.9, decay: 1.0, sustain: 0.75, release: 2.2) * 0.22, depth: 0.8, rate: 0.23)
+  }
+  let kick = synth { sine(note.freq * (1 + 3 * perc(attack: 0.0005, release: 0.03))) * perc(attack: 0.001, release: 0.25) }
+  let tick = synth { sine(note.freq * (1 + 6 * sine(note.freq * 2.76))) * perc(attack: 0.0003, release: 0.016) }
+  let bell = synth { sine(note.freq * (1 + 1.4 * sine(note.freq * 3.53) * perc(release: 0.5))) * perc(attack: 0.002, release: 1.4) * 0.5
+                      + sine(note.freq * 2.001) * perc(release: 0.25) * 0.15 }
+  let glitch = synth { bandpass(square(note.freq * (1 + 5 * sine(note.freq * 0.51))), cutoff: 2200, resonance: 0.6) * perc(attack: 0.0005, release: 0.028) }
+  let boom = synth { drive(sine(note.freq * (1 + 2.5 * perc(release: 0.06))) * perc(attack: 0.001, release: 1.6), amount: 0.4)
+                      + bandpass(noise(), cutoff: 500, resonance: 0.3) * perc(release: 0.4) * 0.4 }
+  let chords = [[0, 3, 7, 10, 14], [-4, 3, 7, 10, 12], [-7, 0, 5, 8, 12], [-5, 2, 5, 9, 12]]
+  let bars = 25
+  let inside(s, a, b) = (s >= a) * (s < b)
+  pattern pads = repeat bars * 5 event(t: floor(i / 5) * 2.4 / total, x: 0.2 + 0.15 * (i % 5),
+      y: semi(12 + chords[floor(i / 5) % 4][i % 5]), size: 0.15,
+      intensity: inside(floor(i / 5) * 2.4, 0.6, 58) * (0.35 + 0.1 * (i % 5 == 0)) * (1 - 0.6 * inside(floor(i / 5) * 2.4, 26.4, 31.2)))
+  pattern kicks = repeat s16 event(t: i / s16, x: 0.5, y: semi(0), size: 0.01,
+      intensity: (i % 4 == 0) * (inside(i * 0.15, 12.0, 26.4) * 0.6 + inside(i * 0.15, 31.2, 40.8) * 0.8 + inside(i * 0.15, 40.8, 50.4) * 0.4))
+  pattern dust = repeat s16 * 2 event(t: i / (s16 * 2), x: h(i, 41), y: semi(floor(h(i, 43) * 30)), size: 0.002,
+      intensity: (h(i, 42) > 0.8) * (0.2 + 0.4 * h(i, 44)) * (1 - inside(i * 0.075, 52.8, 60)))
+  pattern stutters = repeat 24 event(t: (26.0 + i * 0.0167 + (i >= 12) * 2.3) / total, x: 0.5 + 0.3 * sin(i * 2.1),
+      y: semi(6 + (i % 12) * 2), size: 0.002, intensity: 0.3 + (i % 12) * 0.05)
+  pattern booms = repeat 3 event(t: [4.8, 30.0, 52.8][i] / total, x: 0.5, y: semi(0), size: 0.05, intensity: [0.6, 1.0, 0.7][i])
+  pattern bells = repeat 14 event(t: (31.2 + i * 1.2 - (i >= 8) * 0) / total * (i < 8) + (41.4 + (i - 8) * 1.8) / total * (i >= 8),
+      x: 0.2 + 0.6 * h(i, 51), y: semi([12, 15, 17, 19, 22, 24, 26][floor(h(i, 52) * 7)]), size: 0.05, intensity: 0.55)
+  // the drone reads the stream itself; it rises with "a sound" and stays under the rest
+  let level = (T >= 14.4) * (0.9 * win(14.4, 16.8) + 0.45 * win(16.8, 26.4) + 0.15 * win(26.4, 31.2) + 0.4 * win(31.2, 52.8) + 0.25 * win(52.8, 58))
+
+  let music = [
+    l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13,
+    drone(F * level, voices: 6, instrument: "glass", key: 146.83, scale: "minor", gain: 1.4),
+    notes(pads, instrument: pad, scale: "chromatic", key: 73.42, gain: 0.45),
+    notes(kicks, instrument: kick, scale: "chromatic", key: 48, gain: 0.9),
+    notes(dust, instrument: tick, scale: "chromatic", key: 1200, gain: 0.3),
+    notes(stutters, instrument: glitch, scale: "chromatic", key: 220, gain: 0.6),
+    notes(booms, instrument: boom, scale: "chromatic", key: 36.71, gain: 1.0),
+    notes(bells, instrument: bell, scale: "chromatic", key: 293.66, gain: 0.45),
+  ]
+
+  render image(reel, width: 1080, height: 1920, at: 47.0 / total)
+  render video(reel, fps: 30, width: 1080, height: 1920, duration: total, sound: music, room: 0.25, echo: 0.15)
+}
