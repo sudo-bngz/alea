@@ -7,6 +7,7 @@ is what it draws.
 | | Folder | What it is |
 |---|---|---|
 | **alea speaks** | `intro.alea` (+ `intro/`) | The introduction, about a minute and a quarter: what alea is and what it does, one feature to a cut on the beat, with a voice and its words typed as it speaks. |
+| **Manifesto** | `manifesto.alea` | What alea means, in a minute: one field, the stream of creation, rendered as an image, a sound (the drone you hear reads the field on screen), an object and words; then chance, and the editions it draws. |
 | **alea, one feature at a time** | `series/` | Twelve short episodes on the language, one idea each: the tilde, fields, shapes, transforms, time, filters, pictures, patterns, growing, text, sculpture, components. See `series/README.md`. |
 | **alea, one sound at a time** | `sound/` | The sound series: a track built up one layer at a time, then the picture listening to it: the beat, Euclid, a synth, notes, harmony, drones, voice, listening, editions. See `sound/README.md`. |
 
@@ -16,6 +17,7 @@ en_core_web_sm`). Each episode renders with one command, from its folder:
 
 ```sh
 alea intro.alea --seed 0xa1ea01
+alea manifesto.alea --seed 0x2a
 cd series && alea 01-tilde.alea --seed 0xa1ea01
 cd sound && alea s01-beat.alea --seed 0xa1ea01   # after its track: alea s01-beat-track.alea
 ```

@@ -25,6 +25,16 @@
 
 ---
 
+## The idea
+
+> **A field is the stream of creation. A render is its expression. Chance is how it becomes real.**
+
+In alea everything is a field: a number at every point, before it is anything.
+A render gives it a form, and the same field, unchanged, can become an image,
+a sound, an object or words. Between the idea and its form there is always a
+glitch: `~`, chance, which lets the idea become one edition and not another.
+Keep the seed, and you keep that edition.
+
 ## Thirteen lines, endless rose windows
 
 ```alea

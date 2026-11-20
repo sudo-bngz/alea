@@ -1,5 +1,8 @@
 # The alea guide
 
+> A field is the stream of creation. A render is its expression. Chance is
+> how it becomes real.
+
 This guide teaches alea from the first line to works made of works. Each
 chapter goes with one file of the tour in `examples/tour/`: read the chapter,
 run the file, change it, run it again.
