@@ -630,6 +630,38 @@ together, and a web page made with `--web` carries them (every file
 `files` lists is bundled). Opening a file makes no draw; each file is read
 once per run, and shown with the edition, by name and fingerprint.
 
+### Imagined pictures
+
+`imagine(prompt, …)` gives a picture drawn by a program outside alea, usually
+an image model, from a description in words. It is an image input like any
+other: `.luma`, `.red`, `.painting`, `colours(…)`, `place`, the filters.
+
+| Option | Default | |
+|---|---|---|
+| `prompt` | required | what to draw, a text |
+| `engine` | `$ALEA_IMAGINE` | the program that draws: a path from the work's folder, or a command on the PATH |
+| `seed` | drawn | a whole number (0 to 4294967295). Left out, each edition imagines its own picture; given, every edition shares that one |
+| `width`, `height` | 1024 | the size asked for, in pixels (64–4096) |
+| `model` | the engine's own | passed to the engine as it is |
+
+The engine is asked **once**. Its picture is kept in `imagined/`, next to
+the work, under a name made of the prompt's first words and a key of the
+prompt, seed, size and model. From then on that file is the picture: the
+edition renders the same on any machine, with or without the engine, and in
+the browser (where there is no engine at all: only kept pictures show). Keep
+`imagined/` with the work, as you would a photo. To imagine a picture again,
+delete its file.
+
+An image model is not alea's chance: the same prompt and seed can give
+another picture on another machine or another day. The kept file, not the
+model, is what makes an edition reproducible. `imagine` makes no draw, so
+adding one doesn't change the rest of the edition.
+
+An engine is any program that reads the prompt on its standard input and
+writes a PNG, a JPEG or a WebP on its standard output. It gets `ALEA_SEED`,
+`ALEA_WIDTH`, `ALEA_HEIGHT` and `ALEA_MODEL` in its environment. See
+`imagine/` for engines to use or copy.
+
 ### What comes in
 
 `input(name, or)` gives what the work was given: the default input (`name`

@@ -1202,6 +1202,24 @@ DAW, export the MIDI, and let alea draw and orchestrate it.
 never an absolute path, never `..`. A work and its files stay together, and
 a web page made with `--web` carries them.
 
+**Pictures from words.** `imagine` asks a program outside alea, usually an
+image model, for a picture, and gives it back as an image like one you
+opened:
+
+```alea
+let street = imagine("a rainy street at night, ink drawing", engine: "imagine/local.py")
+render image(paint(kaleidoscope(street.luma, 6), colours(street, 5)))
+```
+
+Each edition imagines its own picture (`seed: 7` gives one for all). The
+engine is asked once: its picture is kept in `imagined/`, next to the work,
+and from then on that file is the picture, so the edition stays the same
+everywhere, even without the engine. A model is a guest in alea: what it
+draws is raw material, a field like any other, for the work to transform.
+`examples/imagine.alea` shows it with an engine that needs no model.
+
+---
+
 ## 29. Timeline: scenes, and how they cross
 
 > Tour: `29-timeline.alea`

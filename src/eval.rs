@@ -2381,6 +2381,9 @@ impl Resolver<'_> {
         if name == "say" {
             return self.say(args, span);
         }
+        if name == "imagine" {
+            return self.imagine(args, span);
+        }
         if matches!(name, "paint" | "mosaic" | "place" | "overlay") {
             return self.painting(name, args, span);
         }
@@ -3668,6 +3671,62 @@ impl Resolver<'_> {
         })
     }
 
+    /// `imagine(prompt, …)`: a picture drawn by a program outside (an image
+    /// model), then kept next to the work.
+    fn imagine(&mut self, args: &[Arg], span: Span) -> Res<Val> {
+        const NAMES: &[&str] = &["prompt", "engine", "seed", "width", "height", "model"];
+        let slots = bind_slots("imagine", NAMES, args)?;
+        let Some(pe) = slots[0] else {
+            return Err(Error::new("`imagine` takes what to draw, in words: `imagine(\"a rainy street at night\")`", span));
+        };
+        let prompt = match self.lower(pe)? {
+            Val::Str(s) if !s.trim().is_empty() => s,
+            Val::Str(_) => return Err(Error::new("there is nothing to imagine: the prompt is empty", pe.span)),
+            other => return Err(Error::new(format!("what to imagine is a text, not {}", kind_of(&other)), pe.span)),
+        };
+        let text = |r: &mut Self, k: usize| -> Res<Option<String>> {
+            match slots[k] {
+                None => Ok(None),
+                Some(e) => match r.lower(e)? {
+                    Val::Str(s) => Ok(Some(s)),
+                    other => Err(Error::new(format!("`{}` is a text, not {}", NAMES[k], kind_of(&other)), e.span)),
+                },
+            }
+        };
+        let engine = text(self, 1)?.or_else(|| std::env::var("ALEA_IMAGINE").ok().filter(|s| !s.is_empty()));
+        let model = text(self, 5)?.unwrap_or_default();
+        let whole = |r: &mut Self, k: usize, lo: f64, hi: f64| -> Res<Option<f64>> {
+            match slots[k] {
+                None => Ok(None),
+                Some(e) => match r.lower(e)? {
+                    Val::Field(f) => match f.constant() {
+                        Some(v) if v >= lo && v <= hi && v.fract() == 0.0 => Ok(Some(v)),
+                        _ => Err(Error::new(format!("`{}` is a whole number from {lo} to {hi}", NAMES[k]), e.span)),
+                    },
+                    other => Err(Error::new(format!("`{}` is a number, not {}", NAMES[k], kind_of(&other)), e.span)),
+                },
+            }
+        };
+        // each edition imagines its own picture, unless `seed:` fixes one for all
+        let seed = match whole(self, 2, 0.0, 4294967295.0)? {
+            Some(v) => v as u32,
+            None => {
+                let words = prompt.bytes().fold(0xcbf2_9ce4_8422_2325u64, |h, b| (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3));
+                (hash(&[self.seed, 0x1a61, words]) >> 32) as u32
+            }
+        };
+        let width = whole(self, 3, 64.0, 4096.0)?.unwrap_or(1024.0) as u32;
+        let height = whole(self, 4, 64.0, 4096.0)?.unwrap_or(1024.0) as u32;
+        let ask = crate::imagine::Ask { dir: &self.module.dir, prompt: &prompt, engine: engine.as_deref(), seed, width, height, model: &model };
+        let (full, shown) = crate::imagine::picture(&ask).map_err(|e| Error::new(e, span))?;
+        let i = crate::input::from_file(&full, &shown).map_err(|e| Error::new(format!("cannot read `{shown}`: {e}"), span))?;
+        if !matches!(i.kind, crate::input::Kind::Image(_)) {
+            return Err(Error::new(format!("`{shown}` is not a picture"), span));
+        }
+        crate::input::mark_used(&i);
+        Ok(Val::Input(i))
+    }
+
     /// `say(text, …)`: a voice reading a text.
     fn say(&mut self, args: &[Arg], span: Span) -> Res<Val> {
         use crate::speech::{Lang, Speech, Timbre};
@@ -4185,6 +4244,46 @@ mod files_tests {
         let p = crate::sound::place_note(&e, crate::sound::Strike::Pluck, &minor, 123.0, 0.0, 10.0);
         assert!((p.freq - 440.0).abs() < 1e-9);
         assert_eq!(p.hold, Some(1.5), "and held as long as written");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The engine is asked once per picture; after that the kept file is the
+    /// picture, with or without the engine.
+    #[cfg(unix)]
+    #[test]
+    fn imagine_asks_once_then_keeps_the_picture() {
+        use std::os::unix::fs::PermissionsExt;
+        let png = include_bytes!("../examples/assets/astronaut.png");
+        // an engine that counts its calls, and checks what it is given
+        let dir = folder("imagine", &[("pic.png", png.as_slice())]);
+        let d = dir.display();
+        let engine = format!(
+            "#!/bin/sh\nread -r prompt\n[ \"$prompt\" = \"a cat\" ] || exit 3\n[ -n \"$ALEA_SEED\" ] && [ \"$ALEA_WIDTH\" = 256 ] || exit 4\n\
+             echo \"$ALEA_SEED\" >> '{d}/calls.txt'\ncat '{d}/pic.png'\n"
+        );
+        std::fs::write(dir.join("engine.sh"), engine).unwrap();
+        std::fs::set_permissions(dir.join("engine.sh"), std::fs::Permissions::from_mode(0o755)).unwrap();
+        let body = "  let p = imagine(\"a cat\", engine: \"engine.sh\", width: 256)\n  constraint count(colours(p, 3)) == 3";
+        let calls = || std::fs::read_to_string(dir.join("calls.txt")).map(|s| s.lines().count()).unwrap_or(0);
+        let before = calls();
+        run(&dir, body, 1).unwrap();
+        run(&dir, body, 1).unwrap();
+        assert_eq!(calls() - before, 1, "the same edition asks once");
+        run(&dir, body, 2).unwrap();
+        assert_eq!(calls() - before, 2, "another edition imagines another picture");
+        // `seed:` fixes one picture for every edition
+        let fixed = "  let p = imagine(\"a cat\", engine: \"engine.sh\", width: 256, seed: 7)";
+        run(&dir, fixed, 1).unwrap();
+        run(&dir, fixed, 2).unwrap();
+        assert_eq!(calls() - before, 3);
+        assert_eq!(std::fs::read_dir(dir.join("imagined")).unwrap().count(), 3);
+        // without the engine: what was kept still renders, the rest says what is missing
+        std::fs::remove_file(dir.join("engine.sh")).unwrap();
+        run(&dir, body, 1).unwrap();
+        let e = run(&dir, "  let p = imagine(\"a cat\", width: 256)", 9).unwrap_err();
+        assert!(e.contains("hasn't been imagined yet"), "{e}");
+        let e = run(&dir, "  let p = imagine(\"a dog\", engine: \"engine.sh\")", 1).unwrap_err();
+        assert!(e.contains("cannot run the engine `engine.sh`"), "{e}");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
