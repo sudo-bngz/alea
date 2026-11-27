@@ -8,6 +8,7 @@ pub mod bounds;
 pub mod compile;
 pub mod error;
 pub mod harmony;
+pub mod imagine;
 pub mod input;
 pub mod eval;
 pub mod fm1;

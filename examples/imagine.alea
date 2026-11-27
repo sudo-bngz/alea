@@ -1,0 +1,15 @@
+// Imagine: a picture asked for in words, then made alea's own.
+// The engine here needs no model (it draws clouds of colour); put
+// "../imagine/local.py", or your own, in its place for a real image model.
+// Each edition imagines its own picture, kept in imagined/ so that the
+// edition stays the same afterwards.
+
+work Imagine {
+  let dream = imagine("a rainy street at night, ink drawing",
+                      engine: "../imagine/sketch.py", width: 512, height: 512)
+
+  // the picture is raw material: folded, and painted in its own colours
+  let folded = kaleidoscope(warp(dream.luma, 0.08), floor(~between(5, 10)))
+  render image(paint(folded, colours(dream, 5)), width: 1080)
+  render image(dream.painting, width: 512)
+}
